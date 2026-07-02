@@ -1,0 +1,1 @@
+- [Session auth architecture](session-auth.md) — HMAC-signed cookie, verify endpoint, task/payment server fns; run src/db/schema-additions.sql in Supabase for persistence.

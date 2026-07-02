@@ -1,0 +1,45 @@
+modules = ["nodejs-24"]
+[nix]
+channel = "stable-25_05"
+
+[agent]
+expertMode = true
+
+[userenv]
+
+[userenv.shared]
+ADMIN_NOTIFY_EMAIL = "profdanx@gmail.com"
+LOCAL_DEV_MODE = "false"
+MAIL_FROM = "Worknesta <talent@worknesta.com>"
+PIPELINE_EMAIL_DELAY_MAX_HOURS = "24"
+PIPELINE_EMAIL_DELAY_MIN_HOURS = "18"
+PUBLIC_BASE_URL = "https://ec22a2bd-3364-41f6-ad21-3249680900a6-00-2a0g01flsml6g.spock.replit.dev"
+SMTP_SECURE = "false"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
