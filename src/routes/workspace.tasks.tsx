@@ -12,6 +12,9 @@ import {
   Loader2,
   Play,
   Pause,
+  RotateCcw,
+  SkipBack,
+  SkipForward,
   Send,
   ArrowUpRight,
 } from "lucide-react";
@@ -103,24 +106,49 @@ function computeEffectiveStatus(
 }
 
 // ─── Audio Player component ────────────────────────────────────────────────────
+const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
+
 function AudioPlayer({ durationMin }: { durationMin: number }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
-
-  const totalSeconds = durationMin * 60;
+  const [duration, setDuration] = useState(0);
+  const [speedIdx, setSpeedIdx] = useState(2); // default 1×
 
   function toggle() {
     const el = audioRef.current;
     if (!el) return;
-    if (playing) {
-      el.pause();
-      setPlaying(false);
-    } else {
-      void el.play().catch(() => {});
-      setPlaying(true);
-    }
+    if (playing) { el.pause(); setPlaying(false); }
+    else { void el.play().catch(() => {}); setPlaying(true); }
+  }
+
+  function restart() {
+    const el = audioRef.current;
+    if (!el) return;
+    el.currentTime = 0;
+    setCurrentTime(0);
+    setProgress(0);
+    if (!playing) { void el.play().catch(() => {}); setPlaying(true); }
+  }
+
+  function skipBack() {
+    const el = audioRef.current;
+    if (!el) return;
+    el.currentTime = Math.max(0, el.currentTime - 10);
+  }
+
+  function skipForward() {
+    const el = audioRef.current;
+    if (!el) return;
+    el.currentTime = Math.min(el.duration || 0, el.currentTime + 10);
+  }
+
+  function cycleSpeed() {
+    const el = audioRef.current;
+    const next = (speedIdx + 1) % SPEEDS.length;
+    setSpeedIdx(next);
+    if (el) el.playbackRate = SPEEDS[next];
   }
 
   function onTimeUpdate() {
@@ -128,6 +156,11 @@ function AudioPlayer({ durationMin }: { durationMin: number }) {
     if (!el) return;
     setCurrentTime(el.currentTime);
     setProgress(el.duration > 0 ? (el.currentTime / el.duration) * 100 : 0);
+  }
+
+  function onLoadedMetadata() {
+    const el = audioRef.current;
+    if (el) setDuration(el.duration);
   }
 
   function onEnded() {
@@ -144,41 +177,92 @@ function AudioPlayer({ durationMin }: { durationMin: number }) {
   }
 
   function fmt(s: number) {
+    if (!s || !isFinite(s)) return "0:00";
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
     return `${m}:${String(sec).padStart(2, "0")}`;
   }
 
-  return (
-    <div className="rounded-xl border border-white/10 bg-[#0b1015] p-4">
-      {/* Hidden audio — no src until real audio is assigned */}
-      <audio ref={audioRef} onTimeUpdate={onTimeUpdate} onEnded={onEnded} />
+  const displayDuration = duration > 0 ? fmt(duration) : fmtDuration(durationMin);
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={toggle}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-lime text-ink hover:opacity-90 transition"
-          aria-label={playing ? "Pause" : "Play"}
-        >
-          {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
-        </button>
-        <div className="flex-1 space-y-1">
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={progress}
-            onChange={seek}
-            className="w-full accent-lime h-1 cursor-pointer"
-          />
-          <div className="flex justify-between text-[11px] text-slate-500">
-            <span>{fmt(currentTime)}</span>
-            <span>{fmtDuration(durationMin)}</span>
-          </div>
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#0b1015] p-4 space-y-3">
+      <audio
+        ref={audioRef}
+        onTimeUpdate={onTimeUpdate}
+        onLoadedMetadata={onLoadedMetadata}
+        onEnded={onEnded}
+      />
+
+      {/* Progress bar */}
+      <div className="space-y-1">
+        <input
+          type="range"
+          min={0}
+          max={100}
+          step={0.1}
+          value={progress}
+          onChange={seek}
+          className="w-full accent-lime h-1.5 cursor-pointer rounded-full"
+        />
+        <div className="flex justify-between text-[11px] text-slate-500">
+          <span>{fmt(currentTime)}</span>
+          <span>{displayDuration}</span>
         </div>
       </div>
-      <p className="mt-2 text-[11px] text-slate-500 italic">
-        Audio file will be loaded when your queue opens. Controls are active.
+
+      {/* Controls row */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1">
+          {/* Replay from start */}
+          <button
+            onClick={restart}
+            title="Restart from beginning"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition"
+          >
+            <RotateCcw className="h-4 w-4" />
+          </button>
+
+          {/* Skip back 10s */}
+          <button
+            onClick={skipBack}
+            title="Back 10 seconds"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition"
+          >
+            <SkipBack className="h-4 w-4" />
+          </button>
+
+          {/* Play / Pause */}
+          <button
+            onClick={toggle}
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-lime text-ink hover:opacity-90 transition"
+            aria-label={playing ? "Pause" : "Play"}
+          >
+            {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 ml-0.5" />}
+          </button>
+
+          {/* Skip forward 10s */}
+          <button
+            onClick={skipForward}
+            title="Forward 10 seconds"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-white/10 hover:text-white transition"
+          >
+            <SkipForward className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Playback speed */}
+        <button
+          onClick={cycleSpeed}
+          title="Change playback speed"
+          className="rounded-md border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-slate-300 hover:bg-white/10 transition"
+        >
+          {SPEEDS[speedIdx]}×
+        </button>
+      </div>
+
+      <p className="text-[11px] text-slate-500 italic">
+        Audio loads when your queue opens. Use ← 10 s / → 10 s to navigate.
       </p>
     </div>
   );

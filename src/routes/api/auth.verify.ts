@@ -8,9 +8,7 @@ export const Route = createFileRoute("/api/auth/verify")({
       GET: async ({ request }) => {
         const url = new URL(request.url);
         const token = url.searchParams.get("t") ?? "";
-        const raw = url.searchParams.get("next") ?? "/workspace";
-        // Prevent open redirect
-        const next = raw.startsWith("/") && !raw.startsWith("//") ? raw : "/workspace";
+        const rawNext = url.searchParams.get("next") ?? "";
 
         if (token.length < 10) {
           return new Response(null, { status: 302, headers: { Location: "/signin?error=invalid" } });
@@ -44,16 +42,53 @@ export const Route = createFileRoute("/api/auth/verify")({
           .is("used_at", null)
           .select("id");
         if (!updated || updated.length === 0) {
-          // Another request already consumed this token
           return new Response(null, { status: 302, headers: { Location: "/signin?error=expired" } });
         }
+
+        // Smart redirect: returning users who finished onboarding go straight to dashboard;
+        // new users who haven't completed onboarding go to the setup flow.
+        const destination = await resolveDestination(sb, applicationId, rawNext);
 
         const cookie = buildSessionCookie(applicationId);
         return new Response(null, {
           status: 302,
-          headers: { Location: next, "Set-Cookie": cookie },
+          headers: { Location: destination, "Set-Cookie": cookie },
         });
       },
     },
   },
 });
+
+async function resolveDestination(
+  sb: ReturnType<typeof import("@/lib/server/supabaseAdmin").getSupabaseAdmin>,
+  applicationId: string,
+  hintNext: string,
+): Promise<string> {
+  try {
+    const [{ data: app }, { data: onboarding }] = await Promise.all([
+      sb.from("applications").select("status").eq("id", applicationId).single(),
+      sb.from("onboarding").select("completed_at").eq("application_id", applicationId).maybeSingle(),
+    ]);
+
+    const status = (app?.status as string) ?? "";
+
+    // Already fully onboarded — go straight to the workspace dashboard
+    if (status === "active" || onboarding?.completed_at) {
+      return "/workspace";
+    }
+
+    // In the middle of onboarding or just selected — go to onboarding setup
+    if (status === "onboarding" || status === "assessment_complete") {
+      return "/onboarding/workspace-setup";
+    }
+
+    // Fall back to the hint from the email link, then a safe default
+    if (hintNext && hintNext.startsWith("/") && !hintNext.startsWith("//")) {
+      return hintNext;
+    }
+  } catch {
+    // If the DB lookup fails, fall through to safe defaults below
+  }
+
+  return "/workspace";
+}

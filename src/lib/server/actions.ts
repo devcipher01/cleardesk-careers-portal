@@ -154,16 +154,28 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
         throw new Error("Failed to issue sign-in link. Please try again in a moment.");
       }
 
+      // Check onboarding completion to decide where the link should land
+      const { data: onboardingRow } = await sb
+        .from("onboarding")
+        .select("completed_at")
+        .eq("application_id", app.id as string)
+        .maybeSingle();
+
+      const onboardingDone = Boolean(onboardingRow?.completed_at) || appStatus === "active";
+
       // Only create a new onboarding row for users who haven't started onboarding yet.
       // Active contractors and users already in the onboarding flow do NOT get a new row.
-      if (!["onboarding", "active"].includes(appStatus)) {
+      if (!["onboarding", "active"].includes(appStatus) && !onboardingRow) {
         const { error: onboardErr } = await sb
           .from("onboarding")
           .insert({ application_id: app.id, token_id: tokRow.id });
         if (onboardErr) console.warn("Failed to insert onboarding row:", onboardErr.message ?? onboardErr);
       }
 
-      const link = `${publicBaseUrl()}/api/auth/verify?t=${encodeURIComponent(tokRow.token)}`;
+      // Smart destination: returning contractors go straight to dashboard,
+      // new/incomplete users continue their onboarding setup.
+      const nextPath = onboardingDone ? "/workspace" : "/onboarding/workspace-setup";
+      const link = `${publicBaseUrl()}/api/auth/verify?t=${encodeURIComponent(tokRow.token)}&next=${encodeURIComponent(nextPath)}`;
 
       // Choose email copy based on where the user is in the pipeline
       let subject: string;
