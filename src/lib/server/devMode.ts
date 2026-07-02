@@ -31,7 +31,10 @@ export function adminNotifyEmail() {
 }
 
 export function publicBaseUrl() {
-  return process.env.PUBLIC_BASE_URL || "https://worknesta.com";
+  if (process.env.PUBLIC_BASE_URL) return process.env.PUBLIC_BASE_URL;
+  // In Replit, fall back to the live dev domain so email links always reach this app.
+  if (process.env.REPLIT_DEV_DOMAIN) return `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  return "https://worknesta.com";
 }
 
 /** Comma-separated list of emails that should receive immediate test emails. */

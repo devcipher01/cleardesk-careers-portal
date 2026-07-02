@@ -115,7 +115,9 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
       const { data: app } = await sb
         .from("applications")
         .select("id, full_name, email, role_slug, role_title, status")
-        .eq("email", data.email)
+        .ilike("email", data.email.trim())
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (!app) throw new Error("No application found for that email");
 
