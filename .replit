@@ -1,0 +1,50 @@
+modules = ["nodejs-24"]
+[nix]
+channel = "stable-25_05"
+
+[agent]
+expertMode = true
+
+[userenv]
+
+[userenv.shared]
+ADMIN_NOTIFY_EMAIL = "profdanx@gmail.com"
+LOCAL_DEV_MODE = "false"
+MAIL_FROM = "Worknesta <talent@worknesta.com>"
+PIPELINE_EMAIL_DELAY_MAX_HOURS = "24"
+PIPELINE_EMAIL_DELAY_MIN_HOURS = "18"
+SMTP_SECURE = "false"
+TEST_EMAILS = "profdanx@gmail.com"
+PUBLIC_BASE_URL = "https://4cf2af65-9d8c-494b-85bc-932749656542-00-y2cmezi0cmhm.janeway.replit.dev"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Start application"
+
+[[workflows.workflow]]
+name = "Start application"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 5001
+externalPort = 3000

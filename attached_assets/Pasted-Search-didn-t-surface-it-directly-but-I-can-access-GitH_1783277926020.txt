@@ -1,0 +1,30 @@
+Search didn't surface it directly, but I can access GitHub via my sandbox's network directly — let me clone it there instead.Got it, cloned successfully. Let me look at the structure and key config files.Found it. This is a **TanStack Start** app (not a plain Vite SPA) — it uses `@tanstack/react-start` for full-document SSR, server functions, and API routes (you have `src/routes/api/*.ts` files for cron/auth). That kind of app needs to be compiled by **Nitro** into Vercel Functions, or Vercel has nothing to route requests to and serves a `NOT_FOUND`.
+
+Here's the smoking gun in your `vite.config.ts`:
+
+```ts
+plugins: [tailwindcss(), tsconfigPaths(), tanstackStart()],
+```
+
+`nitro` is listed in your `package.json` dependencies, but it's **never actually added to the Vite plugins array**. Per TanStack/Vercel's own docs, you need:
+
+```ts
+import { nitro } from "nitro/vite";
+
+plugins: [tailwindcss(), tsconfigPaths(), tanstackStart(), nitro()],
+```
+
+Without the `nitro()` plugin, the build doesn't get compiled into the server output Vercel expects (`.output/server`, Vercel Functions manifest, etc.), so:
+- Your static build might partially work
+- But server-rendered routes, and definitely your `/api/cron/emails`, `/api/auth.signout`, `/api/auth.verify` routes → 404, since there's no function for Vercel to invoke
+
+This also matches your `vercel.json` referencing a cron job pointing at `/api/cron/emails` — that route can't exist as a Vercel Function without Nitro's Vercel preset generating it.
+
+**Fix:**
+1. Add `nitro()` to the plugins array in `vite.config.ts` as shown above.
+2. Redeploy — Vercel should auto-detect the Nitro output once it's present (per Vercel's TanStack Start docs, it auto-detects the preset, no extra `vercel.json` changes needed).
+3. Locally test with `npm run build` and check that a `.output/server` directory is generated — if it's not appearing today, that confirms this is the gap.
+
+One thing to double check: since `nitro` is already in `package.json` at `"3.0.260610-beta"`, make sure that version supports the plain `nitro/vite` import path (it's a fairly new package) — if you hit an import error, let me know and I'll check the exact API for that version.
+
+Want me to make this edit directly and push a fix, or would you rather apply it via Replit?
