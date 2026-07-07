@@ -5,17 +5,27 @@ const MAX_AGE_SECONDS = 30 * 24 * 60 * 60; // 30 days
 const IS_DEV = process.env.NODE_ENV !== "production";
 
 /**
- * Use SUPABASE_SERVICE_ROLE_KEY as the HMAC signing key — it is already
- * required for all DB queries, so no extra secret variable is needed.
- * Falls back to a dev-only stub when running locally without Supabase.
+ * HMAC signing key for session cookies.
+ * Prefers SESSION_SECRET, falls back to SUPABASE_SERVICE_ROLE_KEY.
+ * In production, throws if neither is present — never uses a static fallback.
+ * In dev (LOCAL_DEV_MODE=true), uses a fixed stub so Supabase isn't required.
  */
 function getSecret(): Buffer {
-  const s = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!s || s.length < 16) {
-    // Dev-only fallback — Supabase isn't required for local testing
+  const preferred = process.env.SESSION_SECRET;
+  if (preferred && preferred.length >= 16) return Buffer.from(preferred, "utf8");
+
+  const fallback = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (fallback && fallback.length >= 16) return Buffer.from(fallback, "utf8");
+
+  const isLocalDev = process.env.LOCAL_DEV_MODE === "true";
+  if (isLocalDev) {
     return Buffer.from("dev-secret-local-only-not-used-in-prod", "utf8");
   }
-  return Buffer.from(s, "utf8");
+
+  throw new Error(
+    "SESSION_SECRET (or SUPABASE_SERVICE_ROLE_KEY) must be set and at least 16 characters. " +
+      "Add SESSION_SECRET to your Replit Secrets.",
+  );
 }
 
 const SECURE_FLAG = IS_DEV ? "" : "; Secure";
