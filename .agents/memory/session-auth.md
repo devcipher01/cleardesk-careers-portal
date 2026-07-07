@@ -1,56 +1,33 @@
 ---
 name: Session auth architecture
-description: How workspace authentication works — cookie, verify endpoint, server functions, DB tables needed.
+description: How auth, session identity, and access control work after the Supabase Auth migration
 ---
 
-## Auth flow
+## Current auth stack
 
-Email magic link → `/api/auth/verify?t=TOKEN[&next=/onboarding]`
-- Validates token from `application_tokens` (type `onboarding`)
-- Conditional update (`.is("used_at", null)`) prevents replay attacks
-- Sets HMAC-signed `wn_session` cookie (base64url(appId).hmac)
-- Redirects to `next` (defaults `/workspace`)
+- **Sign-in flow**: magic links via Supabase Auth admin (`sb.auth.admin.generateLink`) — every entry path goes through `/api/auth/verify` which validates a one-time token, generates a Supabase magic link, redirects the browser through Supabase → `/auth/callback` → destination.
+- **Session persistence**: Supabase stores the session in localStorage automatically (survives tab close/reopen).
+- **Client session helper**: `getSessionData()` in `src/lib/client/supabase.ts` returns `{ appId, accessToken }` from the live session. All workspace and onboarding pages call this and pass both to server functions.
+- **Server-side identity verification**: `resolveAppId(clientAppId, accessToken)` in `actions.ts` is async — it verifies the access token via `sb.auth.getUser(accessToken)` and extracts `applicationId` from user metadata. Falls back to UUID-format `clientAppId` only if no token is provided.
+- **applicationId in Supabase user metadata**: set in `/api/auth/verify` via `admin.updateUserById` after magic link generation; also set via `generateLink`'s `data` option for new users.
 
-Sign-out → `/api/auth/signout` (GET) → clears cookie → redirects `/`
+## Key decisions
 
-## Cookie
+- Every server function that touches candidate data (`getWorkspaceBySession`, `getTaskProgressBySession`, `submitTranscriptionTask`, `getPaymentInfoBySession`, `savePaymentInfoBySession`, `onboardingGetBySession`, `onboardingCompleteBySession`, `sendSupportMessageBySession`) accepts `{ clientAppId?, accessToken? }` — the access token provides JWT-verified identity.
+- Token mark-used (`used_at`) in `/api/auth/verify` happens AFTER `generateLink` succeeds, so failed magic-link generation doesn't burn the one-time token.
+- Sign-out: primary path is `supabase.auth.signOut()` client-side in OrgShell. `/api/auth/signout` redirects to `/signout` page (client-rendered, clears session then navigates home). Covers stale bookmarks.
+- Onboarding has two paths: (1) Supabase session primary (for links routed through `/api/auth/verify`), (2) legacy direct-token fallback for old email links.
 
-`src/lib/server/session.ts` — `buildSessionCookie`, `clearSessionCookie`, `getApplicationIdFromCookies`
-- Uses `SESSION_SECRET` env var (throws in production if missing/short)
-- Adds `Secure` flag in production (`NODE_ENV === "production"`)
-- Cookie name: `wn_session`
+## SSR gotcha — Supabase browser client
 
-## Server functions added (actions.ts)
+**Why:** `createClient(url, key)` runs at module evaluation time. During Vite SSR, `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` may be undefined if not in process.env, causing `supabaseUrl is required` crash.
 
-All use `getRequestHeader("cookie")` → `getApplicationIdFromCookies` → applicationId:
-- `getWorkspaceBySession` — main session check, returns candidateName/roleTitle/ndaSigned/contractSubmitted
-- `getTaskProgressBySession` — reads `task_progress` table
-- `submitTranscriptionTask` — upserts to `task_progress`
-- `getPaymentInfoBySession` / `savePaymentInfoBySession` — reads/writes `payment_info`
-- `onboardingGetBySession` — returns name/role for onboarding page
-- `onboardingCompleteBySession` — marks application status=onboarding
-- `sendSupportMessageBySession` — emails admin
+**How to apply:** Always use `?? "https://placeholder.supabase.co"` / `?? "placeholder-anon-key"` fallbacks in `src/lib/client/supabase.ts`. Auth methods are only invoked client-side (useEffect / async handlers), so the placeholder client is never exercised at runtime.
 
-## DB tables needed
+## Schema
 
-Run `src/db/schema-additions.sql` in Supabase dashboard:
-- `task_progress` (application_id, task_id, status, transcription_text, submitted_at, reviewed_at, earnings_usd)
-- `payment_info` (application_id, payment_method, account_email, account_name)
-- Unique constraints: (application_id, task_id) and (application_id)
+Run `src/db/schema-additions.sql` in Supabase SQL editor for session persistence tables (`workspace_onboarding`, `task_progress`, `payment_info` etc.).
 
-If tables don't exist, task progress falls back to localStorage (`wn_task_progress_${applicationId}`).
+## Supabase project setup required
 
-## Task unlock logic
-
-Tasks 1-10 in 4 groups (3+3+3+1). `computeEffectiveStatus(task, progress, contractSubmitted)`:
-- If `!contractSubmitted` → all locked
-- Group 1: always available
-- Group N: requires all group N-1 tasks to be `submitted` or `reviewed`
-
-## Email links
-
-- `resendWorkspaceLink` → `/api/auth/verify?t=TOKEN` (→ /workspace)
-- `pipelineSubmitSkillsProfile` → `/api/auth/verify?t=TOKEN&next=/onboarding`
-
-**Why:** Token-in-URL auth exposed applicationId in browser history/referrer headers and didn't expire on use.
-**How to apply:** Any new email links that grant workspace access should go through `/api/auth/verify?t=TOKEN`.
+Add the Replit preview domain `https://<repl-slug>.janeway.replit.dev/**` to Supabase Dashboard → Authentication → URL Configuration → Redirect URLs before magic links work end-to-end.

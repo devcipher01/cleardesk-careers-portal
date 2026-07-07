@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession, getTaskProgressBySession } from "@/lib/server/actions";
-import { getStoredAppId, saveAppId } from "@/lib/client/session";
+import { getSessionData } from "@/lib/client/supabase";
 
 export const Route = createFileRoute("/workspace/tasks")({
   head: () => ({ meta: [{ title: "Tasks — Worknesta Workspace" }] }),
@@ -566,15 +566,14 @@ function TasksPage() {
   useEffect(() => {
     void (async () => {
       try {
-        // Load session + DB task progress in parallel; pass stored ID as cookie fallback
-        const storedId = getStoredAppId();
+        // Load session + DB task progress in parallel
+        const { appId: sessionAppId, accessToken } = await getSessionData();
         const [s, dbResult] = await Promise.all([
-          getWorkspaceBySession({ data: { clientAppId: storedId } }),
-          getTaskProgressBySession({ data: { clientAppId: storedId } }).catch(() => ({ authenticated: false as const, tasks: [] })),
+          getWorkspaceBySession({ data: { clientAppId: sessionAppId, accessToken } }),
+          getTaskProgressBySession({ data: { clientAppId: sessionAppId, accessToken } }).catch(() => ({ authenticated: false as const, tasks: [] })),
         ]);
         if (!s.authenticated) { setSession({ status: "unauthenticated" }); return; }
-        const appId = s.applicationId;
-        saveAppId(appId);
+        const appId = s.applicationId; // validated string from server
         setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, contractSubmitted: s.contractSubmitted, applicationId: appId });
 
         // Start with localStorage, then overwrite with authoritative DB records
@@ -670,7 +669,9 @@ function TasksPage() {
 
     try {
       const { submitTranscriptionTask } = await import("@/lib/server/actions");
-      await submitTranscriptionTask({ data: { taskId, transcriptionText: text, earningsUsd: task.earningsUsd, clientAppId: applicationId } });
+      const { getSessionData: sd } = await import("@/lib/client/supabase");
+      const { appId: curAppId, accessToken: curToken } = await sd();
+      await submitTranscriptionTask({ data: { taskId, transcriptionText: text, earningsUsd: task.earningsUsd, clientAppId: curAppId ?? applicationId, accessToken: curToken } });
     } catch { /* silent — localStorage already updated */ }
   }
 

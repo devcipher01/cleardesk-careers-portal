@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { getWorkspaceBySession } from "@/lib/server/actions";
-import { getStoredAppId } from "@/lib/client/session";
+import { getSessionData } from "@/lib/client/supabase";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -78,15 +78,17 @@ function HomePage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const storedId = getStoredAppId();
-    if (!storedId) return;
-    void getWorkspaceBySession({ data: { clientAppId: storedId } })
-      .then((s) => {
-        if (!s.authenticated) return;
-        void navigate({ to: s.contractSubmitted ? "/workspace" : "/onboarding/workspace-setup" });
-      })
-      .catch(() => {});
-  }, []);
+    void (async () => {
+      const { appId, accessToken } = await getSessionData();
+      if (!appId) return;
+      try {
+        const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
+        if (s.authenticated) {
+          void navigate({ to: s.contractSubmitted ? "/workspace" : "/onboarding/workspace-setup" });
+        }
+      } catch { /* no auto-redirect on error */ }
+    })();
+  }, [navigate]);
 
   return (
     <>

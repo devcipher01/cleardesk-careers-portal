@@ -16,6 +16,8 @@ PIPELINE_EMAIL_DELAY_MIN_HOURS = "18"
 SMTP_SECURE = "false"
 TEST_EMAILS = "profdanx@gmail.com"
 PUBLIC_BASE_URL = "https://4cf2af65-9d8c-494b-85bc-932749656542-00-y2cmezi0cmhm.janeway.replit.dev"
+VITE_SUPABASE_URL = "https://mffsaagadruyyijnwyam.supabase.co"
+VITE_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1mZnNhYWdhZHJ1eXlpam53eWFtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MTI4MzIsImV4cCI6MjA5NjE4ODgzMn0.e2mC42-7joAt0XUlc9kcJoCz4H2Kq6UmFiqLrryxlT8"
 
 [workflows]
 runButton = "Project"

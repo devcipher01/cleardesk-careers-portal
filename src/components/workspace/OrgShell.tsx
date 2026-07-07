@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
   ArrowUpRight,
   Briefcase,
@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { displayRoleTitle } from "@/lib/careersPipeline";
 import { BRAND_NAME } from "@/lib/brand";
+import { supabase } from "@/lib/client/supabase";
 
 export type OrgNavId = "dashboard" | "setup" | "tasks" | "earnings" | "help" | "settings";
 
@@ -85,6 +86,7 @@ export function OrgShell({
   activeNav,
   children,
 }: OrgShellProps) {
+  const navigate = useNavigate();
   const displayName = candidateName.trim() || "Contractor";
   const displayRole = displayRoleTitle(roleTitle);
   const initials = displayName
@@ -92,6 +94,11 @@ export function OrgShell({
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase() ?? "")
     .join("");
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    void navigate({ to: "/" });
+  }
 
   const userFooter = (
     <>
@@ -104,13 +111,13 @@ export function OrgShell({
           <p className="truncate text-xs text-slate-400">{displayRole}</p>
         </div>
       </div>
-      <a
-        href="/api/auth/signout"
+      <button
+        onClick={() => void handleSignOut()}
         className="mt-4 flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300"
       >
         <LogOut className="h-3.5 w-3.5" />
         Sign out
-      </a>
+      </button>
     </>
   );
 

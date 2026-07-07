@@ -5,16 +5,14 @@ import { AlertTriangle, ArrowUpRight, CheckCircle2, ExternalLink, Loader2, Lock 
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import {
   NETVERIFY_REGISTRAR_URL,
-  PIPELINE_SESSION_KEY,
   VDE_TOKEN_REGEX,
 } from "@/lib/careersPipeline";
 import {
-  getWorkspaceSetupState,
   getWorkspaceBySession,
   submitWorkspaceContract,
   submitWorkspaceNda,
 } from "@/lib/server/actions";
-import { getStoredAppId, saveAppId } from "@/lib/client/session";
+import { getSessionData } from "@/lib/client/supabase";
 
 interface Search {
   applicationId?: string;
@@ -55,61 +53,24 @@ function WorkspaceSetupPage() {
 
   useEffect(() => {
     void (async () => {
-      // Persist URL applicationId immediately so it survives navigation and tab reopen
-      if (searchId) saveAppId(searchId);
-
-      // 1. Try session (cookie-first, localStorage fallback for Vercel serverless cookie issues)
       try {
-        const sess = await getWorkspaceBySession({ data: { clientAppId: searchId ?? getStoredAppId() } });
-        if (sess.authenticated) {
-          const id = sess.applicationId;
-          saveAppId(id);
-          setApplicationId(id);
-          setCandidateName(sess.candidateName);
-          setRoleTitle(sess.roleTitle);
-          if (sess.contractSubmitted) {
-            setPhase("success");
-            return;
-          }
-          if (sess.ndaSigned) {
-            setPhase("contract");
-            setEmployeeSignature(sess.candidateName.split(" ")[0] ?? "");
-          } else {
-            setPhase("nda");
-          }
-          return;
-        }
-      } catch {
-        /* fall through to URL/sessionStorage */
-      }
+        const { appId, accessToken } = await getSessionData();
+        if (!appId) { setPhase("denied"); return; }
 
-      // 2. Fall back to URL param → sessionStorage → localStorage
-      const id =
-        searchId ||
-        (typeof window !== "undefined" ? sessionStorage.getItem(PIPELINE_SESSION_KEY) : null) ||
-        getStoredAppId() ||
-        undefined;
+        const sess = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
+        if (!sess.authenticated) { setPhase("denied"); return; }
 
-      if (!id) {
-        setPhase("denied");
-        return;
-      }
-      setApplicationId(id);
+        setApplicationId(sess.applicationId);
+        setCandidateName(sess.candidateName);
+        setRoleTitle(sess.roleTitle);
 
-      try {
-        const state = await getWorkspaceSetupState({ data: { applicationId: id } });
-        if (!state.allowed) {
-          setPhase("nda");
-          return;
-        }
-        setCandidateName(state.candidateName);
-        setRoleTitle(state.roleTitle);
-        if (state.ndaLegalName) setNdaName(state.ndaLegalName);
-        if (state.contractSubmitted) {
+        if (sess.contractSubmitted) {
           setPhase("success");
-        } else if (state.ndaSigned) {
+          return;
+        }
+        if (sess.ndaSigned) {
           setPhase("contract");
-          setEmployeeSignature(state.ndaLegalName);
+          setEmployeeSignature(sess.candidateName.split(" ")[0] ?? "");
         } else {
           setPhase("nda");
         }
@@ -117,7 +78,7 @@ function WorkspaceSetupPage() {
         setPhase("denied");
       }
     })();
-  }, [searchId]);
+  }, []);
 
   const tokenValid = useMemo(() => VDE_TOKEN_REGEX.test(vdeToken.trim().toUpperCase()), [vdeToken]);
 
@@ -163,7 +124,6 @@ function WorkspaceSetupPage() {
             vdeToken: vdeToken.trim().toUpperCase(),
           },
         });
-        saveAppId(applicationId);
         setPhase("success");
       } catch (e) {
         setContractError(e instanceof Error ? e.message : "Contract submission failed");

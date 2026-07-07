@@ -3,9 +3,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, ArrowUpRight, Loader2 } from "lucide-react";
 import { onboardingComplete, onboardingGet, onboardingCompleteBySession, onboardingGetBySession } from "@/lib/server/actions";
-import { getStoredAppId, saveAppId } from "@/lib/client/session";
+import { getSessionData } from "@/lib/client/supabase";
 import { OrgShell } from "@/components/workspace/OrgShell";
-import { PIPELINE_SESSION_KEY } from "@/lib/careersPipeline";
 
 interface Search {
   token?: string;
@@ -47,7 +46,26 @@ function OnboardingPage() {
       setLoading(true);
       setError("");
 
-      // 1. Try token from URL first (original flow)
+      // 1. Try Supabase session (primary path — links go through /api/auth/verify first)
+      try {
+        const { appId, accessToken } = await getSessionData();
+        const res = await onboardingGetBySession({ data: { clientAppId: appId, accessToken } });
+        if (res.valid) {
+          setValid(true);
+          setCompleted(false);
+          setApplicationId(res.applicationId);
+          setName(res.name);
+          setRoleSlug(res.roleSlug);
+          setRoleTitle(res.roleTitle);
+          setAuthMode("session");
+          setLoading(false);
+          return;
+        }
+      } catch {
+        /* fall through to direct token */
+      }
+
+      // 2. Legacy fallback: direct token in URL (old email links)
       if (token) {
         try {
           const res = await onboardingGet({ data: { token } });
@@ -59,53 +77,6 @@ function OnboardingPage() {
             setRoleSlug(res.roleSlug);
             setRoleTitle(res.roleTitle);
             setAuthMode("token");
-            if (res.applicationId && typeof window !== "undefined") {
-              window.sessionStorage.setItem(PIPELINE_SESSION_KEY, res.applicationId);
-              saveAppId(res.applicationId);
-            }
-            setLoading(false);
-            return;
-          }
-        } catch {
-          /* fall through to session */
-        }
-      }
-
-      // 2. Try session cookie with localStorage fallback
-      try {
-        const res = await onboardingGetBySession({ data: { clientAppId: getStoredAppId() } });
-        if (res.valid) {
-          saveAppId(res.applicationId);
-          setValid(true);
-          setCompleted(false);
-          setApplicationId(res.applicationId);
-          setName(res.name);
-          setRoleSlug(res.roleSlug);
-          setRoleTitle(res.roleTitle);
-          setAuthMode("session");
-          if (typeof window !== "undefined") {
-            window.sessionStorage.setItem(PIPELINE_SESSION_KEY, res.applicationId);
-          }
-          setLoading(false);
-          return;
-        }
-      } catch {
-        /* fall through */
-      }
-
-      // 3. Try sessionStorage / localStorage fallback
-      const storedId = (typeof window !== "undefined" ? window.sessionStorage.getItem(PIPELINE_SESSION_KEY) : null) ?? getStoredAppId();
-      if (storedId) {
-        try {
-          const res = await onboardingGetBySession({ data: { clientAppId: storedId } });
-          if (res.valid) {
-            saveAppId(res.applicationId);
-            setValid(true);
-            setName(res.name);
-            setRoleSlug(res.roleSlug);
-            setRoleTitle(res.roleTitle);
-            setApplicationId(res.applicationId);
-            setAuthMode("session");
             setLoading(false);
             return;
           }
@@ -139,12 +110,10 @@ function OnboardingPage() {
     setError("");
     try {
       if (authMode === "session") {
-        await onboardingCompleteBySession({ data: { ready, clientAppId: getStoredAppId() } });
+        const { appId, accessToken } = await getSessionData();
+        await onboardingCompleteBySession({ data: { ready, clientAppId: appId, accessToken } });
       } else if (token) {
         await onboardingComplete({ data: { token, ready } });
-        if (applicationId && typeof window !== "undefined") {
-          window.sessionStorage.setItem(PIPELINE_SESSION_KEY, applicationId);
-        }
       }
       setCompleted(true);
     } catch (e: any) {

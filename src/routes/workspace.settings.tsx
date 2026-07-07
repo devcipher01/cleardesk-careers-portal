@@ -17,7 +17,7 @@ import {
   getPaymentInfoBySession,
   savePaymentInfoBySession,
 } from "@/lib/server/actions";
-import { getStoredAppId, saveAppId } from "@/lib/client/session";
+import { getSessionData } from "@/lib/client/supabase";
 
 export const Route = createFileRoute("/workspace/settings")({
   head: () => ({ meta: [{ title: "Settings — Worknesta Workspace" }] }),
@@ -53,13 +53,12 @@ function SettingsPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const storedId = getStoredAppId();
-        const s = await getWorkspaceBySession({ data: { clientAppId: storedId } });
+        const { appId, accessToken } = await getSessionData();
+        const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
         if (!s.authenticated) {
           setSession({ status: "unauthenticated" });
           return;
         }
-        saveAppId(s.applicationId);
         setSession({
           status: "ready",
           candidateName: s.candidateName,
@@ -68,7 +67,7 @@ function SettingsPage() {
         });
         // Load saved payment info
         try {
-          const pi = await getPaymentInfoBySession({ data: { clientAppId: storedId } });
+          const pi = await getPaymentInfoBySession({ data: { clientAppId: appId, accessToken } });
           if (pi) {
             if (pi.payment_method === "wise" || pi.payment_method === "payoneer") {
               setPaymentMethod(pi.payment_method);
@@ -114,8 +113,9 @@ function SettingsPage() {
     setPaymentError("");
     setPaymentSaved(false);
     try {
+      const { appId: currentAppId, accessToken: currentToken } = await getSessionData();
       await savePaymentInfoBySession({
-        data: { paymentMethod, accountEmail: accountEmail.trim(), accountName: accountName.trim(), clientAppId: getStoredAppId() },
+        data: { paymentMethod, accountEmail: accountEmail.trim(), accountName: accountName.trim(), clientAppId: currentAppId, accessToken: currentToken },
       });
       setPaymentSaved(true);
     } catch (err: any) {

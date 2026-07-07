@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { ArrowUpRight, HelpCircle, Loader2, Mail, MessageSquare, Send } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession, sendSupportMessageBySession } from "@/lib/server/actions";
-import { getStoredAppId, saveAppId } from "@/lib/client/session";
+import { getSessionData } from "@/lib/client/supabase";
 
 export const Route = createFileRoute("/workspace/support")({
   head: () => ({ meta: [{ title: "Help Center — Worknesta Workspace" }] }),
@@ -26,10 +26,9 @@ function SupportPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const storedId = getStoredAppId();
-        const s = await getWorkspaceBySession({ data: { clientAppId: storedId } });
+        const { appId, accessToken } = await getSessionData();
+        const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
         if (!s.authenticated) { setSession({ status: "unauthenticated" }); return; }
-        saveAppId(s.applicationId);
         setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle });
       } catch {
         setSession({ status: "unauthenticated" });
@@ -62,7 +61,8 @@ function SupportPage() {
     setSubmitting(true);
     setError("");
     try {
-      await sendSupportMessageBySession({ data: { message: message.trim(), clientAppId: getStoredAppId() } });
+      const { appId: currentAppId, accessToken: currentToken } = await getSessionData();
+      await sendSupportMessageBySession({ data: { message: message.trim(), clientAppId: currentAppId, accessToken: currentToken } });
       setSent(true);
     } catch (e: any) {
       setError(e?.message || "Failed to send. Please email talent@worknesta.com directly.");

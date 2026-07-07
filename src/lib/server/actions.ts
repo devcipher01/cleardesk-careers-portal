@@ -1,6 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, getRequestIP } from "@tanstack/start-server-core";
-import { getApplicationIdFromCookies } from "./session";
 import { z } from "zod";
 import { getSupabaseAdmin } from "./supabaseAdmin";
 import { expiresInHours, generateToken } from "./tokens";
@@ -135,25 +134,6 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
         throw new Error("This email is not eligible for a workspace sign-in link yet. Please apply and complete the Skills Review first.");
       }
 
-      // Issue a fresh one-time session token (30-day window)
-      const token = generateToken();
-      const expiresAt = expiresInHours(24 * 30);
-      const { data: tokRow, error: tokErr } = await sb
-        .from("application_tokens")
-        .insert({
-          application_id: app.id,
-          type: "onboarding",
-          token,
-          expires_at: expiresAt,
-          role_slug: app.role_slug,
-          role_title: app.role_title,
-        })
-        .select("id, token")
-        .single();
-      if (tokErr || !tokRow) {
-        throw new Error("Failed to issue sign-in link. Please try again in a moment.");
-      }
-
       // Check onboarding completion to decide where the link should land
       const { data: onboardingRow } = await sb
         .from("onboarding")
@@ -162,20 +142,39 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
         .maybeSingle();
 
       const onboardingDone = Boolean(onboardingRow?.completed_at) || appStatus === "active";
-
-      // Only create a new onboarding row for users who haven't started onboarding yet.
-      // Active contractors and users already in the onboarding flow do NOT get a new row.
-      if (!["onboarding", "active"].includes(appStatus) && !onboardingRow) {
-        const { error: onboardErr } = await sb
-          .from("onboarding")
-          .insert({ application_id: app.id, token_id: tokRow.id });
-        if (onboardErr) console.warn("Failed to insert onboarding row:", onboardErr.message ?? onboardErr);
-      }
-
-      // Smart destination: returning contractors go straight to dashboard,
-      // new/incomplete users continue their onboarding setup.
       const nextPath = onboardingDone ? "/workspace" : "/onboarding/workspace-setup";
-      const link = `${publicBaseUrl()}/api/auth/verify?t=${encodeURIComponent(tokRow.token)}&next=${encodeURIComponent(nextPath)}`;
+
+      // Create/update Supabase Auth user and generate a magic sign-in link (24-hour window)
+      const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+      const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
+        type: "magiclink",
+        email: data.email.trim(),
+        options: {
+          redirectTo: callbackUrl,
+          data: {
+            applicationId: app.id,
+            candidateName: app.full_name,
+            roleTitle: app.role_title,
+          },
+        },
+      });
+      if (linkErr || !linkData) {
+        throw new Error("Failed to generate sign-in link. Please try again.");
+      }
+      // Update user_metadata for existing users (generateLink's data option only applies to new users)
+      await sb.auth.admin
+        .updateUserById(linkData.user.id, {
+          user_metadata: {
+            applicationId: app.id,
+            candidateName: app.full_name,
+            roleTitle: app.role_title,
+          },
+        })
+        .catch((e: unknown) =>
+          console.warn("[resendWorkspaceLink] metadata update:", e instanceof Error ? e.message : e)
+        );
+
+      const link = linkData.properties.action_link;
 
       // Choose email copy based on where the user is in the pipeline
       let subject: string;
@@ -188,8 +187,8 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
         subject = "Worknesta: Your workspace sign-in link";
         subjectHeadline = "Your workspace sign-in link";
         paragraphs = [
-          "Here is your secure one-time link to access your Worknesta workspace.",
-          "The link expires after 30 days or on first use.",
+          "Here is your secure sign-in link to access your Worknesta workspace.",
+          "The link is valid for 24 hours.",
         ];
         ctaLabel = "Open my workspace";
       } else if (appStatus === "onboarding") {
@@ -795,7 +794,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
       token_id: onboardTok.id,
     });
 
-    const onboardingLink = `${publicBaseUrl()}/onboarding?token=${encodeURIComponent(onboardTok.token)}`;
+    const onboardingLink = `${publicBaseUrl()}/api/auth/verify?t=${encodeURIComponent(onboardTok.token)}&next=${encodeURIComponent("/onboarding")}`;
 
     const candidateSubject = "Welcome to Worknesta! Here is how to get started 🎉";
     const candidateHtml = renderEmailHtml({
@@ -1122,19 +1121,26 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 /**
  * Cookie-first applicationId resolver.
  * Falls back to the client-supplied `clientAppId` (from localStorage) when the
- * HTTP cookie is absent — this happens on Vercel when server-function fetch
- * requests don't carry the session cookie reliably.
+ * Primary: verify Supabase JWT via auth.getUser() and extract applicationId from user metadata.
+ * Fallback: accept client-supplied UUID (still protected by DB existence/status check in each caller).
  */
-function resolveAppId(clientAppId?: string | null): string | null {
-  const fromCookie = getApplicationIdFromCookies(getRequestHeader("cookie"));
-  const fromClient = clientAppId && UUID_RE.test(clientAppId) ? clientAppId : null;
-  return fromCookie ?? fromClient;
+async function resolveAppId(clientAppId?: string | null, accessToken?: string | null): Promise<string | null> {
+  if (accessToken) {
+    try {
+      const { data: { user } } = await getSupabaseAdmin().auth.getUser(accessToken);
+      if (user) {
+        const metaAppId = user.user_metadata?.applicationId as string | undefined;
+        if (metaAppId && UUID_RE.test(metaAppId)) return metaAppId;
+      }
+    } catch { /* fall through */ }
+  }
+  return clientAppId && UUID_RE.test(clientAppId) ? clientAppId : null;
 }
 
 export const getWorkspaceBySession = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ clientAppId: z.string().optional() }).optional())
+  .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = resolveAppId(data?.clientAppId);
+    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
     if (!applicationId) return { authenticated: false as const };
 
     const sb = getSupabaseAdmin();
@@ -1176,9 +1182,9 @@ export const getWorkspaceBySession = createServerFn({ method: "POST" })
   });
 
 export const getTaskProgressBySession = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ clientAppId: z.string().optional() }).optional())
+  .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = resolveAppId(data?.clientAppId);
+    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
     if (!applicationId) return { authenticated: false as const, tasks: [] };
 
     const sb = getSupabaseAdmin();
@@ -1211,10 +1217,11 @@ export const submitTranscriptionTask = createServerFn({ method: "POST" })
       transcriptionText: z.string().min(1),
       earningsUsd: z.number().positive(),
       clientAppId: z.string().optional(),
+      accessToken: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    const applicationId = resolveAppId(data.clientAppId);
+    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
 
     const sb = getSupabaseAdmin();
@@ -1235,9 +1242,9 @@ export const submitTranscriptionTask = createServerFn({ method: "POST" })
   });
 
 export const getPaymentInfoBySession = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ clientAppId: z.string().optional() }).optional())
+  .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = resolveAppId(data?.clientAppId);
+    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
     if (!applicationId) return null;
 
     const sb = getSupabaseAdmin();
@@ -1260,10 +1267,11 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
       accountEmail: z.string().email().max(200),
       accountName: z.string().min(1).max(200),
       clientAppId: z.string().optional(),
+      accessToken: z.string().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    const applicationId = resolveAppId(data.clientAppId);
+    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
 
     const sb = getSupabaseAdmin();
@@ -1282,9 +1290,9 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
   });
 
 export const onboardingGetBySession = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ clientAppId: z.string().optional() }).optional())
+  .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = resolveAppId(data?.clientAppId);
+    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
     if (!applicationId) return { valid: false as const };
 
     const sb = getSupabaseAdmin();
@@ -1305,9 +1313,9 @@ export const onboardingGetBySession = createServerFn({ method: "POST" })
   });
 
 export const onboardingCompleteBySession = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ ready: z.boolean(), clientAppId: z.string().optional() }))
+  .inputValidator(z.object({ ready: z.boolean(), clientAppId: z.string().optional(), accessToken: z.string().optional() }))
   .handler(async ({ data }) => {
-    const applicationId = resolveAppId(data.clientAppId);
+    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
     if (!data.ready) throw new Error("Must confirm readiness");
 
@@ -1373,9 +1381,9 @@ export const onboardingCompleteBySession = createServerFn({ method: "POST" })
   });
 
 export const sendSupportMessageBySession = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ message: z.string().min(5).max(2000), clientAppId: z.string().optional() }))
+  .inputValidator(z.object({ message: z.string().min(5).max(2000), clientAppId: z.string().optional(), accessToken: z.string().optional() }))
   .handler(async ({ data }) => {
-    const applicationId = resolveAppId(data.clientAppId);
+    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
 
     const sb = getSupabaseAdmin();

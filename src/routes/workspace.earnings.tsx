@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession } from "@/lib/server/actions";
-import { getStoredAppId, saveAppId } from "@/lib/client/session";
+import { getSessionData } from "@/lib/client/supabase";
 
 export const Route = createFileRoute("/workspace/earnings")({
   head: () => ({ meta: [{ title: "Earnings — Worknesta Workspace" }] }),
@@ -87,10 +87,9 @@ function EarningsPage() {
   useEffect(() => {
     void (async () => {
       try {
-        const storedId = getStoredAppId();
-        const s = await getWorkspaceBySession({ data: { clientAppId: storedId } });
+        const { appId, accessToken } = await getSessionData();
+        const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
         if (!s.authenticated) { setSession({ status: "unauthenticated" }); return; }
-        saveAppId(s.applicationId);
         setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, applicationId: s.applicationId });
         setProgress(loadProgress(s.applicationId));
       } catch {

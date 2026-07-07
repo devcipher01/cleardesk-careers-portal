@@ -12,7 +12,7 @@ import { OrgShell } from "@/components/workspace/OrgShell";
 import { Navbar } from "@/components/site/Navbar";
 import { VideoEmbed } from "@/components/site/VideoEmbed";
 import { getWorkspaceBySession } from "@/lib/server/actions";
-import { getStoredAppId, saveAppId } from "@/lib/client/session";
+import { getSessionData } from "@/lib/client/supabase";
 
 export const Route = createFileRoute("/workspace/")({
   head: () => ({
@@ -43,13 +43,12 @@ function WorkspaceDashboard() {
   useEffect(() => {
     void (async () => {
       try {
-        const storedId = getStoredAppId();
-        const s = await getWorkspaceBySession({ data: { clientAppId: storedId } });
+        const { appId, accessToken } = await getSessionData();
+        const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
         if (!s.authenticated) {
           setSession({ status: "unauthenticated" });
           return;
         }
-        saveAppId(s.applicationId);
         setSession({
           status: "ready",
           candidateName: s.candidateName,

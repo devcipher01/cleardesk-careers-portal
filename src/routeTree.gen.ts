@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as SignoutRouteImport } from './routes/signout'
 import { Route as SigninRouteImport } from './routes/signin'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -36,6 +37,7 @@ import { Route as DevPipelineRouteImport } from './routes/dev.pipeline'
 import { Route as CareersAssessmentRouteImport } from './routes/careers.assessment'
 import { Route as CareersApplyRouteImport } from './routes/careers.apply'
 import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
+import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
 import { Route as ApiCronEmailsRouteImport } from './routes/api/cron.emails'
 import { Route as ApiAuthVerifyRouteImport } from './routes/api/auth.verify'
 import { Route as ApiAuthSignoutRouteImport } from './routes/api/auth.signout'
@@ -48,6 +50,11 @@ const WorkspaceRoute = WorkspaceRouteImport.update({
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignoutRoute = SignoutRouteImport.update({
+  id: '/signout',
+  path: '/signout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SigninRoute = SigninRouteImport.update({
@@ -176,6 +183,11 @@ const CareersSlugRoute = CareersSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => CareersRoute,
 } as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiCronEmailsRoute = ApiCronEmailsRouteImport.update({
   id: '/api/cron/emails',
   path: '/api/cron/emails',
@@ -206,8 +218,10 @@ export interface FileRoutesByFullPath {
   '/onboarding': typeof OnboardingRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/signin': typeof SigninRoute
+  '/signout': typeof SignoutRoute
   '/terms': typeof TermsRoute
   '/workspace': typeof WorkspaceRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/careers/apply': typeof CareersApplyRoute
   '/careers/assessment': typeof CareersAssessmentRoute
@@ -237,7 +251,9 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/signin': typeof SigninRoute
+  '/signout': typeof SignoutRoute
   '/terms': typeof TermsRoute
+  '/auth/callback': typeof AuthCallbackRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/careers/apply': typeof CareersApplyRoute
   '/careers/assessment': typeof CareersAssessmentRoute
@@ -269,8 +285,10 @@ export interface FileRoutesById {
   '/onboarding': typeof OnboardingRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/signin': typeof SigninRoute
+  '/signout': typeof SignoutRoute
   '/terms': typeof TermsRoute
   '/workspace': typeof WorkspaceRouteWithChildren
+  '/auth/callback': typeof AuthCallbackRoute
   '/careers/$slug': typeof CareersSlugRoute
   '/careers/apply': typeof CareersApplyRoute
   '/careers/assessment': typeof CareersAssessmentRoute
@@ -303,8 +321,10 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/privacy'
     | '/signin'
+    | '/signout'
     | '/terms'
     | '/workspace'
+    | '/auth/callback'
     | '/careers/$slug'
     | '/careers/apply'
     | '/careers/assessment'
@@ -334,7 +354,9 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/privacy'
     | '/signin'
+    | '/signout'
     | '/terms'
+    | '/auth/callback'
     | '/careers/$slug'
     | '/careers/apply'
     | '/careers/assessment'
@@ -365,8 +387,10 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/privacy'
     | '/signin'
+    | '/signout'
     | '/terms'
     | '/workspace'
+    | '/auth/callback'
     | '/careers/$slug'
     | '/careers/apply'
     | '/careers/assessment'
@@ -398,8 +422,10 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   SigninRoute: typeof SigninRoute
+  SignoutRoute: typeof SignoutRoute
   TermsRoute: typeof TermsRoute
   WorkspaceRoute: typeof WorkspaceRouteWithChildren
+  AuthCallbackRoute: typeof AuthCallbackRoute
   DevPipelineRoute: typeof DevPipelineRoute
   ApiAuthSignoutRoute: typeof ApiAuthSignoutRoute
   ApiAuthVerifyRoute: typeof ApiAuthVerifyRoute
@@ -420,6 +446,13 @@ declare module '@tanstack/react-router' {
       path: '/terms'
       fullPath: '/terms'
       preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signout': {
+      id: '/signout'
+      path: '/signout'
+      fullPath: '/signout'
+      preLoaderRoute: typeof SignoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signin': {
@@ -597,6 +630,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CareersSlugRouteImport
       parentRoute: typeof CareersRoute
     }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/cron/emails': {
       id: '/api/cron/emails'
       path: '/api/cron/emails'
@@ -686,8 +726,10 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   SigninRoute: SigninRoute,
+  SignoutRoute: SignoutRoute,
   TermsRoute: TermsRoute,
   WorkspaceRoute: WorkspaceRouteWithChildren,
+  AuthCallbackRoute: AuthCallbackRoute,
   DevPipelineRoute: DevPipelineRoute,
   ApiAuthSignoutRoute: ApiAuthSignoutRoute,
   ApiAuthVerifyRoute: ApiAuthVerifyRoute,
