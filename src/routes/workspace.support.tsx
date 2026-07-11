@@ -39,9 +39,9 @@ function SupportPage() {
   if (session.status === "loading") return <OrgShellLoading activeNav="help" />;
   if (session.status === "unauthenticated") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f1419]">
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <div className="text-center">
-          <p className="text-slate-400 mb-4">Session expired.</p>
+          <p className="text-gray-500 mb-4">Session expired.</p>
           <Link to="/workspace/signin" className="inline-flex items-center gap-2 rounded-lg bg-lime px-4 py-2 text-sm font-medium text-ink">
             Sign in <ArrowUpRight className="h-4 w-4" />
           </Link>
@@ -97,42 +97,43 @@ function SupportPage() {
   return (
     <OrgShell candidateName={candidateName} roleTitle={roleTitle} activeNav="help">
       <div className="mx-auto max-w-3xl space-y-6">
+
         {/* Header */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Support</p>
-          <h1 className="mt-2 text-2xl font-semibold text-white">Help center</h1>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Support</p>
+          <h1 className="mt-2 text-2xl font-semibold text-gray-900">Help center</h1>
         </div>
 
         {/* FAQ */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <HelpCircle className="h-4 w-4 text-lime" />
-            <h2 className="text-sm font-semibold text-white">Frequently asked questions</h2>
+        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+          <div className="flex items-center gap-2 mb-5">
+            <HelpCircle className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-900">Frequently asked questions</h2>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {FAQ.map((item) => (
-              <div key={item.q} className="rounded-xl border border-white/10 bg-[#0b1015] p-4">
-                <p className="text-sm font-medium text-white">{item.q}</p>
-                <p className="mt-1.5 text-sm text-slate-400 leading-relaxed">{item.a}</p>
+              <div key={item.q} className="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                <p className="text-sm font-semibold text-gray-900">{item.q}</p>
+                <p className="mt-1.5 text-sm text-gray-500 leading-relaxed">{item.a}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Contact */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6">
           <div className="flex items-center gap-2 mb-4">
-            <MessageSquare className="h-4 w-4 text-lime" />
-            <h2 className="text-sm font-semibold text-white">Contact the talent team</h2>
+            <MessageSquare className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold text-gray-900">Contact the talent team</h2>
           </div>
-          <p className="mb-4 text-sm text-slate-400">
+          <p className="mb-4 text-sm text-gray-500">
             Send a message and we'll reply within one business day via email.
           </p>
 
           {sent ? (
-            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-              <Send className="h-4 w-4 text-emerald-400 shrink-0" />
-              <p className="text-sm text-emerald-300">Message sent — we'll reply by email shortly.</p>
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+              <Send className="h-4 w-4 text-emerald-600 shrink-0" />
+              <p className="text-sm text-emerald-700">Message sent — we'll reply by email shortly.</p>
             </div>
           ) : (
             <form onSubmit={(e) => void submit(e)} className="space-y-4">
@@ -141,14 +142,14 @@ function SupportPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 rows={5}
                 placeholder="Describe your issue or question…"
-                className="w-full rounded-xl border border-white/10 bg-[#0b1015] p-3 text-sm text-white placeholder-slate-600 focus:border-lime/50 focus:outline-none focus:ring-1 focus:ring-lime/30 resize-y"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 p-3 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime/20 resize-y"
               />
-              {error && <p className="text-xs text-rose-400">{error}</p>}
+              {error && <p className="text-xs text-rose-500">{error}</p>}
               <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs text-slate-500">
+                <div className="flex items-center gap-1.5 text-xs text-gray-400">
                   <Mail className="h-3.5 w-3.5" />
                   Or email{" "}
-                  <a href="mailto:talent@worknesta.com" className="text-slate-300 hover:underline">
+                  <a href="mailto:talent@worknesta.com" className="text-gray-600 hover:underline">
                     talent@worknesta.com
                   </a>
                 </div>

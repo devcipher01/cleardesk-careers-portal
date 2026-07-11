@@ -5,12 +5,10 @@ import {
   CheckCircle2,
   Clock,
   FileSignature,
-  Loader2,
   Wallet,
 } from "lucide-react";
-import { OrgShell } from "@/components/workspace/OrgShell";
+import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { Navbar } from "@/components/site/Navbar";
-import { VideoEmbed } from "@/components/site/VideoEmbed";
 import { getWorkspaceBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 
@@ -64,13 +62,7 @@ function WorkspaceDashboard() {
     })();
   }, []);
 
-  if (session.status === "loading") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <Loader2 className="h-7 w-7 animate-spin text-gray-400" />
-      </div>
-    );
-  }
+  if (session.status === "loading") return <OrgShellLoading activeNav="dashboard" />;
 
   if (session.status === "unauthenticated") {
     return (
@@ -113,6 +105,7 @@ function WorkspaceDashboard() {
   return (
     <OrgShell candidateName={candidateName} roleTitle={roleTitle} activeNav="dashboard">
       <div className="mx-auto max-w-5xl space-y-6">
+
         {/* Welcome header */}
         <div>
           <p className="text-sm text-gray-500">Good to see you,</p>
@@ -123,17 +116,6 @@ function WorkspaceDashboard() {
             Your contractor workspace for{" "}
             <span className="font-medium text-gray-700">{roleTitle}</span>
           </p>
-        </div>
-
-        {/* Onboarding video */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400">
-            Step 1 — Watch before you begin
-          </p>
-          <VideoEmbed
-            label="ONBOARDING — Welcome to your workspace"
-            caption="A short welcome from our onboarding team — please watch before starting setup"
-          />
         </div>
 
         {/* Stat cards */}
@@ -202,9 +184,7 @@ function WorkspaceDashboard() {
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <h3 className="text-sm font-semibold text-gray-900">Production queue</h3>
             <p className="mt-2 text-sm text-gray-500">
-              {contractSubmitted
-                ? "Your task queue is open. Visit Tasks available to begin."
-                : "Your tasks are open. Visit Tasks available to begin anytime."}
+              Your task queue is open. Visit Tasks available to begin.
             </p>
             <Link
               to="/workspace/tasks"

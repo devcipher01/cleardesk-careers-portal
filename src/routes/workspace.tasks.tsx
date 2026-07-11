@@ -9,6 +9,7 @@ import {
   ChevronUp,
   Clock,
   DollarSign,
+  ExternalLink,
   Headphones,
   Lock,
   Loader2,
@@ -20,6 +21,8 @@ import {
   Send,
   Timer,
   ShieldCheck,
+  Upload,
+  X,
 } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession, getTaskProgressBySession } from "@/lib/server/actions";
@@ -110,9 +113,22 @@ const TASKS: TaskDef[] = [
   { id: "m4t06", num:  6, module: 4, category: "medical", durationMin: 140, title: "Neurology Grand Rounds",         description: "Full neurology grand rounds session. Complex terminology — use [?term] for uncertain words. Timestamps every 5 min.", earningsUsd: earn(140) },
 ];
 
+// Medical cert is required for module-1 tasks 8–10
+const MEDICAL_CERT_TASK_IDS = new Set(["m1t08", "m1t09", "m1t10"]);
+
 // ─── Storage helpers ───────────────────────────────────────────────────────────
 function progressKey(appId: string)   { return `wn_task_progress_${appId}`; }
 function moduleMetaKey(appId: string) { return `wn_module_meta_${appId}`; }
+function certKey(appId: string)       { return `wn_medical_cert_${appId}`; }
+
+function loadCertVerified(appId: string): boolean {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(certKey(appId)) === "true";
+}
+function saveCertVerified(appId: string) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(certKey(appId), "true");
+}
 
 function loadProgress(appId: string): LocalProgress {
   if (typeof window === "undefined") return {};
@@ -295,16 +311,114 @@ function CategoryBadge({ category }: { category: TaskCategory }) {
   );
 }
 
+// ─── Medical cert modal ────────────────────────────────────────────────────────
+function MedicalCertModal({
+  onVerified,
+  onClose,
+}: {
+  onVerified: () => void;
+  onClose: () => void;
+}) {
+  const [fileName, setFileName] = useState<string | null>(null);
+
+  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const f = e.target.files?.[0];
+    if (f) setFileName(f.name);
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+        {/* Close */}
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 transition"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        {/* Icon + title */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-100">
+            <Activity className="h-5 w-5 text-rose-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Medical certification required</h2>
+            <p className="text-xs text-gray-500">Tasks 8–10 involve sensitive medical audio</p>
+          </div>
+        </div>
+
+        <p className="text-sm text-gray-600 leading-relaxed mb-5">
+          These tasks cover real medical recordings — patient consultations, intake interviews, and radiology
+          dictation. A valid <strong className="text-gray-800">medical transcription certification</strong> is
+          required before you can access them.
+        </p>
+
+        {/* Upload section */}
+        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 mb-4">
+          <label className="flex cursor-pointer flex-col items-center gap-2 text-center">
+            <Upload className="h-6 w-6 text-gray-400" />
+            <span className="text-sm font-medium text-gray-700">
+              {fileName ? fileName : "Upload your certificate"}
+            </span>
+            <span className="text-xs text-gray-400">PDF, JPG or PNG · max 5 MB</span>
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={handleFile} />
+          </label>
+        </div>
+
+        {/* Get cert link */}
+        <a
+          href="#"
+          className="mb-5 inline-flex items-center gap-1.5 text-xs text-sky-600 hover:underline"
+          onClick={(e) => e.preventDefault()}
+        >
+          <ExternalLink className="h-3.5 w-3.5" />
+          Don't have a certificate? Get certified here (link coming soon)
+        </a>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onVerified}
+            disabled={!fileName}
+            className="flex-1 rounded-xl bg-lime py-2.5 text-sm font-semibold text-ink disabled:opacity-40 hover:opacity-90 transition"
+          >
+            Continue to task
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Task card ─────────────────────────────────────────────────────────────────
 function TaskCard({
-  task, status, text, onSubmit,
+  task, status, text, certVerified, onSubmit, onCertVerified,
 }: {
   task: TaskDef; status: TaskStatus; text?: string;
+  certVerified: boolean;
   onSubmit: (id: string, text: string) => void;
+  onCertVerified: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [showCertModal, setShowCertModal] = useState(false);
   const [draft, setDraft] = useState(text ?? "");
   const [submitting, setSubmitting] = useState(false);
+
+  const requiresCert = MEDICAL_CERT_TASK_IDS.has(task.id);
+
+  function handleStartClick() {
+    if (requiresCert && !certVerified) {
+      setShowCertModal(true);
+    } else {
+      setOpen((o) => !o);
+    }
+  }
 
   const cardColors: Record<TaskStatus, string> = {
     locked:      "border-gray-100 bg-gray-50",
@@ -372,16 +486,28 @@ function TaskCard({
       )}
 
       {(status === "available" || status === "in_progress") && (
-        <div className="mt-3">
-          <button onClick={() => setOpen((o) => !o)}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <button
+            onClick={handleStartClick}
             className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition ${
               open
                 ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
                 : "bg-lime text-ink hover:opacity-90"
-            }`}>
+            }`}
+          >
             {open ? <ChevronUp className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {open ? "Collapse task" : "Start task"}
           </button>
+          {requiresCert && !certVerified && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-medium text-rose-600">
+              <ShieldCheck className="h-3 w-3" /> Cert required
+            </span>
+          )}
+          {requiresCert && certVerified && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-600">
+              <CheckCircle2 className="h-3 w-3" /> Cert verified
+            </span>
+          )}
         </div>
       )}
 
@@ -410,6 +536,17 @@ function TaskCard({
             </button>
           </div>
         </div>
+      )}
+
+      {showCertModal && (
+        <MedicalCertModal
+          onVerified={() => {
+            onCertVerified();
+            setShowCertModal(false);
+            setOpen(true);
+          }}
+          onClose={() => setShowCertModal(false)}
+        />
       )}
     </div>
   );
@@ -569,6 +706,7 @@ function TasksPage() {
   const [progress, setProgress]       = useState<LocalProgress>({});
   const [moduleMeta, setModuleMeta]   = useState<Record<string, ModuleMeta>>({});
   const [openModules, setOpenModules] = useState<Set<number>>(new Set([1]));
+  const [certVerified, setCertVerified] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -611,6 +749,7 @@ function TasksPage() {
 
         setProgress(prog);
         setModuleMeta(meta);
+        setCertVerified(loadCertVerified(appId));
       } catch {
         setSession({ status: "unauthenticated" });
       }
@@ -639,6 +778,12 @@ function TasksPage() {
       if (next.has(num)) next.delete(num); else next.add(num);
       return next;
     });
+  }
+
+  function handleCertVerified() {
+    if (session.status !== "ready") return;
+    saveCertVerified(session.applicationId);
+    setCertVerified(true);
   }
 
   function handleReserve(moduleNum: number) {
@@ -750,7 +895,9 @@ function TasksPage() {
                       task={task}
                       status={computeEffectiveStatus(task, progress, contractSubmitted)}
                       text={progress[task.id]?.text}
+                      certVerified={certVerified}
                       onSubmit={handleSubmit}
+                      onCertVerified={handleCertVerified}
                     />
                   ))}
                 </div>
