@@ -702,6 +702,14 @@ function TasksPage() {
           </div>
         </div>
 
+        {/* ── Setup guide reference ───────────────────────────────────────────── */}
+        <div className="flex items-center gap-2 text-xs text-slate-500">
+          <span>New here?</span>
+          <Link to="/onboarding/workspace-setup" className="inline-flex items-center gap-1 text-slate-400 underline underline-offset-2 hover:text-white transition">
+            Read the workspace guide <ArrowUpRight className="h-3 w-3" />
+          </Link>
+        </div>
+
         {/* ── Modules ─────────────────────────────────────────────────────────── */}
         {MODULES.map((mod) => {
           const modTasks = TASKS.filter((t) => t.module === mod.num);
