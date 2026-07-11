@@ -55,10 +55,10 @@ function WorkspaceSetupPage() {
     void (async () => {
       try {
         const { appId, accessToken } = await getSessionData();
-        if (!appId) { setPhase("denied"); return; }
+        if (!appId) { setPhase("nda"); return; }
 
         const sess = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
-        if (!sess.authenticated) { setPhase("denied"); return; }
+        if (!sess.authenticated) { setPhase("nda"); return; }
 
         setApplicationId(sess.applicationId);
         setCandidateName(sess.candidateName);
@@ -75,7 +75,7 @@ function WorkspaceSetupPage() {
           setPhase("nda");
         }
       } catch {
-        setPhase("denied");
+        setPhase("nda");
       }
     })();
   }, []);
@@ -134,26 +134,6 @@ function WorkspaceSetupPage() {
 
   if (phase === "loading") {
     return <OrgShellLoading activeNav="setup" />;
-  }
-
-  if (phase === "denied") {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f1419] px-4">
-        <div className="max-w-md text-center">
-          <Lock className="mx-auto h-10 w-10 text-slate-500" />
-          <h1 className="mt-4 text-xl font-medium text-white">Restricted access</h1>
-          <p className="mt-3 text-sm text-slate-400">
-            Open the link from your qualification email, or sign in to your workspace.
-          </p>
-          <Link
-            to="/workspace/signin"
-            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-lime px-5 py-2.5 text-sm font-medium text-ink"
-          >
-            Sign in <ArrowUpRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </div>
-    );
   }
 
   if (phase === "submitting") {

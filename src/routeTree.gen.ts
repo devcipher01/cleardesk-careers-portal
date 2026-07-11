@@ -26,6 +26,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
+import { Route as OnboardingIndexRouteImport } from './routes/onboarding.index'
 import { Route as CareersIndexRouteImport } from './routes/careers.index'
 import { Route as WorkspaceTasksRouteImport } from './routes/workspace.tasks'
 import { Route as WorkspaceSupportRouteImport } from './routes/workspace.support'
@@ -126,6 +127,11 @@ const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => WorkspaceRoute,
+} as any)
+const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OnboardingRoute,
 } as any)
 const CareersIndexRoute = CareersIndexRouteImport.update({
   id: '/',
@@ -233,6 +239,7 @@ export interface FileRoutesByFullPath {
   '/workspace/support': typeof WorkspaceSupportRoute
   '/workspace/tasks': typeof WorkspaceTasksRoute
   '/careers/': typeof CareersIndexRoute
+  '/onboarding/': typeof OnboardingIndexRoute
   '/workspace/': typeof WorkspaceIndexRoute
   '/api/auth/signout': typeof ApiAuthSignoutRoute
   '/api/auth/verify': typeof ApiAuthVerifyRoute
@@ -248,7 +255,6 @@ export interface FileRoutesByTo {
   '/how-it-works': typeof HowItWorksRoute
   '/interview': typeof InterviewRoute
   '/offer': typeof OfferRoute
-  '/onboarding': typeof OnboardingRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/signin': typeof SigninRoute
   '/signout': typeof SignoutRoute
@@ -265,6 +271,7 @@ export interface FileRoutesByTo {
   '/workspace/support': typeof WorkspaceSupportRoute
   '/workspace/tasks': typeof WorkspaceTasksRoute
   '/careers': typeof CareersIndexRoute
+  '/onboarding': typeof OnboardingIndexRoute
   '/workspace': typeof WorkspaceIndexRoute
   '/api/auth/signout': typeof ApiAuthSignoutRoute
   '/api/auth/verify': typeof ApiAuthVerifyRoute
@@ -300,6 +307,7 @@ export interface FileRoutesById {
   '/workspace/support': typeof WorkspaceSupportRoute
   '/workspace/tasks': typeof WorkspaceTasksRoute
   '/careers/': typeof CareersIndexRoute
+  '/onboarding/': typeof OnboardingIndexRoute
   '/workspace/': typeof WorkspaceIndexRoute
   '/api/auth/signout': typeof ApiAuthSignoutRoute
   '/api/auth/verify': typeof ApiAuthVerifyRoute
@@ -336,6 +344,7 @@ export interface FileRouteTypes {
     | '/workspace/support'
     | '/workspace/tasks'
     | '/careers/'
+    | '/onboarding/'
     | '/workspace/'
     | '/api/auth/signout'
     | '/api/auth/verify'
@@ -351,7 +360,6 @@ export interface FileRouteTypes {
     | '/how-it-works'
     | '/interview'
     | '/offer'
-    | '/onboarding'
     | '/privacy'
     | '/signin'
     | '/signout'
@@ -368,6 +376,7 @@ export interface FileRouteTypes {
     | '/workspace/support'
     | '/workspace/tasks'
     | '/careers'
+    | '/onboarding'
     | '/workspace'
     | '/api/auth/signout'
     | '/api/auth/verify'
@@ -402,6 +411,7 @@ export interface FileRouteTypes {
     | '/workspace/support'
     | '/workspace/tasks'
     | '/careers/'
+    | '/onboarding/'
     | '/workspace/'
     | '/api/auth/signout'
     | '/api/auth/verify'
@@ -553,6 +563,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceIndexRouteImport
       parentRoute: typeof WorkspaceRoute
     }
+    '/onboarding/': {
+      id: '/onboarding/'
+      path: '/'
+      fullPath: '/onboarding/'
+      preLoaderRoute: typeof OnboardingIndexRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
     '/careers/': {
       id: '/careers/'
       path: '/'
@@ -680,10 +697,12 @@ const CareersRouteWithChildren =
 
 interface OnboardingRouteChildren {
   OnboardingWorkspaceSetupRoute: typeof OnboardingWorkspaceSetupRoute
+  OnboardingIndexRoute: typeof OnboardingIndexRoute
 }
 
 const OnboardingRouteChildren: OnboardingRouteChildren = {
   OnboardingWorkspaceSetupRoute: OnboardingWorkspaceSetupRoute,
+  OnboardingIndexRoute: OnboardingIndexRoute,
 }
 
 const OnboardingRouteWithChildren = OnboardingRoute._addFileChildren(

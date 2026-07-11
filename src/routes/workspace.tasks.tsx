@@ -141,8 +141,7 @@ function saveModuleMeta(appId: string, m: Record<string, ModuleMeta>) {
 }
 
 // ─── Status helpers ────────────────────────────────────────────────────────────
-function isModuleAvailable(moduleNum: number, progress: LocalProgress, contractSubmitted: boolean): boolean {
-  if (!contractSubmitted) return false;
+function isModuleAvailable(moduleNum: number, progress: LocalProgress, _contractSubmitted: boolean): boolean {
   if (moduleNum === 1) return true;
   const prevTasks = TASKS.filter((t) => t.module === (moduleNum - 1) as 1 | 2 | 3 | 4);
   return prevTasks.every((t) => {
@@ -152,7 +151,6 @@ function isModuleAvailable(moduleNum: number, progress: LocalProgress, contractS
 }
 
 function computeEffectiveStatus(task: TaskDef, progress: LocalProgress, contractSubmitted: boolean): TaskStatus {
-  if (!contractSubmitted) return "locked";
   const stored = progress[task.id]?.status;
   if (stored === "submitted" || stored === "reviewed") return stored;
   if (!isModuleAvailable(task.module, progress, contractSubmitted)) return "locked";
@@ -513,12 +511,7 @@ function ModuleHeader({
             </div>
           )}
 
-          {!available && !contractSubmitted && (
-            <span className="text-[11px] text-slate-600 flex items-center gap-1">
-              <Lock className="h-3 w-3" /> Awaiting setup
-            </span>
-          )}
-          {!available && contractSubmitted && (
+          {!available && (
             <span className="text-[11px] text-slate-600 flex items-center gap-1">
               <Lock className="h-3 w-3" /> Complete prev. module
             </span>
@@ -708,16 +701,6 @@ function TasksPage() {
             </div>
           </div>
         </div>
-
-        {!contractSubmitted && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-5">
-            <p className="text-sm text-amber-200">
-              Complete your{" "}
-              <Link to="/onboarding/workspace-setup" className="underline">workspace setup</Link>{" "}
-              to unlock tasks and start earning.
-            </p>
-          </div>
-        )}
 
         {/* ── Modules ─────────────────────────────────────────────────────────── */}
         {MODULES.map((mod) => {
