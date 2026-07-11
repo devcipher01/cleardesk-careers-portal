@@ -66,29 +66,25 @@ function WorkspaceDashboard() {
 
   if (session.status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0f1419]">
-        <Loader2 className="h-7 w-7 animate-spin text-slate-500" />
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <Loader2 className="h-7 w-7 animate-spin text-gray-400" />
       </div>
     );
   }
 
   if (session.status === "unauthenticated") {
     return (
-      <div className="flex min-h-screen flex-col bg-[#0f1419]">
-        {/* Site header so users can navigate elsewhere */}
-        <div className="[&_header]:bg-[#0b1015] [&_header]:border-b [&_header]:border-white/10">
-          <Navbar />
-        </div>
-
+      <div className="flex min-h-screen flex-col bg-gray-50">
+        <Navbar />
         <div className="flex flex-1 items-center justify-center px-4">
           <div className="w-full max-w-sm text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-white/5">
-              <svg className="h-6 w-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-gray-200 bg-white">
+              <svg className="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
             </div>
-            <h1 className="mt-5 text-xl font-semibold text-white">Workspace access required</h1>
-            <p className="mt-2 text-sm text-slate-400">
+            <h1 className="mt-5 text-xl font-semibold text-gray-900">Workspace access required</h1>
+            <p className="mt-2 text-sm text-gray-500">
               Enter your application email to receive a sign-in link.
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -100,7 +96,7 @@ function WorkspaceDashboard() {
               </Link>
               <Link
                 to="/careers/apply"
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/15 px-5 py-3 text-sm text-slate-300 hover:border-white/30 hover:text-white transition"
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 px-5 py-3 text-sm text-gray-600 hover:border-gray-300 hover:text-gray-900 transition"
               >
                 View careers <ArrowUpRight className="h-4 w-4" />
               </Link>
@@ -117,19 +113,21 @@ function WorkspaceDashboard() {
   return (
     <OrgShell candidateName={candidateName} roleTitle={roleTitle} activeNav="dashboard">
       <div className="mx-auto max-w-5xl space-y-6">
+        {/* Welcome header */}
         <div>
-          <p className="text-sm text-slate-400">Good to see you,</p>
-          <h1 className="text-2xl font-semibold text-white md:text-3xl">
+          <p className="text-sm text-gray-500">Good to see you,</p>
+          <h1 className="text-2xl font-semibold text-gray-900 md:text-3xl">
             Welcome back, {firstName}
           </h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-gray-500">
             Your contractor workspace for{" "}
-            <span className="text-slate-200">{roleTitle}</span>
+            <span className="font-medium text-gray-700">{roleTitle}</span>
           </p>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4 md:p-6">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-slate-400">
+        {/* Onboarding video */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-6">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-gray-400">
             Step 1 — Watch before you begin
           </p>
           <VideoEmbed
@@ -138,6 +136,7 @@ function WorkspaceDashboard() {
           />
         </div>
 
+        {/* Stat cards */}
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             icon={CheckCircle2}
@@ -149,35 +148,33 @@ function WorkspaceDashboard() {
           <StatCard
             icon={Clock}
             label="Onboarding"
-            value={
-              contractSubmitted ? "Complete" : ndaSigned ? "In progress" : "Action needed"
-            }
+            value={contractSubmitted ? "Complete" : ndaSigned ? "In progress" : "Action needed"}
             tone={contractSubmitted ? "emerald" : "amber"}
           />
         </div>
 
+        {/* Setup CTA — only when not complete */}
         {!contractSubmitted && (
-          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-6 md:p-8">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 md:p-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-amber-300">
+                <p className="text-xs font-semibold uppercase tracking-wider text-amber-600">
                   Action required
                 </p>
-                <h2 className="mt-2 text-xl font-medium text-white">
+                <h2 className="mt-2 text-xl font-medium text-gray-900">
                   Complete workspace setup
                 </h2>
-                <p className="mt-2 max-w-xl text-sm leading-relaxed text-amber-100/80">
-                  Review your contractor agreement, confirm payment terms ($24.50/hr USD,
-                  twice-monthly disbursement), and sign required documents before accessing
-                  production tools.
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-600">
+                  Review the workspace guide, confirm payment terms ($24.50/hr USD,
+                  twice-monthly disbursement), and read required documents before starting tasks.
                 </p>
               </div>
               <Link
                 to="/onboarding/workspace-setup"
-                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-lime px-6 py-3 text-sm font-semibold text-ink hover:opacity-90"
+                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-lime px-6 py-3 text-sm font-semibold text-ink hover:opacity-90 transition"
               >
                 <FileSignature className="h-4 w-4" />
-                Start setup
+                Read guide
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </div>
@@ -185,14 +182,14 @@ function WorkspaceDashboard() {
         )}
 
         {contractSubmitted && (
-          <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6">
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-6">
             <div className="flex items-center gap-3">
-              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
-              <h2 className="text-lg font-medium text-white">Setup complete</h2>
+              <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+              <h2 className="text-lg font-medium text-gray-900">Setup complete</h2>
             </div>
-            <p className="mt-2 text-sm text-emerald-100/80">
+            <p className="mt-2 text-sm text-gray-600">
               Your contract is on file. Head to{" "}
-              <Link to="/workspace/tasks" className="underline hover:text-white">
+              <Link to="/workspace/tasks" className="font-medium text-lime underline hover:opacity-80">
                 Tasks available
               </Link>{" "}
               to start your first transcription module.
@@ -200,29 +197,28 @@ function WorkspaceDashboard() {
           </div>
         )}
 
+        {/* Info cards */}
         <div className="grid gap-4 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <h3 className="text-sm font-medium text-white">Production queue</h3>
-            <p className="mt-2 text-sm text-slate-400">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-gray-900">Production queue</h3>
+            <p className="mt-2 text-sm text-gray-500">
               {contractSubmitted
                 ? "Your task queue is open. Visit Tasks available to begin."
-                : "Unlocks after workspace setup and contract verification."}
+                : "Your tasks are open. Visit Tasks available to begin anytime."}
             </p>
-            {contractSubmitted && (
-              <Link
-                to="/workspace/tasks"
-                className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-lime hover:underline"
-              >
-                Go to tasks <ArrowUpRight className="h-3 w-3" />
-              </Link>
-            )}
+            <Link
+              to="/workspace/tasks"
+              className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-lime hover:underline"
+            >
+              Go to tasks <ArrowUpRight className="h-3 w-3" />
+            </Link>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <h3 className="text-sm font-medium text-white">Payroll</h3>
-            <p className="mt-2 text-sm text-slate-400">
+          <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <h3 className="text-sm font-semibold text-gray-900">Payroll</h3>
+            <p className="mt-2 text-sm text-gray-500">
               Paid twice monthly (1st and 15th) via Wise or Payoneer. Add your payment details
               in{" "}
-              <Link to="/workspace/settings" className="underline hover:text-slate-200">
+              <Link to="/workspace/settings" className="underline hover:text-gray-700">
                 Settings
               </Link>
               .
@@ -246,15 +242,15 @@ function StatCard({
   tone: "emerald" | "sky" | "amber";
 }) {
   const tones = {
-    emerald: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
-    sky: "border-sky-500/20 bg-sky-500/10 text-sky-300",
-    amber: "border-amber-500/20 bg-amber-500/10 text-amber-300",
+    emerald: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    sky:     "border-sky-200     bg-sky-50     text-sky-700",
+    amber:   "border-amber-200   bg-amber-50   text-amber-700",
   };
   return (
     <div className={`rounded-2xl border p-4 ${tones[tone]}`}>
-      <Icon className="h-5 w-5 opacity-80" />
-      <p className="mt-3 text-xs uppercase tracking-wide opacity-70">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-white">{value}</p>
+      <Icon className="h-5 w-5 opacity-70" />
+      <p className="mt-3 text-xs uppercase tracking-wide opacity-60">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-gray-900">{value}</p>
     </div>
   );
 }

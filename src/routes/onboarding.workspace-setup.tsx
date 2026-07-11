@@ -48,34 +48,34 @@ function WorkspaceSetupPage() {
 
         {/* Header */}
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Workspace guide</p>
-          <h1 className="mt-2 text-2xl font-semibold text-white md:text-3xl">Getting started</h1>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Workspace guide</p>
+          <h1 className="mt-2 text-2xl font-semibold text-gray-900 md:text-3xl">Getting started</h1>
+          <p className="mt-2 text-sm text-gray-500">
             Everything you need to know before working on your first task.
           </p>
         </div>
 
         {/* Compensation card */}
-        <div className="rounded-2xl border border-sky-500/30 bg-sky-500/10 p-5">
+        <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5">
           <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-sky-300" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-sky-300">Compensation</p>
+            <DollarSign className="h-4 w-4 text-sky-600" />
+            <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">Compensation</p>
           </div>
-          <p className="mt-2 text-2xl font-semibold text-white">
-            $24.50 <span className="text-base font-normal text-slate-300">USD / hour</span>
+          <p className="mt-2 text-2xl font-semibold text-gray-900">
+            $24.50 <span className="text-base font-normal text-gray-500">USD / hour</span>
           </p>
-          <p className="mt-2 text-sm text-sky-100/80">
+          <p className="mt-2 text-sm text-gray-600">
             Paid twice monthly — 1st and 15th — via Wise or Payoneer. You work as an independent contractor.
           </p>
         </div>
 
         {/* How it works */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6">
           <div className="flex items-center gap-2 mb-5">
-            <BookOpen className="h-4 w-4 text-slate-400" />
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400">How it works</h2>
+            <BookOpen className="h-4 w-4 text-gray-400" />
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400">How it works</h2>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-5">
             {[
               {
                 icon: <Headphones className="h-5 w-5 text-lime" />,
@@ -101,8 +101,8 @@ function WorkspaceSetupPage() {
               <div key={item.title} className="flex gap-4">
                 <div className="mt-0.5 shrink-0">{item.icon}</div>
                 <div>
-                  <p className="text-sm font-medium text-white">{item.title}</p>
-                  <p className="mt-1 text-sm text-slate-400 leading-relaxed">{item.body}</p>
+                  <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                  <p className="mt-1 text-sm text-gray-500 leading-relaxed">{item.body}</p>
                 </div>
               </div>
             ))}
@@ -110,9 +110,9 @@ function WorkspaceSetupPage() {
         </div>
 
         {/* Quick tips */}
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4">Quick tips</h2>
-          <ul className="space-y-2 text-sm text-slate-300">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Quick tips</h2>
+          <ul className="space-y-3 text-sm text-gray-600">
             {[
               "Use headphones — they significantly improve accuracy on difficult audio.",
               "After finishing, replay the audio from the start and read along to catch errors before submitting.",
@@ -120,8 +120,8 @@ function WorkspaceSetupPage() {
               "For medical tasks, flag any uncertain medical term with [?term] rather than guessing.",
               "Respond to reviewer feedback within 24 hours if revisions are requested.",
             ].map((tip) => (
-              <li key={tip} className="flex items-start gap-2">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime" />
+              <li key={tip} className="flex items-start gap-2.5">
+                <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-lime" />
                 {tip}
               </li>
             ))}
@@ -129,10 +129,10 @@ function WorkspaceSetupPage() {
         </div>
 
         {/* CTA */}
-        <div className="flex items-center justify-between rounded-2xl border border-lime/20 bg-lime/5 p-5">
+        <div className="flex items-center justify-between rounded-2xl border border-lime/30 bg-lime/10 p-5">
           <div>
-            <p className="text-sm font-medium text-white">Ready to start?</p>
-            <p className="mt-1 text-xs text-slate-400">Your tasks are waiting — Module 1 is open now.</p>
+            <p className="text-sm font-semibold text-gray-900">Ready to start?</p>
+            <p className="mt-1 text-xs text-gray-500">Your tasks are waiting — Module 1 is open now.</p>
           </div>
           <Link
             to="/workspace/tasks"
