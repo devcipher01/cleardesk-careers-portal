@@ -28,6 +28,17 @@ import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, uploadDocumentBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 
+// ─── Auto-construct audio URL from Supabase public bucket ─────────────────────
+// Upload files to Supabase Storage bucket "task-audio" named exactly as the
+// task ID with .mp3 extension, e.g. m1t01.mp3, m1t02.mp3 … m4t06.mp3
+function taskAudioUrl(taskId: string): string {
+  const base =
+    (typeof import.meta !== "undefined" && (import.meta.env?.VITE_SUPABASE_URL as string | undefined)) ??
+    "";
+  if (!base) return "";
+  return `${base}/storage/v1/object/public/task-audio/${taskId}.mp3`;
+}
+
 export const Route = createFileRoute("/workspace/tasks")({
   head: () => ({ meta: [{ title: "Tasks — Worknesta Workspace" }] }),
   component: TasksPage,
@@ -198,13 +209,14 @@ function CountdownTimer({ deadline, className = "" }: { deadline: Date; classNam
 // ─── Audio Player ──────────────────────────────────────────────────────────────
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
-function AudioPlayer({ durationMin }: { durationMin: number }) {
+function AudioPlayer({ durationMin, src }: { durationMin: number; src?: string }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speedIdx, setSpeedIdx] = useState(2);
+  const [audioMissing, setAudioMissing] = useState(false);
 
   function toggle() {
     const el = audioRef.current;
@@ -249,9 +261,37 @@ function AudioPlayer({ durationMin }: { durationMin: number }) {
 
   const displayDuration = duration > 0 ? fmt(duration) : fmtDuration(durationMin);
 
+  // If no src is configured yet, show a clear placeholder instead of a broken player
+  if (!src) {
+    return (
+      <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-4 flex items-center gap-3 text-gray-400">
+        <Headphones className="h-5 w-5 shrink-0" />
+        <p className="text-xs">Audio file not uploaded yet — check back soon.</p>
+      </div>
+    );
+  }
+
+  // If the src 404s after the browser tries to load it
+  if (audioMissing) {
+    return (
+      <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50 p-4 flex items-center gap-3 text-amber-600">
+        <Headphones className="h-5 w-5 shrink-0" />
+        <p className="text-xs">Audio file not found on server — it may still be uploading.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-      <audio ref={audioRef} onTimeUpdate={onTimeUpdate} onLoadedMetadata={onLoadedMetadata} onEnded={onEnded} />
+      <audio
+        ref={audioRef}
+        src={src}
+        onTimeUpdate={onTimeUpdate}
+        onLoadedMetadata={onLoadedMetadata}
+        onEnded={onEnded}
+        onError={() => setAudioMissing(true)}
+        preload="metadata"
+      />
       <div className="space-y-1">
         <input type="range" min={0} max={100} step={0.1} value={progress} onChange={seek}
           className="w-full accent-lime h-1.5 cursor-pointer rounded-full" />
@@ -280,7 +320,7 @@ function AudioPlayer({ durationMin }: { durationMin: number }) {
           {SPEEDS[speedIdx]}×
         </button>
       </div>
-      <p className="text-[11px] text-gray-400 italic">Audio loads when your queue opens. Use ← 10 s / → 10 s to navigate.</p>
+      <p className="text-[11px] text-gray-400 italic">Use ← 10 s / → 10 s buttons to navigate. Speed control on the right.</p>
     </div>
   );
 }
@@ -553,7 +593,7 @@ function TaskCard({
 
       {open && (status === "available" || status === "in_progress") && (
         <div className="mt-4 space-y-4">
-          <AudioPlayer durationMin={task.durationMin} />
+          <AudioPlayer durationMin={task.durationMin} src={taskAudioUrl(task.id)} />
           <div>
             <label className="block text-xs font-semibold text-gray-700 mb-1.5">Your transcription</label>
             <textarea value={draft} onChange={(e) => setDraft(e.target.value)} rows={8}
