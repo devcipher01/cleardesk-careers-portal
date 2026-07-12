@@ -1380,6 +1380,175 @@ export const onboardingCompleteBySession = createServerFn({ method: "POST" })
     return { ok: true, alreadyComplete: false };
   });
 
+// ─── Document upload / fetch ───────────────────────────────────────────────────
+
+export const uploadDocumentBySession = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      docType: z.enum(["medical_cert", "id_document", "other"]),
+      fileName: z.string().min(1).max(200),
+      mimeType: z.string().min(1).max(100),
+      base64Data: z.string().min(1).max(8 * 1024 * 1024), // ~6 MB base64 → ~4.5 MB file
+      clientAppId: z.string().optional(),
+      accessToken: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
+    if (!applicationId) throw new Error("Not authenticated");
+
+    const sb = getSupabaseAdmin();
+    const buffer = Buffer.from(data.base64Data, "base64");
+    const ext = data.fileName.split(".").pop()?.toLowerCase() ?? "bin";
+    const storagePath = `${applicationId}/${data.docType}.${ext}`;
+
+    // Upload to Supabase Storage bucket "contractor-docs"
+    const { error: uploadErr } = await sb.storage
+      .from("contractor-docs")
+      .upload(storagePath, buffer, { contentType: data.mimeType, upsert: true });
+    if (uploadErr) throw new Error(`Storage upload failed: ${uploadErr.message}`);
+
+    const now = new Date().toISOString();
+    await sb.from("contractor_documents").upsert(
+      {
+        application_id: applicationId,
+        doc_type: data.docType,
+        file_name: data.fileName,
+        storage_path: storagePath,
+        uploaded_at: now,
+        verified_at: null,
+        verified_by: null,
+      },
+      { onConflict: "application_id,doc_type" },
+    );
+    return { ok: true, storagePath };
+  });
+
+export const getDocumentsBySession = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
+  .handler(async ({ data }) => {
+    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
+    if (!applicationId) return { authenticated: false as const, docs: [] };
+
+    const sb = getSupabaseAdmin();
+    try {
+      const { data: rows } = await sb
+        .from("contractor_documents")
+        .select("doc_type, file_name, uploaded_at, verified_at, verified_by")
+        .eq("application_id", applicationId);
+      return {
+        authenticated: true as const,
+        docs: (rows ?? []) as {
+          doc_type: string;
+          file_name: string;
+          uploaded_at: string;
+          verified_at: string | null;
+          verified_by: string | null;
+        }[],
+      };
+    } catch {
+      return { authenticated: true as const, docs: [] };
+    }
+  });
+
+// ─── Admin: transcription review ───────────────────────────────────────────────
+
+export const adminListTranscriptions = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      password: z.string().min(1),
+      status: z.enum(["all", "submitted", "reviewed"]).optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    mustAdmin(data.password);
+    const sb = getSupabaseAdmin();
+
+    let q = sb
+      .from("task_progress")
+      .select(
+        "id, task_id, status, transcription_text, submitted_at, reviewed_at, earnings_usd, application_id, applications(full_name, email, role_title)",
+      )
+      .order("submitted_at", { ascending: false });
+
+    if (data.status && data.status !== "all") {
+      q = q.eq("status", data.status);
+    }
+
+    const { data: rows, error } = await q;
+    if (error) throw new Error(error.message);
+    return { rows: (rows ?? []) as any[] };
+  });
+
+export const adminMarkTranscriptionReviewed = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      password: z.string().min(1),
+      taskProgressId: z.string().uuid(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    mustAdmin(data.password);
+    const sb = getSupabaseAdmin();
+    const now = new Date().toISOString();
+    const { error } = await sb
+      .from("task_progress")
+      .update({ status: "reviewed", reviewed_at: now, updated_at: now })
+      .eq("id", data.taskProgressId);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const adminGetStats = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ password: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    mustAdmin(data.password);
+    const sb = getSupabaseAdmin();
+
+    const [{ count: totalContractors }, { count: totalSubmitted }, { count: underReview }, { count: totalReviewed }, earningsResult] =
+      await Promise.all([
+        sb.from("applications").select("id", { count: "exact", head: true }).in("status", ["active", "onboarding"]),
+        sb.from("task_progress").select("id", { count: "exact", head: true }),
+        sb.from("task_progress").select("id", { count: "exact", head: true }).eq("status", "submitted"),
+        sb.from("task_progress").select("id", { count: "exact", head: true }).eq("status", "reviewed"),
+        sb.from("task_progress").select("earnings_usd").eq("status", "reviewed"),
+      ]);
+
+    const totalEarningsUsd = ((earningsResult.data ?? []) as { earnings_usd: number | null }[]).reduce(
+      (sum, r) => sum + (r.earnings_usd ?? 0),
+      0,
+    );
+
+    return {
+      totalContractors: totalContractors ?? 0,
+      totalSubmitted: totalSubmitted ?? 0,
+      underReview: underReview ?? 0,
+      totalReviewed: totalReviewed ?? 0,
+      totalEarningsUsd: parseFloat(totalEarningsUsd.toFixed(2)),
+    };
+  });
+
+export const adminVerifyDocument = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      password: z.string().min(1),
+      applicationId: z.string().uuid(),
+      docType: z.string().min(1),
+    }),
+  )
+  .handler(async ({ data }) => {
+    mustAdmin(data.password);
+    const sb = getSupabaseAdmin();
+    const now = new Date().toISOString();
+    const { error } = await sb
+      .from("contractor_documents")
+      .update({ verified_at: now, verified_by: "admin" })
+      .eq("application_id", data.applicationId)
+      .eq("doc_type", data.docType);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const sendSupportMessageBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ message: z.string().min(5).max(2000), clientAppId: z.string().optional(), accessToken: z.string().optional() }))
   .handler(async ({ data }) => {

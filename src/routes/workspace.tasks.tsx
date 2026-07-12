@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
-import { getWorkspaceBySession, getTaskProgressBySession } from "@/lib/server/actions";
+import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, uploadDocumentBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 
 export const Route = createFileRoute("/workspace/tasks")({
@@ -119,16 +119,6 @@ const MEDICAL_CERT_TASK_IDS = new Set(["m1t08", "m1t09", "m1t10"]);
 // ─── Storage helpers ───────────────────────────────────────────────────────────
 function progressKey(appId: string)   { return `wn_task_progress_${appId}`; }
 function moduleMetaKey(appId: string) { return `wn_module_meta_${appId}`; }
-function certKey(appId: string)       { return `wn_medical_cert_${appId}`; }
-
-function loadCertVerified(appId: string): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(certKey(appId)) === "true";
-}
-function saveCertVerified(appId: string) {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(certKey(appId), "true");
-}
 
 function loadProgress(appId: string): LocalProgress {
   if (typeof window === "undefined") return {};
@@ -319,11 +309,47 @@ function MedicalCertModal({
   onVerified: () => void;
   onClose: () => void;
 }) {
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
-    if (f) setFileName(f.name);
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) { setError("File too large — maximum 5 MB."); return; }
+    setError("");
+    setFile(f);
+  }
+
+  async function handleSubmit() {
+    if (!file || uploading) return;
+    setUploading(true);
+    setError("");
+    try {
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const { getSessionData: sd } = await import("@/lib/client/supabase");
+      const { appId, accessToken } = await sd();
+      await uploadDocumentBySession({
+        data: {
+          docType: "medical_cert",
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          base64Data,
+          clientAppId: appId,
+          accessToken,
+        },
+      });
+      onVerified();
+    } catch (err: any) {
+      setError(err?.message ?? "Upload failed — please try again.");
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
@@ -351,20 +377,26 @@ function MedicalCertModal({
         <p className="text-sm text-gray-600 leading-relaxed mb-5">
           These tasks cover real medical recordings — patient consultations, intake interviews, and radiology
           dictation. A valid <strong className="text-gray-800">medical transcription certification</strong> is
-          required before you can access them.
+          required before you can access them. Your certificate is saved to your account.
         </p>
 
         {/* Upload section */}
-        <div className="rounded-xl border border-dashed border-gray-300 bg-gray-50 p-4 mb-4">
+        <div className={`rounded-xl border border-dashed p-4 mb-4 ${file ? "border-lime/40 bg-lime/5" : "border-gray-300 bg-gray-50"}`}>
           <label className="flex cursor-pointer flex-col items-center gap-2 text-center">
-            <Upload className="h-6 w-6 text-gray-400" />
+            {uploading ? (
+              <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
+            ) : (
+              <Upload className="h-6 w-6 text-gray-400" />
+            )}
             <span className="text-sm font-medium text-gray-700">
-              {fileName ? fileName : "Upload your certificate"}
+              {file ? file.name : "Upload your certificate"}
             </span>
             <span className="text-xs text-gray-400">PDF, JPG or PNG · max 5 MB</span>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={handleFile} />
+            <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={handleFile} disabled={uploading} />
           </label>
         </div>
+
+        {error && <p className="mb-3 text-xs text-rose-500">{error}</p>}
 
         {/* Get cert link */}
         <a
@@ -379,16 +411,17 @@ function MedicalCertModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
+            disabled={uploading}
+            className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
           >
             Cancel
           </button>
           <button
-            onClick={onVerified}
-            disabled={!fileName}
-            className="flex-1 rounded-xl bg-lime py-2.5 text-sm font-semibold text-ink disabled:opacity-40 hover:opacity-90 transition"
+            onClick={() => void handleSubmit()}
+            disabled={!file || uploading}
+            className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-lime py-2.5 text-sm font-semibold text-ink disabled:opacity-40 hover:opacity-90 transition"
           >
-            Continue to task
+            {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</> : "Continue to task"}
           </button>
         </div>
       </div>
@@ -749,7 +782,14 @@ function TasksPage() {
 
         setProgress(prog);
         setModuleMeta(meta);
-        setCertVerified(loadCertVerified(appId));
+
+        // Load cert status from server (stored on account, not localStorage)
+        try {
+          const docResult = await getDocumentsBySession({ data: { clientAppId: sessionAppId, accessToken } });
+          if (docResult.authenticated) {
+            setCertVerified(docResult.docs.some((d) => d.doc_type === "medical_cert"));
+          }
+        } catch { /* cert stays false */ }
       } catch {
         setSession({ status: "unauthenticated" });
       }
@@ -781,8 +821,7 @@ function TasksPage() {
   }
 
   function handleCertVerified() {
-    if (session.status !== "ready") return;
-    saveCertVerified(session.applicationId);
+    // Cert was already uploaded to server by MedicalCertModal — just update local state
     setCertVerified(true);
   }
 

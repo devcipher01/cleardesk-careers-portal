@@ -1,21 +1,27 @@
 import React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Activity,
   ArrowUpRight,
   BellRing,
   CalendarDays,
   CheckCircle2,
   CreditCard,
+  FileText,
   Loader2,
   Save,
   ShieldCheck,
+  Upload,
+  X,
 } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import {
   getWorkspaceBySession,
   getPaymentInfoBySession,
   savePaymentInfoBySession,
+  getDocumentsBySession,
+  uploadDocumentBySession,
 } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 
@@ -27,7 +33,103 @@ export const Route = createFileRoute("/workspace/settings")({
 type SessionState =
   | { status: "loading" }
   | { status: "unauthenticated" }
-  | { status: "ready"; candidateName: string; roleTitle: string; email: string };
+  | { status: "ready"; candidateName: string; roleTitle: string; email: string; applicationId: string; appId: string | null; accessToken: string | null };
+
+type DocInfo = {
+  doc_type: string;
+  file_name: string;
+  uploaded_at: string;
+  verified_at: string | null;
+  verified_by: string | null;
+};
+
+const DOC_TYPE_LABELS: Record<string, { label: string; description: string; icon: React.ReactNode; required: boolean }> = {
+  medical_cert: {
+    label: "Medical transcription certificate",
+    description: "Required to unlock medical tasks (tasks 8–10 in Module 1). PDF, JPG or PNG · max 5 MB.",
+    icon: <Activity className="h-4 w-4 text-rose-500" />,
+    required: true,
+  },
+  id_document: {
+    label: "Government-issued ID",
+    description: "A copy of your national ID, passport, or driver's licence for identity verification. PDF, JPG or PNG · max 5 MB.",
+    icon: <FileText className="h-4 w-4 text-sky-500" />,
+    required: false,
+  },
+};
+
+function DocCard({
+  docType,
+  info,
+  uploading,
+  onUpload,
+}: {
+  docType: string;
+  info: DocInfo | null;
+  uploading: boolean;
+  onUpload: (docType: string, file: File) => void;
+}) {
+  const meta = DOC_TYPE_LABELS[docType] ?? { label: docType, description: "", icon: <FileText className="h-4 w-4 text-gray-400" />, required: false };
+  const fileRef = useRef<HTMLInputElement>(null);
+  const verified = Boolean(info?.verified_at);
+
+  return (
+    <div className={`rounded-xl border p-4 ${verified ? "border-emerald-200 bg-emerald-50/50" : info ? "border-sky-200 bg-sky-50/40" : "border-gray-200 bg-white"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="mt-0.5 shrink-0">{meta.icon}</div>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium text-gray-900">{meta.label}</p>
+              {meta.required && (
+                <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-600">Required</span>
+              )}
+            </div>
+            <p className="mt-0.5 text-xs text-gray-500">{meta.description}</p>
+            {info && (
+              <p className="mt-1 text-xs text-gray-400">
+                Uploaded: <span className="font-medium text-gray-600">{info.file_name}</span> · {new Date(info.uploaded_at).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          {verified && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
+              <CheckCircle2 className="h-3 w-3" /> Verified
+            </span>
+          )}
+          {info && !verified && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 px-2.5 py-1 text-[11px] font-medium text-sky-700">
+              <ShieldCheck className="h-3 w-3" /> Under review
+            </span>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-3">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) { onUpload(docType, f); e.target.value = ""; }
+          }}
+        />
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition disabled:opacity-50"
+        >
+          {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+          {info ? "Replace document" : "Upload document"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function SettingsPage() {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
@@ -45,13 +147,20 @@ function SettingsPage() {
   const [paymentSaved, setPaymentSaved] = useState(false);
   const [paymentError, setPaymentError] = useState("");
 
+  // Documents
+  const [docs, setDocs] = useState<DocInfo[]>([]);
+  const [uploadingDocType, setUploadingDocType] = useState<string | null>(null);
+  const [docError, setDocError] = useState("");
+  const [docSuccess, setDocSuccess] = useState("");
+
   useEffect(() => {
     void (async () => {
       try {
         const { appId, accessToken } = await getSessionData();
         const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
         if (!s.authenticated) { setSession({ status: "unauthenticated" }); return; }
-        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, email: s.email });
+        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, email: s.email, applicationId: s.applicationId, appId: appId ?? null, accessToken: accessToken ?? null });
+
         try {
           const pi = await getPaymentInfoBySession({ data: { clientAppId: appId, accessToken } });
           if (pi) {
@@ -60,6 +169,11 @@ function SettingsPage() {
             setAccountName(pi.account_name ?? "");
           }
         } catch { /* table may not exist yet */ }
+
+        try {
+          const docResult = await getDocumentsBySession({ data: { clientAppId: appId, accessToken } });
+          if (docResult.authenticated) setDocs(docResult.docs);
+        } catch { /* ignore */ }
       } catch {
         setSession({ status: "unauthenticated" });
       }
@@ -80,7 +194,8 @@ function SettingsPage() {
     );
   }
 
-  const { candidateName, roleTitle, email } = session;
+  const { candidateName, roleTitle, email, appId, accessToken } = session;
+  const docMap = Object.fromEntries(docs.map((d) => [d.doc_type, d]));
 
   async function handleSavePayment(e: React.FormEvent) {
     e.preventDefault();
@@ -89,13 +204,53 @@ function SettingsPage() {
     setPaymentError("");
     setPaymentSaved(false);
     try {
-      const { appId: currentAppId, accessToken: currentToken } = await getSessionData();
-      await savePaymentInfoBySession({ data: { paymentMethod, accountEmail: accountEmail.trim(), accountName: accountName.trim(), clientAppId: currentAppId, accessToken: currentToken } });
+      const { appId: curId, accessToken: curToken } = await getSessionData();
+      await savePaymentInfoBySession({ data: { paymentMethod, accountEmail: accountEmail.trim(), accountName: accountName.trim(), clientAppId: curId, accessToken: curToken } });
       setPaymentSaved(true);
     } catch (err: any) {
       setPaymentError(err?.message ?? "Failed to save payment info.");
     } finally {
       setPaymentSaving(false);
+    }
+  }
+
+  async function handleUploadDoc(docType: string, file: File) {
+    if (file.size > 5 * 1024 * 1024) { setDocError("File too large — maximum 5 MB."); return; }
+    setDocError("");
+    setDocSuccess("");
+    setUploadingDocType(docType);
+    try {
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // strip the data URL prefix (e.g. "data:application/pdf;base64,")
+          resolve(result.split(",")[1] ?? "");
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { appId: curId, accessToken: curToken } = await getSessionData();
+      await uploadDocumentBySession({
+        data: {
+          docType: docType as "medical_cert" | "id_document" | "other",
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          base64Data,
+          clientAppId: curId,
+          accessToken: curToken,
+        },
+      });
+
+      // Refresh docs list
+      const docResult = await getDocumentsBySession({ data: { clientAppId: curId, accessToken: curToken } });
+      if (docResult.authenticated) setDocs(docResult.docs);
+      setDocSuccess("Document uploaded successfully — our team will review it shortly.");
+    } catch (err: any) {
+      setDocError(err?.message ?? "Upload failed. Please try again.");
+    } finally {
+      setUploadingDocType(null);
     }
   }
 
@@ -125,6 +280,40 @@ function SettingsPage() {
                   <p className="text-xs text-gray-400">Email</p>
                   <p className="mt-0.5 text-sm font-medium text-gray-900">{email}</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Documents */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="h-4 w-4 text-gray-400" />
+                <h2 className="text-sm font-semibold text-gray-900">Documents</h2>
+              </div>
+              <p className="mb-4 text-xs text-gray-500">
+                Upload required certifications and identity documents. Files are stored securely and reviewed by our team.
+              </p>
+
+              {docError && (
+                <div className="mb-3 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs text-rose-700">
+                  <X className="h-3.5 w-3.5 shrink-0" /> {docError}
+                </div>
+              )}
+              {docSuccess && (
+                <div className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-700">
+                  <CheckCircle2 className="h-3.5 w-3.5 shrink-0" /> {docSuccess}
+                </div>
+              )}
+
+              <div className="space-y-3">
+                {Object.keys(DOC_TYPE_LABELS).map((docType) => (
+                  <DocCard
+                    key={docType}
+                    docType={docType}
+                    info={docMap[docType] ?? null}
+                    uploading={uploadingDocType === docType}
+                    onUpload={handleUploadDoc}
+                  />
+                ))}
               </div>
             </div>
 

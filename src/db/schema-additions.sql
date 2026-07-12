@@ -26,6 +26,21 @@ CREATE TABLE IF NOT EXISTS payment_info (
   updated_at timestamptz DEFAULT now()
 );
 
+-- Contractor uploaded documents (medical certs, ID docs, etc.)
+CREATE TABLE IF NOT EXISTS contractor_documents (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  application_id uuid NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
+  doc_type text NOT NULL,          -- 'medical_cert' | 'id_document' | 'other'
+  file_name text NOT NULL,
+  storage_path text NOT NULL,      -- path inside the 'contractor-docs' Storage bucket
+  uploaded_at timestamptz DEFAULT now(),
+  verified_at timestamptz,         -- set by admin when cert is approved
+  verified_by text                 -- admin note / email
+);
+-- One doc per type per contractor (re-upload replaces it)
+CREATE UNIQUE INDEX IF NOT EXISTS contractor_docs_app_type_idx ON contractor_documents (application_id, doc_type);
+CREATE INDEX IF NOT EXISTS contractor_docs_app_idx ON contractor_documents (application_id);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS task_progress_app_idx ON task_progress (application_id);
 CREATE INDEX IF NOT EXISTS payment_info_app_idx ON payment_info (application_id);

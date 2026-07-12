@@ -7,9 +7,28 @@ import {
   adminSendAssessmentLink,
   adminSendInterviewLink,
   adminSendOffer,
+  adminListTranscriptions,
+  adminMarkTranscriptionReviewed,
+  adminGetStats,
+  adminVerifyDocument,
+  getDocumentsBySession,
 } from "@/lib/server/actions";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, Search, Send, XCircle, CheckCircle2, Eye, ArrowUpRight } from "lucide-react";
+import {
+  Activity,
+  ArrowUpRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  FileText,
+  Lock,
+  Search,
+  Send,
+  Shield,
+  Users,
+  XCircle,
+} from "lucide-react";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -21,7 +40,8 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Filter =
+type Tab = "applications" | "transcriptions";
+type AppFilter =
   | "all"
   | "pending"
   | "interview_sent"
@@ -32,40 +52,71 @@ type Filter =
   | "offer_accepted"
   | "active"
   | "rejected";
+type TxFilter = "all" | "submitted" | "reviewed";
+
+interface Stats {
+  totalContractors: number;
+  totalSubmitted: number;
+  underReview: number;
+  totalReviewed: number;
+  totalEarningsUsd: number;
+}
 
 function AdminPage() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [filter, setFilter] = useState<Filter>("all");
+  const [tab, setTab] = useState<Tab>("applications");
   const [loading, setLoading] = useState(false);
-  const [rows, setRows] = useState<any[]>([]);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
+
+  // Applications tab state
+  const [appFilter, setAppFilter] = useState<AppFilter>("all");
+  const [appRows, setAppRows] = useState<any[]>([]);
   const [details, setDetails] = useState<any | null>(null);
   const [offerForm, setOfferForm] = useState<{ appId: string; payRate: string; startDate: string; duration: string } | null>(null);
+
+  // Transcriptions tab state
+  const [txFilter, setTxFilter] = useState<TxFilter>("submitted");
+  const [txRows, setTxRows] = useState<any[]>([]);
+  const [txDetails, setTxDetails] = useState<any | null>(null);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     try {
       const stored = sessionStorage.getItem("wn_admin_password");
-      if (stored) {
-        setPassword(stored);
-        setAuthed(true);
-      }
-    } catch {
-      /* ignore */
-    }
+      if (stored) { setPassword(stored); setAuthed(true); }
+    } catch { /* ignore */ }
   }, []);
 
-  const load = async (pwd = password, f = filter) => {
+  const loadApps = async (pwd = password, f = appFilter) => {
     setLoading(true);
     setError("");
     try {
       const res = await adminListApplications({ data: { password: pwd, status: f } });
-      setRows(res.rows);
+      setAppRows(res.rows);
     } catch (e: any) {
       setError(e?.message || "Failed to load applications");
-      setRows([]);
+      setAppRows([]);
       setAuthed(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadTx = async (pwd = password, f = txFilter) => {
+    setLoading(true);
+    setError("");
+    try {
+      const [txRes, statsRes] = await Promise.all([
+        adminListTranscriptions({ data: { password: pwd, status: f } }),
+        adminGetStats({ data: { password: pwd } }),
+      ]);
+      setTxRows(txRes.rows);
+      setStats(statsRes);
+    } catch (e: any) {
+      setError(e?.message || "Failed to load transcriptions");
+      setTxRows([]);
     } finally {
       setLoading(false);
     }
@@ -73,27 +124,30 @@ function AdminPage() {
 
   useEffect(() => {
     if (!authed || !password) return;
-    void load(password, filter);
+    if (tab === "applications") void loadApps(password, appFilter);
+    else void loadTx(password, txFilter);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authed, filter]);
+  }, [authed, tab, appFilter, txFilter]);
 
-  const filtered = useMemo(() => {
+  const filteredApps = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) => {
-      const hay = `${r.full_name} ${r.email} ${r.role_title} ${r.status}`.toLowerCase();
-      return hay.includes(q);
+    if (!q) return appRows;
+    return appRows.filter((r) => `${r.full_name} ${r.email} ${r.role_title} ${r.status}`.toLowerCase().includes(q));
+  }, [appRows, query]);
+
+  const filteredTx = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return txRows;
+    return txRows.filter((r) => {
+      const app = r.applications as any;
+      return `${app?.full_name ?? ""} ${app?.email ?? ""} ${r.task_id}`.toLowerCase().includes(q);
     });
-  }, [rows, query]);
+  }, [txRows, query]);
 
   const login = async () => {
     setAuthed(true);
-    try {
-      sessionStorage.setItem("wn_admin_password", password);
-    } catch {
-      /* ignore */
-    }
-    await load(password, filter);
+    try { sessionStorage.setItem("wn_admin_password", password); } catch { /* ignore */ }
+    await loadApps(password, appFilter);
   };
 
   const action = async (fn: () => Promise<any>) => {
@@ -101,7 +155,8 @@ function AdminPage() {
     setError("");
     try {
       await fn();
-      await load(password, filter);
+      if (tab === "applications") await loadApps(password, appFilter);
+      else await loadTx(password, txFilter);
     } catch (e: any) {
       setError(e?.message || "Action failed");
     } finally {
@@ -130,6 +185,7 @@ function AdminPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && password.trim() && void login()}
                 className="ipt"
                 placeholder="••••••••"
               />
@@ -154,11 +210,15 @@ function AdminPage() {
   return (
     <section className="container-page py-10 md:py-14">
       <div className="mx-auto max-w-6xl">
+        {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="font-script text-xl text-ink/55">admin</p>
             <h1 className="text-4xl font-medium text-ink md:text-5xl">
-              Applications <span className="font-serif italic">dashboard.</span>
+              {tab === "applications"
+                ? <>Applications <span className="font-serif italic">dashboard.</span></>
+                : <>Transcription <span className="font-serif italic">review.</span></>
+              }
             </h1>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -168,11 +228,11 @@ function AdminPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="ipt pl-9"
-                placeholder="Search name, email, role..."
+                placeholder={tab === "applications" ? "Search name, email, role..." : "Search name, task ID..."}
               />
             </div>
             <button
-              onClick={() => void load(password, filter)}
+              onClick={() => tab === "applications" ? void loadApps() : void loadTx()}
               disabled={loading}
               className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-ink-foreground transition hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
             >
@@ -181,26 +241,85 @@ function AdminPage() {
           </div>
         </div>
 
-        <div className="mt-8 flex flex-wrap gap-2">
+        {/* Tabs */}
+        <div className="mt-6 flex gap-2 border-b border-ink/10 pb-0">
           {([
-            ["all", "All"],
-            ["pending", "Pending"],
-            ["interview_sent", "Interview"],
-            ["assessment_sent", "Assessment"],
-            ["offer_sent", "Offer"],
-            ["active", "Active"],
-            ["rejected", "Rejected"],
-          ] as const).map(([id, label]) => (
+            ["applications", "Applications", <Users key="u" className="h-4 w-4" />],
+            ["transcriptions", "Transcriptions", <FileText key="f" className="h-4 w-4" />],
+          ] as const).map(([id, label, icon]) => (
             <button
               key={id}
-              onClick={() => setFilter(id)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                filter === id ? "bg-lime text-lime-foreground" : "border border-ink/15 bg-card text-ink hover:bg-ink/5"
+              onClick={() => { setTab(id); setQuery(""); setError(""); }}
+              className={`inline-flex items-center gap-2 rounded-t-xl border border-b-0 px-4 py-2.5 text-sm font-medium transition ${
+                tab === id
+                  ? "border-ink/10 bg-card text-ink"
+                  : "border-transparent text-ink/50 hover:text-ink"
               }`}
             >
-              {label}
+              {icon} {label}
             </button>
           ))}
+        </div>
+
+        {/* Stats bar (transcriptions tab) */}
+        {tab === "transcriptions" && stats && (
+          <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {[
+              { label: "Active contractors", value: stats.totalContractors, icon: <Users className="h-4 w-4" />, color: "text-ink" },
+              { label: "Total submitted", value: stats.totalSubmitted, icon: <FileText className="h-4 w-4" />, color: "text-sky-600" },
+              { label: "Under review", value: stats.underReview, icon: <Activity className="h-4 w-4" />, color: "text-amber-600" },
+              { label: "Reviewed", value: stats.totalReviewed, icon: <CheckCircle2 className="h-4 w-4" />, color: "text-emerald-600" },
+              { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}`, icon: <Shield className="h-4 w-4" />, color: "text-lime" },
+            ].map(({ label, value, icon, color }) => (
+              <div key={label} className="rounded-2xl border border-ink/10 bg-card p-4">
+                <div className={`flex items-center gap-1.5 text-xs font-medium ${color} mb-1`}>
+                  {icon} {label}
+                </div>
+                <p className="text-xl font-semibold text-ink">{value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Filter bar */}
+        <div className="mt-5 flex flex-wrap gap-2">
+          {tab === "applications" ? (
+            ([
+              ["all", "All"],
+              ["pending", "Pending"],
+              ["interview_sent", "Interview"],
+              ["assessment_sent", "Assessment"],
+              ["offer_sent", "Offer"],
+              ["active", "Active"],
+              ["rejected", "Rejected"],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setAppFilter(id)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  appFilter === id ? "bg-lime text-lime-foreground" : "border border-ink/15 bg-card text-ink hover:bg-ink/5"
+                }`}
+              >
+                {label}
+              </button>
+            ))
+          ) : (
+            ([
+              ["submitted", "Under review"],
+              ["reviewed", "Reviewed"],
+              ["all", "All"],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setTxFilter(id)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  txFilter === id ? "bg-lime text-lime-foreground" : "border border-ink/15 bg-card text-ink hover:bg-ink/5"
+                }`}
+              >
+                {label}
+              </button>
+            ))
+          )}
         </div>
 
         {error && (
@@ -209,93 +328,130 @@ function AdminPage() {
           </div>
         )}
 
-        <div className="mt-6 overflow-hidden rounded-3xl border border-ink/10 bg-card">
-          <div className="grid grid-cols-[1.4fr_1.4fr_1fr_.9fr_.9fr_1.4fr] gap-3 border-b border-ink/10 bg-cream px-5 py-3 text-xs font-semibold uppercase tracking-wider text-ink/60">
-            <div>Name</div>
-            <div>Email</div>
-            <div>Role</div>
-            <div>Status</div>
-            <div>Applied</div>
-            <div>Actions</div>
-          </div>
-          <div className="divide-y divide-ink/10">
-            {filtered.map((r) => (
-              <div
-                key={r.id}
-                className="grid grid-cols-[1.4fr_1.4fr_1fr_.9fr_.9fr_1.4fr] gap-3 px-5 py-4 text-sm"
-              >
-                <div className="font-medium text-ink">{r.full_name}</div>
-                <div className="text-ink/70">{r.email}</div>
-                <div className="text-ink/70">{r.role_title}</div>
-                <div className="text-ink/70">{r.status}</div>
-                <div className="text-ink/55">{new Date(r.created_at).toLocaleDateString()}</div>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setDetails(r)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-card px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5"
-                  >
-                    <Eye className="h-3.5 w-3.5" /> View Details
-                  </button>
-
-                  {r.status === "pending" && (
-                    <button
-                      onClick={() =>
-                        void action(() =>
-                          adminSendInterviewLink({ data: { password, applicationId: r.id } }),
-                        )
-                      }
-                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground"
-                    >
-                      <Send className="h-3.5 w-3.5" /> Send Interview Link
+        {/* Applications table */}
+        {tab === "applications" && (
+          <div className="mt-6 overflow-hidden rounded-3xl border border-ink/10 bg-card">
+            <div className="grid grid-cols-[1.4fr_1.4fr_1fr_.9fr_.9fr_1.4fr] gap-3 border-b border-ink/10 bg-cream px-5 py-3 text-xs font-semibold uppercase tracking-wider text-ink/60">
+              <div>Name</div><div>Email</div><div>Role</div><div>Status</div><div>Applied</div><div>Actions</div>
+            </div>
+            <div className="divide-y divide-ink/10">
+              {filteredApps.map((r) => (
+                <div key={r.id} className="grid grid-cols-[1.4fr_1.4fr_1fr_.9fr_.9fr_1.4fr] gap-3 px-5 py-4 text-sm">
+                  <div className="font-medium text-ink">{r.full_name}</div>
+                  <div className="text-ink/70">{r.email}</div>
+                  <div className="text-ink/70">{r.role_title}</div>
+                  <div className="text-ink/70">{r.status}</div>
+                  <div className="text-ink/55">{new Date(r.created_at).toLocaleDateString()}</div>
+                  <div className="flex flex-wrap gap-2">
+                    <button onClick={() => setDetails(r)} className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-card px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5">
+                      <Eye className="h-3.5 w-3.5" /> View
                     </button>
-                  )}
-                  {r.status === "interview_complete" && (
-                    <button
-                      onClick={() =>
-                        void action(() =>
-                          adminSendAssessmentLink({ data: { password, applicationId: r.id } }),
-                        )
-                      }
-                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground"
-                    >
-                      <Send className="h-3.5 w-3.5" /> Send Assessment Link
+                    {r.status === "pending" && (
+                      <button onClick={() => void action(() => adminSendInterviewLink({ data: { password, applicationId: r.id } }))}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
+                        <Send className="h-3.5 w-3.5" /> Interview Link
+                      </button>
+                    )}
+                    {r.status === "interview_complete" && (
+                      <button onClick={() => void action(() => adminSendAssessmentLink({ data: { password, applicationId: r.id } }))}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
+                        <Send className="h-3.5 w-3.5" /> Assessment Link
+                      </button>
+                    )}
+                    {r.status === "assessment_complete" && (
+                      <button onClick={() => setOfferForm({ appId: r.id, payRate: "", startDate: "", duration: "" })}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Send Offer
+                      </button>
+                    )}
+                    {r.status === "offer_accepted" && (
+                      <button onClick={() => void action(() => adminMarkActive({ data: { password, applicationId: r.id } }))}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 text-xs font-medium text-lime-foreground hover:opacity-90">
+                        Mark Active
+                      </button>
+                    )}
+                    <button onClick={() => void action(() => adminReject({ data: { password, applicationId: r.id } }))}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-rose/40 bg-rose/20 px-3 py-1.5 text-xs font-medium text-ink hover:bg-rose/30">
+                      <XCircle className="h-3.5 w-3.5" /> Reject
                     </button>
-                  )}
-                  {r.status === "assessment_complete" && (
-                    <button
-                      onClick={() =>
-                        setOfferForm({ appId: r.id, payRate: "", startDate: "", duration: "" })
-                      }
-                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5" /> Send Offer
-                    </button>
-                  )}
-                  {r.status === "offer_accepted" && (
-                    <button
-                      onClick={() => void action(() => adminMarkActive({ data: { password, applicationId: r.id } }))}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 text-xs font-medium text-lime-foreground hover:opacity-90"
-                    >
-                      Mark Active
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => void action(() => adminReject({ data: { password, applicationId: r.id } }))}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-rose/40 bg-rose/20 px-3 py-1.5 text-xs font-medium text-ink hover:bg-rose/30"
-                  >
-                    <XCircle className="h-3.5 w-3.5" /> Reject
-                  </button>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {!loading && filtered.length === 0 && (
-              <div className="px-5 py-10 text-center text-sm text-ink/60">
-                No applications found.
+              ))}
+              {!loading && filteredApps.length === 0 && (
+                <div className="px-5 py-10 text-center text-sm text-ink/60">No applications found.</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Transcriptions table */}
+        {tab === "transcriptions" && (
+          <div className="mt-6 space-y-3">
+            {filteredTx.length === 0 && !loading && (
+              <div className="rounded-3xl border border-ink/10 bg-card px-5 py-10 text-center text-sm text-ink/60">
+                No transcriptions found for this filter.
               </div>
             )}
+            {filteredTx.map((r) => {
+              const app = r.applications as any;
+              const isSubmitted = r.status === "submitted";
+              return (
+                <div key={r.id} className={`rounded-2xl border bg-card overflow-hidden ${isSubmitted ? "border-amber-200" : "border-emerald-200"}`}>
+                  {/* Header row */}
+                  <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 ${isSubmitted ? "bg-amber-50" : "bg-emerald-50"}`}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
+                        isSubmitted ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                      }`}>
+                        {isSubmitted ? "Under review" : "Reviewed"}
+                      </span>
+                      <span className="font-mono text-xs font-semibold text-ink/60">{r.task_id}</span>
+                      <span className="text-sm font-medium text-ink truncate">{app?.full_name ?? "—"}</span>
+                      <span className="text-xs text-ink/50 hidden sm:block">{app?.email ?? ""}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-xs text-ink/50">
+                        Submitted {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "—"}
+                      </span>
+                      {r.earnings_usd && (
+                        <span className="text-xs font-semibold text-lime">${Number(r.earnings_usd).toFixed(2)}</span>
+                      )}
+                      <button
+                        onClick={() => setTxDetails(txDetails?.id === r.id ? null : r)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5"
+                      >
+                        {txDetails?.id === r.id ? <><ChevronUp className="h-3.5 w-3.5" /> Hide</> : <><ChevronDown className="h-3.5 w-3.5" /> Read</>}
+                      </button>
+                      {isSubmitted && (
+                        <button
+                          onClick={() => void action(() => adminMarkTranscriptionReviewed({ data: { password, taskProgressId: r.id } }))}
+                          disabled={loading}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Mark reviewed
+                        </button>
+                      )}
+                      {!isSubmitted && r.reviewed_at && (
+                        <span className="text-xs text-emerald-600">
+                          Reviewed {new Date(r.reviewed_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {/* Expandable transcription text */}
+                  {txDetails?.id === r.id && (
+                    <div className="px-5 py-4 border-t border-ink/10">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-ink/40 mb-2">Transcription text</p>
+                      <pre className="whitespace-pre-wrap text-sm text-ink/80 leading-relaxed font-sans max-h-96 overflow-y-auto">
+                        {r.transcription_text || <span className="text-ink/30 italic">No content</span>}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
 
         <DetailsModal row={details} onClose={() => setDetails(null)} />
         <OfferModal
@@ -304,13 +460,7 @@ function AdminPage() {
           onSend={(s) =>
             action(() =>
               adminSendOffer({
-                data: {
-                  password,
-                  applicationId: s.appId,
-                  payRate: s.payRate,
-                  startDate: s.startDate,
-                  contractDuration: s.duration,
-                },
+                data: { password, applicationId: s.appId, payRate: s.payRate, startDate: s.startDate, contractDuration: s.duration },
               }),
             ).then(() => setOfferForm(null))
           }
@@ -331,31 +481,17 @@ function DetailsModal({ row, onClose }: { row: any | null; onClose: () => void }
   return (
     <AnimatePresence initial={false}>
       {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.97, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.97, opacity: 0 }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
+          <motion.div initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.97, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-3xl rounded-3xl border border-ink/10 bg-card p-6 shadow-xl md:p-8"
-          >
+            className="w-full max-w-3xl rounded-3xl border border-ink/10 bg-card p-6 shadow-xl md:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-2xl font-medium text-ink">Application details</h3>
-                <p className="mt-1 text-sm text-ink/60">
-                  {row.full_name} · {row.email} · {row.role_title}
-                </p>
+                <p className="mt-1 text-sm text-ink/60">{row.full_name} · {row.email} · {row.role_title}</p>
               </div>
-              <button
-                onClick={onClose}
-                className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5"
-              >
+              <button onClick={onClose} className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5">
                 Close
               </button>
             </div>
@@ -376,10 +512,7 @@ function DetailsModal({ row, onClose }: { row: any | null; onClose: () => void }
             <div className="mt-6 grid gap-5">
               <LongDetail label="Why remote" value={row.why_remote} />
               <LongDetail label="Experience" value={row.experience} />
-              <LongDetail
-                label="Remote work history"
-                value={row.worked_remote ? `Yes — ${row.remote_description || ""}` : "No"}
-              />
+              <LongDetail label="Remote work history" value={row.worked_remote ? `Yes — ${row.remote_description || ""}` : "No"} />
             </div>
           </motion.div>
         </motion.div>
@@ -389,10 +522,7 @@ function DetailsModal({ row, onClose }: { row: any | null; onClose: () => void }
 }
 
 function OfferModal({
-  state,
-  onClose,
-  onSend,
-  sending,
+  state, onClose, onSend, sending,
 }: {
   state: { appId: string; payRate: string; startDate: string; duration: string } | null;
   onClose: () => void;
@@ -402,74 +532,39 @@ function OfferModal({
   const open = Boolean(state);
   const [local, setLocal] = useState(state);
 
-  useEffect(() => {
-    setLocal(state);
-  }, [state]);
+  useEffect(() => { setLocal(state); }, [state]);
 
   return (
     <AnimatePresence initial={false}>
       {open && local && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
-          onClick={onClose}
-        >
-          <motion.div
-            initial={{ scale: 0.97, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.97, opacity: 0 }}
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
+          <motion.div initial={{ scale: 0.97, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.97, opacity: 0 }}
             onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-lg rounded-3xl border border-ink/10 bg-card p-6 shadow-xl md:p-8"
-          >
+            className="w-full max-w-lg rounded-3xl border border-ink/10 bg-card p-6 shadow-xl md:p-8">
             <h3 className="text-2xl font-medium text-ink">Send offer</h3>
             <p className="mt-1 text-sm text-ink/60">Fill these fields and send the offer link.</p>
             <div className="mt-5 space-y-4">
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">Pay rate (USD/hr)</span>
-                <input
-                  value={local.payRate}
-                  onChange={(e) => setLocal((s) => (s ? { ...s, payRate: e.target.value } : s))}
-                  className="ipt"
-                  placeholder="e.g. 18"
-                />
+                <input value={local.payRate} onChange={(e) => setLocal((s) => s ? { ...s, payRate: e.target.value } : s)} className="ipt" placeholder="e.g. 18" />
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">Start date</span>
-                <input
-                  value={local.startDate}
-                  onChange={(e) => setLocal((s) => (s ? { ...s, startDate: e.target.value } : s))}
-                  className="ipt"
-                  placeholder="e.g. May 1, 2026"
-                />
+                <input value={local.startDate} onChange={(e) => setLocal((s) => s ? { ...s, startDate: e.target.value } : s)} className="ipt" placeholder="e.g. May 1, 2026" />
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">Contract duration</span>
-                <input
-                  value={local.duration}
-                  onChange={(e) => setLocal((s) => (s ? { ...s, duration: e.target.value } : s))}
-                  className="ipt"
-                  placeholder="e.g. 3 months"
-                />
+                <input value={local.duration} onChange={(e) => setLocal((s) => s ? { ...s, duration: e.target.value } : s)} className="ipt" placeholder="e.g. 3 months" />
               </label>
             </div>
             <div className="mt-6 flex justify-end gap-3">
-              <button
-                onClick={onClose}
-                disabled={sending}
-                className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-50"
-              >
+              <button onClick={onClose} disabled={sending} className="rounded-full border border-ink/15 px-4 py-2 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-50">
                 Cancel
               </button>
               <button
                 onClick={() => local && onSend(local)}
-                disabled={
-                  sending ||
-                  !local.payRate.trim() ||
-                  !local.startDate.trim() ||
-                  !local.duration.trim()
-                }
+                disabled={sending || !local.payRate.trim() || !local.startDate.trim() || !local.duration.trim()}
                 className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
               >
                 Send offer
@@ -499,4 +594,3 @@ function LongDetail({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
