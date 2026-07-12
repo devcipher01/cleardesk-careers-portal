@@ -80,52 +80,25 @@ interface ModuleMeta {
 
 // ─── Module definitions ────────────────────────────────────────────────────────
 const MODULES: ModuleDef[] = [
-  { num: 1, label: "Module 1", subtitle: "Foundation Transcription",   deadlineHours: 72 },
-  { num: 2, label: "Module 2", subtitle: "Intermediate Tasks",         deadlineHours: 48 },
-  { num: 3, label: "Module 3", subtitle: "Advanced Transcription",     deadlineHours: 48 },
-  { num: 4, label: "Module 4", subtitle: "Long-Form Mastery",          deadlineHours: 36 },
+  { num: 1, label: "Module 1", subtitle: "Transcription Tasks", deadlineHours: 72 },
 ];
 
 // ─── Task definitions ──────────────────────────────────────────────────────────
+// 8 tasks total. Tasks 7–8 require a medical cert (gate fires on start; not shown in description).
+// Audio files: upload m1t01.mp3 … m1t08.mp3 to the "task-audio" Supabase bucket.
 const TASKS: TaskDef[] = [
-  // Module 1
-  { id: "m1t01", num:  1, module: 1, category: "general", durationMin:  8, title: "Client Interview — Part 1",      description: "Transcribe a recorded client intake interview. Focus on speaker clarity and accurate terminology.",                        earningsUsd: earn(8)   },
-  { id: "m1t02", num:  2, module: 1, category: "general", durationMin: 15, title: "Team Standup Recording",          description: "Brief meeting with multiple speakers. Label each as Speaker A, B, etc.",                                              earningsUsd: earn(15)  },
-  { id: "m1t03", num:  3, module: 1, category: "general", durationMin: 22, title: "Product Feedback Session",        description: "User feedback recording with occasional background noise. Flag inaudible sections with [inaudible].",                  earningsUsd: earn(22)  },
-  { id: "m1t04", num:  4, module: 1, category: "general", durationMin: 12, title: "Sales Call Excerpt",              description: "Single-speaker sales presentation. Accurate product name transcription is critical.",                                  earningsUsd: earn(12)  },
-  { id: "m1t05", num:  5, module: 1, category: "general", durationMin: 25, title: "HR Policy Briefing",              description: "Formal HR audio briefing. Legal and policy terminology must be transcribed exactly as spoken.",                        earningsUsd: earn(25)  },
-  { id: "m1t06", num:  6, module: 1, category: "general", durationMin: 16, title: "Customer Support Call",           description: "Customer support interaction. Transcribe both agent and customer, noting hold music as [on hold].",                    earningsUsd: earn(16)  },
-  { id: "m1t07", num:  7, module: 1, category: "general", durationMin: 28, title: "Webinar Segment — Q&A Block",    description: "Live webinar Q&A with host and multiple audience questions. Each question speaker should be labeled.",                  earningsUsd: earn(28)  },
-  { id: "m1t08", num:  8, module: 1, category: "medical", durationMin: 20, title: "Medical Consultation Notes",      description: "Medical consultation recording. Use standard medical terminology and flag unclear pronunciations.",                      earningsUsd: earn(20)  },
-  { id: "m1t09", num:  9, module: 1, category: "medical", durationMin: 28, title: "Patient Intake Interview",        description: "Patient history intake with nurse and patient. Transcribe verbatim, noting patient discomfort pauses as [pause].",     earningsUsd: earn(28)  },
-  { id: "m1t10", num: 10, module: 1, category: "medical", durationMin: 15, title: "Radiology Report Dictation",      description: "Radiologist dictating imaging findings. Accurate anatomical and radiological terminology required.",                     earningsUsd: earn(15)  },
-  // Module 2
-  { id: "m2t01", num:  1, module: 2, category: "general", durationMin: 30, title: "Executive Panel Q&A",             description: "Multi-speaker panel with audience questions. Add timestamps every 2 minutes, label each panelist.",                     earningsUsd: earn(30)  },
-  { id: "m2t02", num:  2, module: 2, category: "general", durationMin: 45, title: "Training Workshop Recording",     description: "Corporate training session with slides referenced by speaker. Include [slide change] markers where audible.",          earningsUsd: earn(45)  },
-  { id: "m2t03", num:  3, module: 2, category: "general", durationMin: 35, title: "Investor Pitch Presentation",     description: "Startup pitch to investors. Accurate financial figures and product names are critical. No filler words.",               earningsUsd: earn(35)  },
-  { id: "m2t04", num:  4, module: 2, category: "general", durationMin: 40, title: "Podcast Interview Segment",       description: "Conversational podcast with two hosts and a guest. Clean read transcription — omit filler words.",                     earningsUsd: earn(40)  },
-  { id: "m2t05", num:  5, module: 2, category: "general", durationMin: 28, title: "Performance Review Meeting",      description: "Manager/employee review session. Confidential tone. Transcribe verbatim including all pauses and corrections.",        earningsUsd: earn(28)  },
-  { id: "m2t06", num:  6, module: 2, category: "medical", durationMin: 35, title: "Clinical Case Discussion",        description: "Multidisciplinary team discussing a patient case. Label each clinician by role (Radiologist, Oncologist, etc.).",      earningsUsd: earn(35)  },
-  { id: "m2t07", num:  7, module: 2, category: "medical", durationMin: 40, title: "Surgical Prep Briefing",          description: "Pre-operative team briefing. Transcribe surgeon instructions and safety checklist items exactly.",                      earningsUsd: earn(40)  },
-  // Module 3
-  { id: "m3t01", num:  1, module: 3, category: "general", durationMin: 55, title: "Legal Deposition Excerpt",        description: "Long-form legal deposition. Strict verbatim accuracy including false starts, filler words, and corrections.",          earningsUsd: earn(55)  },
-  { id: "m3t02", num:  2, module: 3, category: "general", durationMin: 60, title: "Academic Conference Talk",        description: "Research presentation with Q&A. Include applause notation [applause] and timestamps every 5 minutes.",               earningsUsd: earn(60)  },
-  { id: "m3t03", num:  3, module: 3, category: "general", durationMin: 50, title: "Documentary Interview Segment",   description: "Filmed interview with cinematic pauses. Clean transcription style — omit filler words unless character-relevant.",    earningsUsd: earn(50)  },
-  { id: "m3t04", num:  4, module: 3, category: "general", durationMin: 65, title: "Technical Seminar Recording",     description: "Engineering seminar with heavy jargon. Flag domain-specific acronyms you cannot verify with [?term].",              earningsUsd: earn(65)  },
-  { id: "m3t05", num:  5, module: 3, category: "medical", durationMin: 50, title: "Psychiatric Evaluation Notes",    description: "Clinician-patient psychiatric session. Transcribe verbatim. Label speaker turns precisely.",                           earningsUsd: earn(50)  },
-  { id: "m3t06", num:  6, module: 3, category: "medical", durationMin: 55, title: "Cardiology Consultation",         description: "Cardiologist reviewing test results with a patient. Accurate cardiac terminology and medication names required.",      earningsUsd: earn(55)  },
-  { id: "m3t07", num:  7, module: 3, category: "medical", durationMin: 45, title: "ER Triage Documentation",         description: "Emergency room triage recordings across 3 cases. Label each case separately and flag critical time references.",        earningsUsd: earn(45)  },
-  // Module 4
-  { id: "m4t01", num:  1, module: 4, category: "general", durationMin: 130, title: "Full Conference Session A",      description: "2+ hour conference recording. Timestamps every 5 minutes required. Multiple speakers — label all.",                    earningsUsd: earn(130) },
-  { id: "m4t02", num:  2, module: 4, category: "general", durationMin: 110, title: "Town Hall Meeting — Full",       description: "Company-wide town hall with exec Q&A. Separate each segment with a section heading and timestamp.",                  earningsUsd: earn(110) },
-  { id: "m4t03", num:  3, module: 4, category: "general", durationMin: 150, title: "Full Conference Session B",      description: "Follow-on conference session, multiple breakout discussions. Timestamps and section labels every 5 minutes.",         earningsUsd: earn(150) },
-  { id: "m4t04", num:  4, module: 4, category: "general", durationMin: 180, title: "Documentary Interview — Full",   description: "3-hour documentary subject interview. Clean transcription style, omit filler unless character-relevant.",             earningsUsd: earn(180) },
-  { id: "m4t05", num:  5, module: 4, category: "medical", durationMin: 120, title: "Oncology Team Meeting",          description: "Full oncology multidisciplinary meeting. Label each specialist, flag all medication names and dosages exactly.",     earningsUsd: earn(120) },
-  { id: "m4t06", num:  6, module: 4, category: "medical", durationMin: 140, title: "Neurology Grand Rounds",         description: "Full neurology grand rounds session. Complex terminology — use [?term] for uncertain words. Timestamps every 5 min.", earningsUsd: earn(140) },
+  { id: "m1t01", num: 1, module: 1, category: "general", durationMin:  8, title: "Client Interview — Part 1",  description: "Transcribe a recorded client intake interview. Focus on speaker clarity and accurate terminology.",                   earningsUsd: earn(8)  },
+  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 15, title: "Team Standup Recording",      description: "Brief meeting with multiple speakers. Label each as Speaker A, B, etc.",                                            earningsUsd: earn(15) },
+  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 22, title: "Product Feedback Session",    description: "User feedback recording with occasional background noise. Flag inaudible sections with [inaudible].",               earningsUsd: earn(22) },
+  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 12, title: "Sales Call Excerpt",          description: "Single-speaker sales presentation. Accurate product name transcription is critical.",                               earningsUsd: earn(12) },
+  { id: "m1t05", num: 5, module: 1, category: "general", durationMin: 25, title: "HR Policy Briefing",          description: "Formal HR audio briefing. Legal and policy terminology must be transcribed exactly as spoken.",                     earningsUsd: earn(25) },
+  { id: "m1t06", num: 6, module: 1, category: "general", durationMin: 16, title: "Customer Support Call",       description: "Customer support interaction. Transcribe both agent and customer, noting hold music as [on hold].",                 earningsUsd: earn(16) },
+  { id: "m1t07", num: 7, module: 1, category: "general", durationMin: 28, title: "Webinar Segment — Q&A Block", description: "Live webinar Q&A with host and multiple audience questions. Each question speaker should be labeled.",              earningsUsd: earn(28) },
+  { id: "m1t08", num: 8, module: 1, category: "general", durationMin: 20, title: "Medical Consultation Notes",  description: "Consultation recording with clinical discussion. Transcribe verbatim and flag unclear terminology with [?term].",   earningsUsd: earn(20) },
 ];
 
-// Medical cert is required for module-1 tasks 8–10
-const MEDICAL_CERT_TASK_IDS = new Set(["m1t08", "m1t09", "m1t10"]);
+// Cert required from task 7 onward — gate fires when contractor clicks Start; not shown in task card
+const MEDICAL_CERT_TASK_IDS = new Set(["m1t07", "m1t08"]);
 
 // ─── Storage helpers ───────────────────────────────────────────────────────────
 function progressKey(appId: string)   { return `wn_task_progress_${appId}`; }
@@ -164,6 +137,14 @@ function computeEffectiveStatus(task: TaskDef, progress: LocalProgress, contract
   const stored = progress[task.id]?.status;
   if (stored === "submitted" || stored === "reviewed") return stored;
   if (!isModuleAvailable(task.module, progress, contractSubmitted)) return "locked";
+  // Sequential: previous task in the same module must be submitted before this one unlocks
+  if (task.num > 1) {
+    const prev = TASKS.find((t) => t.module === task.module && t.num === task.num - 1);
+    if (prev) {
+      const prevStatus = progress[prev.id]?.status;
+      if (prevStatus !== "submitted" && prevStatus !== "reviewed") return "locked";
+    }
+  }
   return stored ?? "available";
 }
 
@@ -571,16 +552,6 @@ function TaskCard({
             {open ? <ChevronUp className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {open ? "Collapse task" : "Start task"}
           </button>
-          {requiresCert && !certVerified && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-medium text-rose-600">
-              <ShieldCheck className="h-3 w-3" /> Cert required
-            </span>
-          )}
-          {requiresCert && certVerified && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-medium text-emerald-600">
-              <CheckCircle2 className="h-3 w-3" /> Cert verified
-            </span>
-          )}
         </div>
       )}
 
