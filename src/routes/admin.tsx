@@ -10,15 +10,17 @@ import {
   adminSendOffer,
   adminListTranscriptions,
   adminMarkTranscriptionReviewed,
+  adminBulkMarkReviewed,
   adminGetStats,
+  adminGetContractorBreakdown,
 } from "@/lib/server/actions";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Activity,
   ArrowUpRight,
+  BarChart3,
   CheckCircle2,
-  ChevronDown,
-  ChevronUp,
+  Clock,
   Eye,
   FileText,
   Lock,
@@ -30,16 +32,8 @@ import {
   Users,
   X,
   XCircle,
+  Zap,
 } from "lucide-react";
-
-/** Deterministic accuracy score 87–100 derived from task_id */
-function accuracyScore(taskId: string): number {
-  let h = 0;
-  for (let i = 0; i < taskId.length; i++) {
-    h = (Math.imul(h, 31) + taskId.charCodeAt(i)) >>> 0;
-  }
-  return 87 + (h % 14);
-}
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -51,7 +45,7 @@ export const Route = createFileRoute("/admin")({
   component: AdminPage,
 });
 
-type Tab = "applications" | "transcriptions";
+type Tab = "applications" | "transcriptions" | "stats";
 type AppFilter =
   | "all"
   | "pending"
@@ -63,7 +57,8 @@ type AppFilter =
   | "offer_accepted"
   | "active"
   | "rejected";
-type TxFilter = "all" | "submitted" | "reviewed";
+type TxStatusFilter = "submitted" | "reviewed" | "all";
+type TxTimeFilter = "all" | "2h" | "4h" | "today";
 
 interface Stats {
   totalContractors: number;
@@ -73,26 +68,61 @@ interface Stats {
   totalEarningsUsd: number;
 }
 
+interface ContractorRow {
+  name: string;
+  email: string;
+  submitted: number;
+  reviewed: number;
+  earnings: number;
+}
+
 const APP_FILTERS: [AppFilter, string][] = [
   ["all", "All"],
   ["pending", "Pending"],
-  ["interview_sent", "Interview"],
-  ["assessment_sent", "Assessment"],
-  ["offer_sent", "Offer"],
+  ["interview_sent", "Interview sent"],
+  ["assessment_sent", "Assessment sent"],
+  ["offer_sent", "Offer sent"],
   ["active", "Active"],
   ["rejected", "Rejected"],
 ];
 
-const TX_FILTERS: [TxFilter, string][] = [
+const TX_STATUS_FILTERS: [TxStatusFilter, string][] = [
   ["submitted", "Under review"],
   ["reviewed", "Reviewed"],
-  ["all", "All"],
+  ["all", "All tasks"],
 ];
+
+const TX_TIME_FILTERS: [TxTimeFilter, string][] = [
+  ["all", "All time"],
+  ["today", "Today"],
+  ["4h", "Last 4 hrs"],
+  ["2h", "Last 2 hrs"],
+];
+
+function sinceIso(filter: TxTimeFilter): string | undefined {
+  if (filter === "all") return undefined;
+  const d = new Date();
+  if (filter === "2h") d.setHours(d.getHours() - 2);
+  else if (filter === "4h") d.setHours(d.getHours() - 4);
+  else if (filter === "today") { d.setHours(0, 0, 0, 0); }
+  return d.toISOString();
+}
+
+function relativeTime(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  return new Date(iso).toLocaleDateString();
+}
 
 function AdminPage() {
   const [password, setPassword] = useState("");
   const [authed, setAuthed] = useState(false);
-  const [tab, setTab] = useState<Tab>("applications");
+  const [tab, setTab] = useState<Tab>("transcriptions");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -105,10 +135,14 @@ function AdminPage() {
   const [offerForm, setOfferForm] = useState<{ appId: string; payRate: string; startDate: string; duration: string } | null>(null);
 
   // Transcriptions tab state
-  const [txFilter, setTxFilter] = useState<TxFilter>("submitted");
+  const [txStatusFilter, setTxStatusFilter] = useState<TxStatusFilter>("submitted");
+  const [txTimeFilter, setTxTimeFilter] = useState<TxTimeFilter>("all");
   const [txRows, setTxRows] = useState<any[]>([]);
-  const [txDetails, setTxDetails] = useState<any | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [bulkConfirm, setBulkConfirm] = useState(false);
+
+  // Stats tab
+  const [contractorRows, setContractorRows] = useState<ContractorRow[]>([]);
 
   // Restore session — verify with server before trusting stored password.
   useEffect(() => {
@@ -120,15 +154,13 @@ function AdminPage() {
         await adminCheckPassword({ data: { password: stored } });
         setAuthed(true);
       } catch {
-        // Stored password is invalid — clear it so the user sees the login form cleanly.
         try { sessionStorage.removeItem("wn_admin_password"); } catch { /* ignore */ }
       }
     };
     void restore();
   }, []);
 
-  const isAuthError = (msg: string) =>
-    msg.toLowerCase() === "invalid admin password";
+  const isAuthError = (msg: string) => msg.toLowerCase() === "invalid admin password";
 
   const loadApps = async (pwd = password, f = appFilter) => {
     setLoading(true);
@@ -146,12 +178,13 @@ function AdminPage() {
     }
   };
 
-  const loadTx = async (pwd = password, f = txFilter) => {
+  const loadTx = async (pwd = password, sf = txStatusFilter, tf = txTimeFilter) => {
     setLoading(true);
     setError("");
     try {
+      const since = sinceIso(tf);
       const [txRes, statsRes] = await Promise.all([
-        adminListTranscriptions({ data: { password: pwd, status: f } }),
+        adminListTranscriptions({ data: { password: pwd, status: sf, since } }),
         adminGetStats({ data: { password: pwd } }),
       ]);
       setTxRows(txRes.rows);
@@ -166,12 +199,32 @@ function AdminPage() {
     }
   };
 
+  const loadStats = async (pwd = password) => {
+    setLoading(true);
+    setError("");
+    try {
+      const [statsRes, breakdownRes] = await Promise.all([
+        adminGetStats({ data: { password: pwd } }),
+        adminGetContractorBreakdown({ data: { password: pwd } }),
+      ]);
+      setStats(statsRes);
+      setContractorRows(breakdownRes.contractors);
+    } catch (e: any) {
+      const msg: string = e?.message || "Failed to load stats";
+      setError(msg);
+      if (isAuthError(msg)) setAuthed(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!authed || !password) return;
     if (tab === "applications") void loadApps(password, appFilter);
-    else void loadTx(password, txFilter);
+    else if (tab === "transcriptions") void loadTx(password, txStatusFilter, txTimeFilter);
+    else void loadStats(password);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authed, tab, appFilter, txFilter]);
+  }, [authed, tab, appFilter, txStatusFilter, txTimeFilter]);
 
   const filteredApps = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -193,8 +246,6 @@ function AdminPage() {
     setLoading(true);
     setError("");
     try {
-      // Verify password first — this fn does NOT touch Supabase, so it works
-      // regardless of DB configuration.
       await adminCheckPassword({ data: { password } });
       setAuthed(true);
       try { sessionStorage.setItem("wn_admin_password", password); } catch { /* ignore */ }
@@ -212,13 +263,22 @@ function AdminPage() {
     try {
       await fn();
       if (tab === "applications") await loadApps(password, appFilter);
-      else await loadTx(password, txFilter);
+      else if (tab === "transcriptions") await loadTx(password, txStatusFilter, txTimeFilter);
+      else await loadStats(password);
     } catch (e: any) {
       setError(e?.message || "Action failed");
     } finally {
       setLoading(false);
     }
   };
+
+  const handleBulkMarkReviewed = async () => {
+    const since = sinceIso(txTimeFilter) ?? new Date(0).toISOString();
+    await action(() => adminBulkMarkReviewed({ data: { password, since } }));
+    setBulkConfirm(false);
+  };
+
+  const submittedInView = filteredTx.filter((r) => r.status === "submitted").length;
 
   // ── LOGIN SCREEN ─────────────────────────────────────────────────────────
   if (!authed) {
@@ -268,9 +328,14 @@ function AdminPage() {
     );
   }
 
+  // ── SIDEBAR NAV ITEMS ─────────────────────────────────────────────────────
+  const NAV_ITEMS: [Tab, string, React.ReactNode][] = [
+    ["transcriptions", "Transcriptions", <FileText key="f" className="h-4 w-4" />],
+    ["applications",   "Applications",   <Users    key="u" className="h-4 w-4" />],
+    ["stats",          "Contractor stats", <BarChart3 key="b" className="h-4 w-4" />],
+  ];
+
   // ── AUTHENTICATED DASHBOARD ───────────────────────────────────────────────
-  const currentAppFilter = APP_FILTERS.find(([id]) => id === appFilter)?.[1] ?? "All";
-  const currentTxFilter = TX_FILTERS.find(([id]) => id === txFilter)?.[1] ?? "All";
   const resultCount = tab === "applications" ? filteredApps.length : filteredTx.length;
 
   return (
@@ -312,16 +377,13 @@ function AdminPage() {
         </div>
 
         {/* Drawer body — scrollable */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
 
           {/* Section nav */}
           <div>
-            <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Section</p>
+            <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Dashboard</p>
             <div className="space-y-1">
-              {([
-                ["applications", "Applications", <Users key="u" className="h-4 w-4" />],
-                ["transcriptions", "Transcriptions", <FileText key="f" className="h-4 w-4" />],
-              ] as const).map(([id, label, icon]) => (
+              {NAV_ITEMS.map(([id, label, icon]) => (
                 <button
                   key={id}
                   onClick={() => { setTab(id); setQuery(""); setError(""); setSidebarOpen(false); }}
@@ -337,48 +399,89 @@ function AdminPage() {
             </div>
           </div>
 
-          {/* Filters */}
-          <div>
-            <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Filter</p>
-            <div className="space-y-0.5">
-              {(tab === "applications" ? APP_FILTERS : TX_FILTERS).map(([id, label]) => {
-                const active = tab === "applications" ? appFilter === id : txFilter === id;
-                return (
+          {/* Status filter (transcriptions) */}
+          {tab === "transcriptions" && (
+            <div>
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Status</p>
+              <div className="space-y-0.5">
+                {TX_STATUS_FILTERS.map(([id, label]) => (
                   <button
                     key={id}
-                    onClick={() => {
-                      if (tab === "applications") setAppFilter(id as AppFilter);
-                      else setTxFilter(id as TxFilter);
-                      setSidebarOpen(false);
-                    }}
+                    onClick={() => { setTxStatusFilter(id); setSidebarOpen(false); }}
                     className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
-                      active
+                      txStatusFilter === id
                         ? "bg-ink text-ink-foreground font-medium"
                         : "text-ink hover:bg-ink/5"
                     }`}
                   >
                     {label}
-                    {active && <CheckCircle2 className="h-3.5 w-3.5 opacity-70" />}
+                    {txStatusFilter === id && <CheckCircle2 className="h-3.5 w-3.5 opacity-70" />}
                   </button>
-                );
-              })}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Stats (transcriptions) */}
-          {tab === "transcriptions" && stats && (
+          {/* Time filter (transcriptions) */}
+          {tab === "transcriptions" && (
             <div>
-              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Stats</p>
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Time window</p>
+              <div className="space-y-0.5">
+                {TX_TIME_FILTERS.map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => { setTxTimeFilter(id); setSidebarOpen(false); }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
+                      txTimeFilter === id
+                        ? "bg-ink text-ink-foreground font-medium"
+                        : "text-ink hover:bg-ink/5"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2"><Clock className="h-3.5 w-3.5 opacity-60" />{label}</span>
+                    {txTimeFilter === id && <CheckCircle2 className="h-3.5 w-3.5 opacity-70" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* App filter */}
+          {tab === "applications" && (
+            <div>
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Filter</p>
+              <div className="space-y-0.5">
+                {APP_FILTERS.map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => { setAppFilter(id); setSidebarOpen(false); }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm transition ${
+                      appFilter === id
+                        ? "bg-ink text-ink-foreground font-medium"
+                        : "text-ink hover:bg-ink/5"
+                    }`}
+                  >
+                    {label}
+                    {appFilter === id && <CheckCircle2 className="h-3.5 w-3.5 opacity-70" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Stats summary */}
+          {stats && (
+            <div>
+              <p className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-ink/40">Overview</p>
               <div className="space-y-1.5">
                 {[
-                  { label: "Contractors", value: stats.totalContractors, icon: <Users className="h-3.5 w-3.5" /> },
-                  { label: "Submitted", value: stats.totalSubmitted, icon: <FileText className="h-3.5 w-3.5" /> },
-                  { label: "Under review", value: stats.underReview, icon: <Activity className="h-3.5 w-3.5" /> },
-                  { label: "Reviewed", value: stats.totalReviewed, icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-                  { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}`, icon: <Shield className="h-3.5 w-3.5" /> },
-                ].map(({ label, value, icon }) => (
+                  { label: "Active contractors", value: stats.totalContractors },
+                  { label: "Total submitted", value: stats.totalSubmitted },
+                  { label: "Under review", value: stats.underReview },
+                  { label: "Reviewed", value: stats.totalReviewed },
+                  { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}` },
+                ].map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between rounded-xl border border-ink/10 px-3 py-2.5">
-                    <span className="flex items-center gap-2 text-xs text-ink/60">{icon}{label}</span>
+                    <span className="text-xs text-ink/60">{label}</span>
                     <span className="text-sm font-semibold text-ink">{value}</span>
                   </div>
                 ))}
@@ -390,11 +493,16 @@ function AdminPage() {
         {/* Drawer footer — refresh */}
         <div className="shrink-0 border-t border-ink/10 p-4">
           <button
-            onClick={() => { tab === "applications" ? void loadApps() : void loadTx(); setSidebarOpen(false); }}
+            onClick={() => {
+              if (tab === "applications") void loadApps();
+              else if (tab === "transcriptions") void loadTx();
+              else void loadStats();
+              setSidebarOpen(false);
+            }}
             disabled={loading}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-ink/15 py-2.5 text-sm font-medium text-ink hover:bg-ink/5 disabled:opacity-50"
           >
-            <RefreshCw className="h-4 w-4" /> Refresh data
+            <RefreshCw className="h-4 w-4" /> Refresh
           </button>
         </div>
       </aside>
@@ -410,14 +518,14 @@ function AdminPage() {
 
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-ink">
-            {tab === "applications" ? "Applications" : "Transcriptions"}
+            {tab === "applications" ? "Applications" : tab === "transcriptions" ? "Transcriptions" : "Contractor Stats"}
           </p>
-          <p className="text-[11px] text-ink/50">
-            {currentAppFilter !== "All" || currentTxFilter !== "All"
-              ? tab === "applications" ? currentAppFilter : currentTxFilter
-              : "All"}{" "}
-            · {resultCount} result{resultCount !== 1 ? "s" : ""}
-          </p>
+          {tab !== "stats" && (
+            <p className="text-[11px] text-ink/50">
+              {resultCount} result{resultCount !== 1 ? "s" : ""}
+              {tab === "transcriptions" && txTimeFilter !== "all" ? ` · ${TX_TIME_FILTERS.find(([id]) => id === txTimeFilter)?.[1]}` : ""}
+            </p>
+          )}
         </div>
 
         <div className="relative shrink-0">
@@ -425,16 +533,16 @@ function AdminPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-36 rounded-xl border border-ink/15 bg-cream py-2 pl-8 pr-3 text-xs focus:border-ink focus:outline-none focus:ring-2 focus:ring-lime/30"
+            className="w-32 rounded-xl border border-ink/15 bg-cream py-2 pl-8 pr-3 text-xs focus:border-ink focus:outline-none focus:ring-2 focus:ring-lime/30"
             placeholder="Search…"
           />
         </div>
       </header>
 
       {/* ── MOBILE CONTENT ──────────────────────────────────────────── */}
-      <div className="md:hidden px-4 py-4">
+      <div className="md:hidden px-4 py-4 space-y-3">
         {error && (
-          <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-ink">
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-sm text-ink">
             <strong>Error:</strong> {error}
           </div>
         )}
@@ -442,9 +550,100 @@ function AdminPage() {
           <div className="py-12 text-center text-sm text-ink/50">Loading…</div>
         )}
 
+        {/* Mobile: Bulk action (transcriptions) */}
+        {tab === "transcriptions" && !loading && submittedInView > 0 && txStatusFilter === "submitted" && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-xs font-medium text-amber-800 mb-2">
+              {submittedInView} task{submittedInView !== 1 ? "s" : ""} under review
+              {txTimeFilter !== "all" ? ` in ${TX_TIME_FILTERS.find(([id]) => id === txTimeFilter)?.[1]?.toLowerCase()}` : ""}
+            </p>
+            {!bulkConfirm ? (
+              <button
+                onClick={() => setBulkConfirm(true)}
+                className="inline-flex items-center gap-1.5 rounded-full bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800"
+              >
+                <Zap className="h-3.5 w-3.5" /> Mark all as reviewed
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-amber-800">Sure? This marks {submittedInView} tasks.</span>
+                <button onClick={() => void handleBulkMarkReviewed()} disabled={loading}
+                  className="rounded-full bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800 disabled:opacity-50">
+                  Confirm
+                </button>
+                <button onClick={() => setBulkConfirm(false)}
+                  className="rounded-full border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800">
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Mobile: Transcription task cards */}
+        {tab === "transcriptions" && !loading && (
+          <div className="space-y-2">
+            {filteredTx.length === 0 && (
+              <div className="rounded-2xl border border-ink/10 bg-card px-4 py-10 text-center text-sm text-ink/50">
+                No transcriptions found.
+              </div>
+            )}
+            {filteredTx.map((r) => {
+              const app = r.applications as any;
+              const isSubmitted = r.status === "submitted";
+              return (
+                <div
+                  key={r.id}
+                  className={`rounded-2xl border bg-card overflow-hidden ${
+                    isSubmitted ? "border-amber-200" : "border-emerald-200"
+                  }`}
+                >
+                  <div className="px-4 py-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                          isSubmitted ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
+                        }`}>
+                          {isSubmitted ? "Under review" : "Reviewed"}
+                        </span>
+                        <span className="font-mono text-[11px] text-ink/50">{r.task_id}</span>
+                      </div>
+                      <p className="text-sm font-medium text-ink truncate">{app?.full_name ?? "—"}</p>
+                      <p className="text-xs text-ink/50 truncate">{app?.email ?? ""}</p>
+                      <p className="mt-1 text-[11px] text-ink/40">
+                        {isSubmitted ? "Submitted" : "Reviewed"} {relativeTime(isSubmitted ? r.submitted_at : r.reviewed_at)}
+                      </p>
+                    </div>
+                    {r.earnings_usd && (
+                      <span className="shrink-0 text-sm font-semibold text-lime">${Number(r.earnings_usd).toFixed(2)}</span>
+                    )}
+                  </div>
+                  {isSubmitted && (
+                    <div className="border-t border-ink/8 px-4 py-3">
+                      <button
+                        onClick={() => void action(() => adminMarkTranscriptionReviewed({ data: { password, taskProgressId: r.id } }))}
+                        disabled={loading}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" /> Mark as reviewed
+                      </button>
+                    </div>
+                  )}
+                  {!isSubmitted && r.reviewed_at && (
+                    <div className="border-t border-emerald-100 px-4 py-2.5 flex items-center gap-1.5">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-xs text-emerald-600">Reviewed {new Date(r.reviewed_at).toLocaleDateString()}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Mobile: Applications cards */}
         {tab === "applications" && !loading && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {filteredApps.length === 0 && (
               <div className="rounded-2xl border border-ink/10 bg-card px-4 py-10 text-center text-sm text-ink/50">
                 No applications found.
@@ -463,53 +662,39 @@ function AdminPage() {
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-ink/60">{r.role_title}</p>
-                  <p className="mt-0.5 text-[11px] text-ink/40">
-                    Applied {new Date(r.created_at).toLocaleDateString()}
-                  </p>
+                  <p className="mt-0.5 text-[11px] text-ink/40">Applied {new Date(r.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 border-t border-ink/8 px-4 py-3">
-                  <button
-                    onClick={() => setDetails(r)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-card px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5"
-                  >
+                  <button onClick={() => setDetails(r)}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-card px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5">
                     <Eye className="h-3.5 w-3.5" /> View
                   </button>
                   {r.status === "pending" && (
-                    <button
-                      onClick={() => void action(() => adminSendInterviewLink({ data: { password, applicationId: r.id } }))}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground"
-                    >
+                    <button onClick={() => void action(() => adminSendInterviewLink({ data: { password, applicationId: r.id } }))}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
                       <Send className="h-3.5 w-3.5" /> Interview
                     </button>
                   )}
                   {r.status === "interview_complete" && (
-                    <button
-                      onClick={() => void action(() => adminSendAssessmentLink({ data: { password, applicationId: r.id } }))}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground"
-                    >
+                    <button onClick={() => void action(() => adminSendAssessmentLink({ data: { password, applicationId: r.id } }))}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
                       <Send className="h-3.5 w-3.5" /> Assessment
                     </button>
                   )}
                   {r.status === "assessment_complete" && (
-                    <button
-                      onClick={() => setOfferForm({ appId: r.id, payRate: "", startDate: "", duration: "" })}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground"
-                    >
+                    <button onClick={() => setOfferForm({ appId: r.id, payRate: "", startDate: "", duration: "" })}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Offer
                     </button>
                   )}
                   {r.status === "offer_accepted" && (
-                    <button
-                      onClick={() => void action(() => adminMarkActive({ data: { password, applicationId: r.id } }))}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 text-xs font-medium text-lime-foreground hover:opacity-90"
-                    >
+                    <button onClick={() => void action(() => adminMarkActive({ data: { password, applicationId: r.id } }))}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-lime px-3 py-1.5 text-xs font-medium text-lime-foreground hover:opacity-90">
                       Mark Active
                     </button>
                   )}
-                  <button
-                    onClick={() => void action(() => adminReject({ data: { password, applicationId: r.id } }))}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-ink hover:bg-rose-100"
-                  >
+                  <button onClick={() => void action(() => adminReject({ data: { password, applicationId: r.id } }))}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-ink hover:bg-rose-100">
                     <XCircle className="h-3.5 w-3.5 text-rose-400" /> Reject
                   </button>
                 </div>
@@ -518,105 +703,48 @@ function AdminPage() {
           </div>
         )}
 
-        {/* Mobile: Transcription cards */}
-        {tab === "transcriptions" && !loading && (
+        {/* Mobile: Stats */}
+        {tab === "stats" && !loading && (
           <div className="space-y-3">
-            {filteredTx.length === 0 && (
-              <div className="rounded-2xl border border-ink/10 bg-card px-4 py-10 text-center text-sm text-ink/50">
-                No transcriptions found.
+            {stats && (
+              <div className="rounded-2xl border border-ink/10 bg-card p-4">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink/40">Overview</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: "Active contractors", value: stats.totalContractors },
+                    { label: "Total tasks submitted", value: stats.totalSubmitted },
+                    { label: "Under review", value: stats.underReview },
+                    { label: "Reviewed", value: stats.totalReviewed },
+                    { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}` },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="rounded-xl border border-ink/10 bg-cream p-3">
+                      <p className="text-[11px] text-ink/50">{label}</p>
+                      <p className="text-lg font-semibold text-ink">{value}</p>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-            {filteredTx.map((r) => {
-              const app = r.applications as any;
-              const isSubmitted = r.status === "submitted";
-              return (
-                <div
-                  key={r.id}
-                  className={`overflow-hidden rounded-2xl border bg-card ${
-                    isSubmitted ? "border-amber-200" : "border-emerald-200"
-                  }`}
-                >
-                  {/* Card header */}
-                  <div className={`px-4 py-3 ${isSubmitted ? "bg-amber-50" : "bg-emerald-50"}`}>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
-                          isSubmitted ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                        }`}
-                      >
-                        {isSubmitted ? "Under review" : "Reviewed"}
-                      </span>
-                      {!isSubmitted && (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-lime/15 px-2 py-0.5 text-[11px] font-semibold text-lime">
-                          {accuracyScore(r.task_id)}% accuracy
-                        </span>
-                      )}
-                    </div>
-                    <p className="font-medium text-ink text-sm">{app?.full_name ?? "—"}</p>
-                    <p className="text-xs text-ink/60">{app?.email ?? ""}</p>
-                    <p className="mt-1 font-mono text-[11px] text-ink/50">{r.task_id}</p>
+            <div className="rounded-2xl border border-ink/10 bg-card overflow-hidden">
+              <div className="px-4 py-3 border-b border-ink/10">
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink/40">Per Contractor</p>
+              </div>
+              {contractorRows.length === 0 && (
+                <p className="px-4 py-8 text-center text-sm text-ink/50">No data yet.</p>
+              )}
+              {contractorRows.map((c) => (
+                <div key={c.email} className="flex items-center justify-between gap-3 border-b border-ink/8 last:border-0 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink truncate">{c.name}</p>
+                    <p className="text-xs text-ink/50 truncate">{c.email}</p>
                   </div>
-
-                  {/* Card body */}
-                  <div className="px-4 py-3">
-                    <div className="mb-3 flex items-center justify-between text-xs text-ink/50">
-                      <span>
-                        Submitted{" "}
-                        {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "—"}
-                      </span>
-                      {r.earnings_usd && (
-                        <span className="font-semibold text-lime">
-                          ${Number(r.earnings_usd).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <button
-                        onClick={() => setTxDetails(txDetails?.id === r.id ? null : r)}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-card px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5"
-                      >
-                        {txDetails?.id === r.id
-                          ? <><ChevronUp className="h-3.5 w-3.5" /> Hide</>
-                          : <><ChevronDown className="h-3.5 w-3.5" /> Read</>}
-                      </button>
-                      {isSubmitted && (
-                        <button
-                          onClick={() =>
-                            void action(() =>
-                              adminMarkTranscriptionReviewed({ data: { password, taskProgressId: r.id } })
-                            )
-                          }
-                          disabled={loading}
-                          className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
-                        >
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Mark reviewed
-                        </button>
-                      )}
-                      {!isSubmitted && r.reviewed_at && (
-                        <span className="flex items-center gap-1.5 text-xs text-emerald-600">
-                          <CheckCircle2 className="h-3 w-3" />
-                          Reviewed {new Date(r.reviewed_at).toLocaleDateString()}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Expanded text */}
-                    {txDetails?.id === r.id && (
-                      <div className="mt-3 border-t border-ink/10 pt-3">
-                        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink/40">
-                          Transcription text
-                        </p>
-                        <pre className="max-h-64 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-relaxed text-ink/80">
-                          {r.transcription_text || (
-                            <span className="italic text-ink/30">No content</span>
-                          )}
-                        </pre>
-                      </div>
-                    )}
+                  <div className="shrink-0 text-right">
+                    <p className="text-xs text-ink/60">{c.submitted} pending · {c.reviewed} reviewed</p>
+                    {c.earnings > 0 && <p className="text-xs font-semibold text-lime">${c.earnings.toFixed(2)}</p>}
                   </div>
                 </div>
-              );
-            })}
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -632,22 +760,30 @@ function AdminPage() {
               <h1 className="text-4xl font-medium text-ink md:text-5xl">
                 {tab === "applications"
                   ? <><span>Applications</span> <span className="font-serif italic">dashboard.</span></>
-                  : <><span>Transcription</span> <span className="font-serif italic">review.</span></>
+                  : tab === "transcriptions"
+                  ? <><span>Transcription</span> <span className="font-serif italic">review.</span></>
+                  : <><span>Contractor</span> <span className="font-serif italic">stats.</span></>
                 }
               </h1>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
-                <input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="ipt pl-9"
-                  placeholder={tab === "applications" ? "Search name, email, role..." : "Search name, task ID..."}
-                />
-              </div>
+              {tab !== "stats" && (
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/40" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="ipt pl-9"
+                    placeholder={tab === "applications" ? "Search name, email, role..." : "Search name, email, task ID..."}
+                  />
+                </div>
+              )}
               <button
-                onClick={() => tab === "applications" ? void loadApps() : void loadTx()}
+                onClick={() => {
+                  if (tab === "applications") void loadApps();
+                  else if (tab === "transcriptions") void loadTx();
+                  else void loadStats();
+                }}
                 disabled={loading}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-ink-foreground transition hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
               >
@@ -658,10 +794,7 @@ function AdminPage() {
 
           {/* Desktop tabs */}
           <div className="mt-6 flex gap-2 border-b border-ink/10 pb-0">
-            {([
-              ["applications", "Applications", <Users key="u" className="h-4 w-4" />],
-              ["transcriptions", "Transcriptions", <FileText key="f" className="h-4 w-4" />],
-            ] as const).map(([id, label, icon]) => (
+            {NAV_ITEMS.map(([id, label, icon]) => (
               <button
                 key={id}
                 onClick={() => { setTab(id); setQuery(""); setError(""); }}
@@ -676,55 +809,79 @@ function AdminPage() {
             ))}
           </div>
 
-          {/* Desktop stats bar (transcriptions) */}
-          {tab === "transcriptions" && stats && (
+          {/* Desktop stats bar */}
+          {stats && (tab === "transcriptions" || tab === "stats") && (
             <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-5">
               {[
-                { label: "Active contractors", value: stats.totalContractors, icon: <Users className="h-4 w-4" />, color: "text-ink" },
-                { label: "Total submitted", value: stats.totalSubmitted, icon: <FileText className="h-4 w-4" />, color: "text-sky-600" },
-                { label: "Under review", value: stats.underReview, icon: <Activity className="h-4 w-4" />, color: "text-amber-600" },
-                { label: "Reviewed", value: stats.totalReviewed, icon: <CheckCircle2 className="h-4 w-4" />, color: "text-emerald-600" },
-                { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}`, icon: <Shield className="h-4 w-4" />, color: "text-lime" },
-              ].map(({ label, value, icon, color }) => (
+                { label: "Active contractors", value: stats.totalContractors, color: "text-ink" },
+                { label: "Total submitted", value: stats.totalSubmitted, color: "text-sky-600" },
+                { label: "Under review", value: stats.underReview, color: "text-amber-600" },
+                { label: "Reviewed", value: stats.totalReviewed, color: "text-emerald-600" },
+                { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}`, color: "text-lime" },
+              ].map(({ label, value, color }) => (
                 <div key={label} className="rounded-2xl border border-ink/10 bg-card p-4">
-                  <div className={`mb-1 flex items-center gap-1.5 text-xs font-medium ${color}`}>
-                    {icon} {label}
-                  </div>
+                  <p className={`mb-1 text-xs font-medium ${color}`}>{label}</p>
                   <p className="text-xl font-semibold text-ink">{value}</p>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Desktop filter bar */}
-          <div className="mt-5 flex flex-wrap gap-2">
-            {tab === "applications"
-              ? APP_FILTERS.map(([id, label]) => (
-                  <button
-                    key={id}
-                    onClick={() => setAppFilter(id)}
+          {/* Desktop filter row */}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {tab === "applications" && APP_FILTERS.map(([id, label]) => (
+              <button key={id} onClick={() => setAppFilter(id)}
+                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                  appFilter === id ? "bg-lime text-lime-foreground" : "border border-ink/15 bg-card text-ink hover:bg-ink/5"
+                }`}>
+                {label}
+              </button>
+            ))}
+
+            {tab === "transcriptions" && (
+              <>
+                {TX_STATUS_FILTERS.map(([id, label]) => (
+                  <button key={id} onClick={() => setTxStatusFilter(id)}
                     className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      appFilter === id
-                        ? "bg-lime text-lime-foreground"
-                        : "border border-ink/15 bg-card text-ink hover:bg-ink/5"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))
-              : TX_FILTERS.map(([id, label]) => (
-                  <button
-                    key={id}
-                    onClick={() => setTxFilter(id)}
-                    className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                      txFilter === id
-                        ? "bg-lime text-lime-foreground"
-                        : "border border-ink/15 bg-card text-ink hover:bg-ink/5"
-                    }`}
-                  >
+                      txStatusFilter === id ? "bg-lime text-lime-foreground" : "border border-ink/15 bg-card text-ink hover:bg-ink/5"
+                    }`}>
                     {label}
                   </button>
                 ))}
+                <span className="text-ink/20">|</span>
+                {TX_TIME_FILTERS.map(([id, label]) => (
+                  <button key={id} onClick={() => setTxTimeFilter(id)}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition ${
+                      txTimeFilter === id ? "bg-ink text-ink-foreground" : "border border-ink/15 bg-card text-ink hover:bg-ink/5"
+                    }`}>
+                    <Clock className="h-3.5 w-3.5 opacity-60" /> {label}
+                  </button>
+                ))}
+                {submittedInView > 0 && txStatusFilter === "submitted" && (
+                  <>
+                    <span className="text-ink/20">|</span>
+                    {!bulkConfirm ? (
+                      <button onClick={() => setBulkConfirm(true)}
+                        className="inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-700">
+                        <Zap className="h-3.5 w-3.5" /> Mark all {submittedInView} as reviewed
+                      </button>
+                    ) : (
+                      <div className="inline-flex items-center gap-2 rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5">
+                        <span className="text-sm text-amber-800">Mark {submittedInView} tasks reviewed?</span>
+                        <button onClick={() => void handleBulkMarkReviewed()} disabled={loading}
+                          className="rounded-full bg-amber-700 px-3 py-1 text-xs font-medium text-white hover:bg-amber-800 disabled:opacity-50">
+                          Confirm
+                        </button>
+                        <button onClick={() => setBulkConfirm(false)}
+                          className="rounded-full border border-amber-300 px-3 py-1 text-xs font-medium text-amber-800">
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
 
           {error && (
@@ -748,19 +905,20 @@ function AdminPage() {
                     <div className="text-ink/70">{r.status}</div>
                     <div className="text-ink/55">{new Date(r.created_at).toLocaleDateString()}</div>
                     <div className="flex flex-wrap gap-2">
-                      <button onClick={() => setDetails(r)} className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-card px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5">
+                      <button onClick={() => setDetails(r)}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-card px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5">
                         <Eye className="h-3.5 w-3.5" /> View
                       </button>
                       {r.status === "pending" && (
                         <button onClick={() => void action(() => adminSendInterviewLink({ data: { password, applicationId: r.id } }))}
                           className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
-                          <Send className="h-3.5 w-3.5" /> Interview Link
+                          <Send className="h-3.5 w-3.5" /> Interview
                         </button>
                       )}
                       {r.status === "interview_complete" && (
                         <button onClick={() => void action(() => adminSendAssessmentLink({ data: { password, applicationId: r.id } }))}
                           className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
-                          <Send className="h-3.5 w-3.5" /> Assessment Link
+                          <Send className="h-3.5 w-3.5" /> Assessment
                         </button>
                       )}
                       {r.status === "assessment_complete" && (
@@ -791,75 +949,106 @@ function AdminPage() {
 
           {/* Desktop transcriptions list */}
           {tab === "transcriptions" && (
-            <div className="mt-6 space-y-3">
-              {filteredTx.length === 0 && !loading && (
-                <div className="rounded-3xl border border-ink/10 bg-card px-5 py-10 text-center text-sm text-ink/60">
-                  No transcriptions found for this filter.
-                </div>
-              )}
-              {filteredTx.map((r) => {
-                const app = r.applications as any;
-                const isSubmitted = r.status === "submitted";
-                return (
-                  <div key={r.id} className={`overflow-hidden rounded-2xl border bg-card ${isSubmitted ? "border-amber-200" : "border-emerald-200"}`}>
-                    <div className={`flex flex-wrap items-center justify-between gap-3 px-5 py-3 ${isSubmitted ? "bg-amber-50" : "bg-emerald-50"}`}>
-                      <div className="flex min-w-0 items-center gap-3">
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider ${
+            <div className="mt-6 overflow-hidden rounded-3xl border border-ink/10 bg-card">
+              {/* Table header */}
+              <div className="grid grid-cols-[2fr_1.5fr_.9fr_.8fr_.8fr_auto] gap-4 border-b border-ink/10 bg-cream px-5 py-3 text-xs font-semibold uppercase tracking-wider text-ink/60">
+                <div>Contractor</div>
+                <div>Email</div>
+                <div>Task ID</div>
+                <div>Submitted</div>
+                <div>Status</div>
+                <div>Action</div>
+              </div>
+              <div className="divide-y divide-ink/8">
+                {filteredTx.length === 0 && !loading && (
+                  <div className="px-5 py-10 text-center text-sm text-ink/60">
+                    No transcriptions found for this filter.
+                  </div>
+                )}
+                {filteredTx.map((r) => {
+                  const app = r.applications as any;
+                  const isSubmitted = r.status === "submitted";
+                  return (
+                    <div key={r.id} className={`grid grid-cols-[2fr_1.5fr_.9fr_.8fr_.8fr_auto] gap-4 items-center px-5 py-3.5 text-sm ${
+                      isSubmitted ? "bg-amber-50/40" : ""
+                    }`}>
+                      <div className="font-medium text-ink truncate">{app?.full_name ?? "—"}</div>
+                      <div className="text-ink/60 truncate text-xs">{app?.email ?? ""}</div>
+                      <div className="font-mono text-xs text-ink/70">{r.task_id}</div>
+                      <div className="text-xs text-ink/50">{relativeTime(r.submitted_at)}</div>
+                      <div>
+                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
                           isSubmitted ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
                         }`}>
-                          {isSubmitted ? "Under review" : "Reviewed"}
+                          {isSubmitted ? "Pending" : "Reviewed"}
                         </span>
-                        <span className="font-mono text-xs font-semibold text-ink/60">{r.task_id}</span>
-                        <span className="truncate text-sm font-medium text-ink">{app?.full_name ?? "—"}</span>
-                        <span className="hidden text-xs text-ink/50 sm:block">{app?.email ?? ""}</span>
                       </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <span className="text-xs text-ink/50">
-                          Submitted {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "—"}
-                        </span>
-                        {r.earnings_usd && (
-                          <span className="text-xs font-semibold text-lime">${Number(r.earnings_usd).toFixed(2)}</span>
-                        )}
-                        <button
-                          onClick={() => setTxDetails(txDetails?.id === r.id ? null : r)}
-                          className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-ink/5"
-                        >
-                          {txDetails?.id === r.id ? <><ChevronUp className="h-3.5 w-3.5" /> Hide</> : <><ChevronDown className="h-3.5 w-3.5" /> Read</>}
-                        </button>
-                        {isSubmitted && (
+                      <div className="flex items-center gap-2 justify-end">
+                        {isSubmitted ? (
                           <button
                             onClick={() => void action(() => adminMarkTranscriptionReviewed({ data: { password, taskProgressId: r.id } }))}
                             disabled={loading}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
+                            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50 whitespace-nowrap"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" /> Mark reviewed
                           </button>
-                        )}
-                        {!isSubmitted && r.reviewed_at && (
-                          <span className="flex items-center gap-1.5 text-xs text-emerald-600">
+                        ) : (
+                          <span className="flex items-center gap-1 text-xs text-emerald-600 whitespace-nowrap">
                             <CheckCircle2 className="h-3 w-3" />
-                            Reviewed {new Date(r.reviewed_at).toLocaleDateString()}
+                            {r.reviewed_at ? relativeTime(r.reviewed_at) : "Done"}
                           </span>
                         )}
-                        {!isSubmitted && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-0.5 text-xs font-semibold text-lime">
-                            {accuracyScore(r.task_id)}% accuracy
-                          </span>
+                        {!isSubmitted && r.earnings_usd && (
+                          <span className="text-xs font-semibold text-lime">${Number(r.earnings_usd).toFixed(2)}</span>
                         )}
                       </div>
                     </div>
-                    {txDetails?.id === r.id && (
-                      <div className="border-t border-ink/10 px-5 py-4">
-                        <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-ink/40">Transcription text</p>
-                        <pre className="max-h-96 overflow-y-auto whitespace-pre-wrap font-sans text-sm leading-relaxed text-ink/80">
-                          {r.transcription_text || <span className="italic text-ink/30">No content</span>}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
+          )}
+
+          {/* Desktop stats / contractor breakdown */}
+          {tab === "stats" && (
+            <div className="mt-6 space-y-6">
+              <div className="overflow-hidden rounded-3xl border border-ink/10 bg-card">
+                <div className="border-b border-ink/10 bg-cream px-5 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-ink/60">Per-Contractor Breakdown</p>
+                </div>
+                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr] gap-4 border-b border-ink/8 bg-cream/60 px-5 py-2.5 text-xs font-semibold uppercase tracking-wider text-ink/50">
+                  <div>Name</div>
+                  <div>Email</div>
+                  <div>Pending</div>
+                  <div>Reviewed</div>
+                  <div>Earnings</div>
+                </div>
+                <div className="divide-y divide-ink/8">
+                  {contractorRows.length === 0 && !loading && (
+                    <div className="px-5 py-10 text-center text-sm text-ink/60">No data yet.</div>
+                  )}
+                  {contractorRows.map((c) => (
+                    <div key={c.email} className="grid grid-cols-[2fr_1.5fr_1fr_1fr_1fr] gap-4 items-center px-5 py-3.5 text-sm">
+                      <div className="font-medium text-ink truncate">{c.name}</div>
+                      <div className="text-xs text-ink/60 truncate">{c.email}</div>
+                      <div className={`font-medium ${c.submitted > 0 ? "text-amber-600" : "text-ink/40"}`}>
+                        {c.submitted}
+                      </div>
+                      <div className={`font-medium ${c.reviewed > 0 ? "text-emerald-600" : "text-ink/40"}`}>
+                        {c.reviewed}
+                      </div>
+                      <div className={`font-semibold ${c.earnings > 0 ? "text-lime" : "text-ink/40"}`}>
+                        {c.earnings > 0 ? `$${c.earnings.toFixed(2)}` : "—"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {loading && (
+            <div className="mt-8 py-12 text-center text-sm text-ink/50">Loading…</div>
           )}
         </div>
       </section>
@@ -943,9 +1132,7 @@ function OfferModal({
 }) {
   const open = Boolean(state);
   const [local, setLocal] = useState(state);
-
   useEffect(() => { setLocal(state); }, [state]);
-
   return (
     <AnimatePresence initial={false}>
       {open && local && (

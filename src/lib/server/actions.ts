@@ -1465,6 +1465,7 @@ export const adminListTranscriptions = createServerFn({ method: "POST" })
     z.object({
       password: z.string().min(1),
       status: z.enum(["all", "submitted", "reviewed"]).optional(),
+      since: z.string().optional(), // ISO timestamp — only return rows submitted after this
     }),
   )
   .handler(async ({ data }) => {
@@ -1474,12 +1475,15 @@ export const adminListTranscriptions = createServerFn({ method: "POST" })
     let q = sb
       .from("task_progress")
       .select(
-        "id, task_id, status, transcription_text, submitted_at, reviewed_at, earnings_usd, application_id, applications(full_name, email, role_title)",
+        "id, task_id, status, submitted_at, reviewed_at, earnings_usd, application_id, applications(full_name, email, role_title)",
       )
       .order("submitted_at", { ascending: false });
 
     if (data.status && data.status !== "all") {
       q = q.eq("status", data.status);
+    }
+    if (data.since) {
+      q = q.gte("submitted_at", data.since);
     }
 
     const { data: rows, error } = await q;
@@ -1504,6 +1508,56 @@ export const adminMarkTranscriptionReviewed = createServerFn({ method: "POST" })
       .eq("id", data.taskProgressId);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+/** Bulk-mark all submitted transcriptions since a given timestamp as reviewed */
+export const adminBulkMarkReviewed = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      password: z.string().min(1),
+      since: z.string().min(1), // ISO timestamp
+    }),
+  )
+  .handler(async ({ data }) => {
+    mustAdmin(data.password);
+    const sb = getSupabaseAdmin();
+    const now = new Date().toISOString();
+    const { error, count } = await sb
+      .from("task_progress")
+      .update({ status: "reviewed", reviewed_at: now, updated_at: now })
+      .eq("status", "submitted")
+      .gte("submitted_at", data.since);
+    if (error) throw new Error(error.message);
+    return { ok: true, updated: count ?? 0 };
+  });
+
+/** Per-contractor transcription summary for the admin stats view */
+export const adminGetContractorBreakdown = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ password: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    mustAdmin(data.password);
+    const sb = getSupabaseAdmin();
+    const { data: rows, error } = await sb
+      .from("task_progress")
+      .select("application_id, status, earnings_usd, applications(full_name, email)")
+      .in("status", ["submitted", "reviewed"]);
+    if (error) throw new Error(error.message);
+
+    // Aggregate per application
+    const map = new Map<string, { name: string; email: string; submitted: number; reviewed: number; earnings: number }>();
+    for (const r of rows ?? []) {
+      const app = r.applications as any;
+      if (!map.has(r.application_id)) {
+        map.set(r.application_id, { name: app?.full_name ?? "—", email: app?.email ?? "", submitted: 0, reviewed: 0, earnings: 0 });
+      }
+      const entry = map.get(r.application_id)!;
+      if (r.status === "submitted") entry.submitted++;
+      if (r.status === "reviewed") { entry.reviewed++; entry.earnings += Number(r.earnings_usd ?? 0); }
+    }
+
+    return {
+      contractors: Array.from(map.values()).sort((a, b) => (b.submitted + b.reviewed) - (a.submitted + a.reviewed)),
+    };
   });
 
 export const adminGetStats = createServerFn({ method: "POST" })
