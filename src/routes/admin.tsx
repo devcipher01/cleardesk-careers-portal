@@ -162,9 +162,19 @@ function AdminPage() {
   }, [txRows, query]);
 
   const login = async () => {
-    setAuthed(true);
-    try { sessionStorage.setItem("wn_admin_password", password); } catch { /* ignore */ }
-    await loadApps(password, appFilter);
+    setLoading(true);
+    setError("");
+    try {
+      const res = await adminListApplications({ data: { password, status: appFilter } });
+      setAppRows(res.rows);
+      setAuthed(true);
+      try { sessionStorage.setItem("wn_admin_password", password); } catch { /* ignore */ }
+    } catch (e: any) {
+      const msg: string = e?.message || "Failed to authenticate";
+      setError(msg.toLowerCase().includes("invalid admin password") ? "Incorrect password — try again." : msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const action = async (fn: () => Promise<any>) => {
@@ -201,19 +211,23 @@ function AdminPage() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && password.trim() && void login()}
-                className="ipt"
+                onChange={(e) => { setPassword(e.target.value); setError(""); }}
+                onKeyDown={(e) => e.key === "Enter" && password.trim() && !loading && void login()}
+                className={`ipt ${error ? "border-rose-400" : ""}`}
                 placeholder="••••••••"
+                disabled={loading}
               />
             </label>
+            {error && (
+              <p className="mt-2 text-sm text-rose-500">{error}</p>
+            )}
           </div>
           <button
             onClick={() => void login()}
-            disabled={!password.trim()}
+            disabled={!password.trim() || loading}
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-ink-foreground transition hover:bg-lime hover:text-lime-foreground disabled:cursor-not-allowed disabled:opacity-40"
           >
-            Unlock <ArrowUpRight className="h-4 w-4" />
+            {loading ? "Verifying…" : <><span>Unlock</span> <ArrowUpRight className="h-4 w-4" /></>}
           </button>
           <style>{`
             .ipt { width:100%; border-radius:.875rem; border:1px solid var(--border); background:var(--cream); padding:.75rem .875rem; font-size:.875rem; color:var(--ink); outline:none; }
