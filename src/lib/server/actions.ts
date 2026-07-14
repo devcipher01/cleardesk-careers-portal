@@ -233,6 +233,14 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
       }
     });
 
+/** Verify admin password without touching Supabase — safe for environments where DB isn't configured. */
+export const adminCheckPassword = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ password: z.string().min(1) }))
+  .handler(async ({ data }) => {
+    mustAdmin(data.password);
+    return { ok: true };
+  });
+
 export const adminListApplications = createServerFn({ method: "POST" })
   .inputValidator(z.object({ password: z.string().min(1), status: z.string().optional() }))
   .handler(async ({ data }) => {
