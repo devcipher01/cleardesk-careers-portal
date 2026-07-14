@@ -306,6 +306,15 @@ function AudioPlayer({ durationMin, src }: { durationMin: number; src?: string }
   );
 }
 
+/** Deterministic accuracy score 87–100 derived from task_id — matches admin display */
+function accuracyScore(taskId: string): number {
+  let h = 0;
+  for (let i = 0; i < taskId.length; i++) {
+    h = (Math.imul(h, 31) + taskId.charCodeAt(i)) >>> 0;
+  }
+  return 87 + (h % 14);
+}
+
 // ─── Category badge ────────────────────────────────────────────────────────────
 function CategoryBadge({ category }: { category: TaskCategory }) {
   if (category === "medical") {
@@ -556,9 +565,16 @@ function TaskCard({
       )}
 
       {(status === "submitted" || status === "reviewed") && (
-        <div className="mt-3 flex items-center gap-2 text-xs text-emerald-700">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          {status === "reviewed" ? "Reviewed — payment processed" : "Submitted — under review"}
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <span className="flex items-center gap-1.5 text-xs text-emerald-700">
+            <CheckCircle2 className="h-3.5 w-3.5" />
+            {status === "reviewed" ? "Reviewed — payment processed" : "Submitted — under review"}
+          </span>
+          {status === "reviewed" && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-0.5 text-[11px] font-semibold text-lime">
+              {accuracyScore(task.id)}% accuracy score
+            </span>
+          )}
         </div>
       )}
 
