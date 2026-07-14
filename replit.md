@@ -53,3 +53,4 @@ Set `LOCAL_DEV_MODE=true` and leave Supabase vars empty. Emails log to terminal 
 ## User preferences
 
 - Keep existing project structure and stack
+- **Always push to GitHub after every change** — Vercel auto-deploys to production (worknesta.com) from the main branch. All Supabase credentials and secrets live in Vercel, not Replit. Never test in Replit preview — push and let Vercel handle it.
