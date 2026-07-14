@@ -110,12 +110,25 @@ function AdminPage() {
   const [txDetails, setTxDetails] = useState<any | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
 
+  // Restore session — verify with server before trusting stored password.
   useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem("wn_admin_password");
-      if (stored) { setPassword(stored); setAuthed(true); }
-    } catch { /* ignore */ }
+    const restore = async () => {
+      try {
+        const stored = sessionStorage.getItem("wn_admin_password");
+        if (!stored) return;
+        setPassword(stored);
+        await adminCheckPassword({ data: { password: stored } });
+        setAuthed(true);
+      } catch {
+        // Stored password is invalid — clear it so the user sees the login form cleanly.
+        try { sessionStorage.removeItem("wn_admin_password"); } catch { /* ignore */ }
+      }
+    };
+    void restore();
   }, []);
+
+  const isAuthError = (msg: string) =>
+    msg.toLowerCase() === "invalid admin password";
 
   const loadApps = async (pwd = password, f = appFilter) => {
     setLoading(true);
@@ -127,9 +140,7 @@ function AdminPage() {
       const msg: string = e?.message || "Failed to load applications";
       setError(msg);
       setAppRows([]);
-      if (msg.toLowerCase().includes("invalid admin password") || msg.toLowerCase().includes("admin_password")) {
-        setAuthed(false);
-      }
+      if (isAuthError(msg)) setAuthed(false);
     } finally {
       setLoading(false);
     }
@@ -149,9 +160,7 @@ function AdminPage() {
       const msg: string = e?.message || "Failed to load transcriptions";
       setError(msg);
       setTxRows([]);
-      if (msg.toLowerCase().includes("invalid admin password") || msg.toLowerCase().includes("admin_password")) {
-        setAuthed(false);
-      }
+      if (isAuthError(msg)) setAuthed(false);
     } finally {
       setLoading(false);
     }

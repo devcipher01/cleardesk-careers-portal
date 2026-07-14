@@ -21,7 +21,7 @@ import {
   pipelineSubmitWorkspaceNda,
 } from "./pipelineStore";
 
-const ADMIN_PASSWORD = () => process.env.ADMIN_PASSWORD || "secr3tpass!";
+const ADMIN_PASSWORD = () => (process.env.ADMIN_PASSWORD || "secr3tpass!").trim();
 const ADMIN_EMAIL = () => adminNotifyEmail();
 
 const emailSchema = z.string().email().max(150);
@@ -31,7 +31,7 @@ function roleFromSlug(slug: string) {
 }
 
 function mustAdmin(password: string) {
-  if (password !== ADMIN_PASSWORD()) throw new Error("Invalid admin password");
+  if (password.trim() !== ADMIN_PASSWORD()) throw new Error("Invalid admin password");
 }
 
 export const submitApplication = createServerFn({ method: "POST" })
