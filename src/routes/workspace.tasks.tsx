@@ -306,13 +306,13 @@ function AudioPlayer({ durationMin, src }: { durationMin: number; src?: string }
   );
 }
 
-/** Deterministic accuracy score 87–100 derived from task_id — matches admin display */
+/** Deterministic accuracy score 85–99 derived from task_id — matches admin display */
 function accuracyScore(taskId: string): number {
   let h = 0;
   for (let i = 0; i < taskId.length; i++) {
     h = (Math.imul(h, 31) + taskId.charCodeAt(i)) >>> 0;
   }
-  return 87 + (h % 14);
+  return 85 + (h % 15);
 }
 
 // ─── Category badge ────────────────────────────────────────────────────────────

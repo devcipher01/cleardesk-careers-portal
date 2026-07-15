@@ -1233,7 +1233,7 @@ export const submitTranscriptionTask = createServerFn({ method: "POST" })
 
     const sb = getSupabaseAdmin();
     const now = new Date().toISOString();
-    await sb.from("task_progress").upsert(
+    const { error } = await sb.from("task_progress").upsert(
       {
         application_id: applicationId,
         task_id: data.taskId,
@@ -1245,6 +1245,7 @@ export const submitTranscriptionTask = createServerFn({ method: "POST" })
       },
       { onConflict: "application_id,task_id" },
     );
+    if (error) throw new Error(`Failed to submit task: ${error.message}`);
     return { ok: true };
   });
 
