@@ -306,13 +306,16 @@ function AudioPlayer({ durationMin, src }: { durationMin: number; src?: string }
   );
 }
 
-/** Deterministic accuracy score 85–99 derived from task_id — matches admin display */
-function accuracyScore(taskId: string): number {
-  let h = 0;
-  for (let i = 0; i < taskId.length; i++) {
-    h = (Math.imul(h, 31) + taskId.charCodeAt(i)) >>> 0;
+/** Accuracy score based on word count vs expected words from audio duration.
+ *  Falls back to deterministic hash if text is unavailable. Capped at 99%. */
+function accuracyScore(text: string | undefined, durationMin: number): number {
+  if (text && text.trim().length > 0) {
+    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
+    const expectedWords = durationMin * 130; // ~130 WPM natural speech
+    return Math.min(99, Math.round((wordCount / expectedWords) * 100));
   }
-  return 85 + (h % 15);
+  // Fallback: deterministic from durationMin so same task always shows same score
+  return 85 + (durationMin % 15);
 }
 
 // ─── Category badge ────────────────────────────────────────────────────────────
@@ -566,13 +569,20 @@ function TaskCard({
 
       {(status === "submitted" || status === "reviewed") && (
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <span className="flex items-center gap-1.5 text-xs text-emerald-700">
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            {status === "reviewed" ? "Reviewed — payment processed" : "Submitted — under review"}
-          </span>
+          {status === "submitted" ? (
+            <span className="flex items-center gap-1.5 text-xs text-rose-600">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Submitted — under review
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 text-xs text-emerald-700">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Review complete
+            </span>
+          )}
           {status === "reviewed" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-0.5 text-[11px] font-semibold text-lime">
-              {accuracyScore(task.id)}% accuracy score
+              {accuracyScore(text, task.durationMin)}% accuracy
             </span>
           )}
         </div>

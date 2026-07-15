@@ -1548,6 +1548,22 @@ export const adminBulkMarkReviewed = createServerFn({ method: "POST" })
     return { ok: true, updated: count ?? 0 };
   });
 
+/** Mark all submitted tasks for a single contractor as reviewed */
+export const adminMarkContractorAllReviewed = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ password: z.string().min(1), applicationId: z.string().uuid() }))
+  .handler(async ({ data }) => {
+    mustAdmin(data.password);
+    const sb = getSupabaseAdmin();
+    const now = new Date().toISOString();
+    const { error, count } = await sb
+      .from("task_progress")
+      .update({ status: "reviewed", reviewed_at: now, updated_at: now })
+      .eq("application_id", data.applicationId)
+      .eq("status", "submitted");
+    if (error) throw new Error(error.message);
+    return { ok: true, updated: count ?? 0 };
+  });
+
 /** Per-contractor transcription summary for the admin stats view */
 export const adminGetContractorBreakdown = createServerFn({ method: "POST" })
   .inputValidator(z.object({ password: z.string().min(1) }))

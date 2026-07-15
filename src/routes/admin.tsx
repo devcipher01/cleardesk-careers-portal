@@ -11,6 +11,7 @@ import {
   adminListTranscriptions,
   adminMarkTranscriptionReviewed,
   adminBulkMarkReviewed,
+  adminMarkContractorAllReviewed,
   adminGetStats,
   adminGetContractorBreakdown,
 } from "@/lib/server/actions";
@@ -20,6 +21,7 @@ import {
   ArrowUpRight,
   BarChart3,
   CheckCircle2,
+  ChevronDown,
   Clock,
   Eye,
   FileText,
@@ -163,6 +165,15 @@ function AdminPage() {
   // Stats tab
   const [contractorRows, setContractorRows] = useState<ContractorRow[]>([]);
 
+  // Transcriptions grouped view — which contractors are expanded
+  const [expandedContractors, setExpandedContractors] = useState<Set<string>>(new Set());
+  const toggleContractor = (appId: string) =>
+    setExpandedContractors((prev) => {
+      const next = new Set(prev);
+      next.has(appId) ? next.delete(appId) : next.add(appId);
+      return next;
+    });
+
   // Restore session — verify with server before trusting stored password.
   useEffect(() => {
     const restore = async () => {
@@ -261,6 +272,24 @@ function AdminPage() {
       return `${app?.full_name ?? ""} ${app?.email ?? ""} ${r.task_id}`.toLowerCase().includes(q);
     });
   }, [txRows, query]);
+
+  // Group filteredTx by contractor for the accordion admin view
+  const groupedContractors = useMemo(() => {
+    const map = new Map<string, { appId: string; name: string; email: string; tasks: any[] }>();
+    for (const row of filteredTx) {
+      const app = row.applications as any;
+      if (!map.has(row.application_id)) {
+        map.set(row.application_id, { appId: row.application_id, name: app?.full_name ?? "—", email: app?.email ?? "", tasks: [] });
+      }
+      map.get(row.application_id)!.tasks.push(row);
+    }
+    // Sort: contractors with pending tasks first
+    return Array.from(map.values()).sort((a, b) => {
+      const aPending = a.tasks.filter((t) => t.status === "submitted").length;
+      const bPending = b.tasks.filter((t) => t.status === "submitted").length;
+      return bPending - aPending;
+    });
+  }, [filteredTx]);
 
   // ── LOGIN ────────────────────────────────────────────────────────────────
   const login = async () => {
@@ -583,89 +612,83 @@ function AdminPage() {
           </div>
         )}
 
-        {/* Mobile: Bulk action (transcriptions) */}
-        {tab === "transcriptions" && !loading && submittedInView > 0 && txStatusFilter === "submitted" && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-xs font-medium text-amber-800 mb-2">
-              {submittedInView} task{submittedInView !== 1 ? "s" : ""} under review
-              {txTimeFilter !== "all" ? ` in ${TX_TIME_FILTERS.find(([id]) => id === txTimeFilter)?.[1]?.toLowerCase()}` : ""}
-            </p>
-            {!bulkConfirm ? (
-              <button
-                onClick={() => setBulkConfirm(true)}
-                className="inline-flex items-center gap-1.5 rounded-full bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800"
-              >
-                <Zap className="h-3.5 w-3.5" /> Mark all as reviewed
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-amber-800">Sure? This marks {submittedInView} tasks.</span>
-                <button onClick={() => void handleBulkMarkReviewed()} disabled={loading}
-                  className="rounded-full bg-amber-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-800 disabled:opacity-50">
-                  Confirm
-                </button>
-                <button onClick={() => setBulkConfirm(false)}
-                  className="rounded-full border border-amber-300 px-3 py-1.5 text-xs font-medium text-amber-800">
-                  Cancel
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Mobile: Transcription task cards */}
+        {/* Mobile: Transcription grouped by contractor */}
         {tab === "transcriptions" && !loading && (
           <div className="space-y-2">
-            {filteredTx.length === 0 && (
+            {groupedContractors.length === 0 && (
               <div className="rounded-2xl border border-ink/10 bg-card px-4 py-10 text-center text-sm text-ink/50">
                 No transcriptions found.
               </div>
             )}
-            {filteredTx.map((r) => {
-              const app = r.applications as any;
-              const isSubmitted = r.status === "submitted";
+            {groupedContractors.map((contractor) => {
+              const pending = contractor.tasks.filter((t) => t.status === "submitted");
+              const isExpanded = expandedContractors.has(contractor.appId);
               return (
-                <div
-                  key={r.id}
-                  className={`rounded-2xl border bg-card overflow-hidden ${
-                    isSubmitted ? "border-amber-200" : "border-emerald-200"
-                  }`}
-                >
-                  <div className="px-4 py-3 flex items-start justify-between gap-3">
+                <div key={contractor.appId} className="rounded-2xl border border-ink/10 bg-card overflow-hidden">
+                  {/* Contractor header row */}
+                  <button
+                    onClick={() => toggleContractor(contractor.appId)}
+                    className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left"
+                  >
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                          isSubmitted ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                        }`}>
-                          {isSubmitted ? "Under review" : "Reviewed"}
+                      <p className="text-sm font-medium text-ink truncate">{contractor.name}</p>
+                      <p className="text-xs text-ink/50 truncate">{contractor.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {pending.length > 0 && (
+                        <span className="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                          {pending.length} pending
                         </span>
-                        <span className="font-mono text-[11px] text-ink/50">{r.task_id}</span>
-                      </div>
-                      <p className="text-sm font-medium text-ink truncate">{app?.full_name ?? "—"}</p>
-                      <p className="text-xs text-ink/50 truncate">{app?.email ?? ""}</p>
-                      <p className="mt-1 text-[11px] text-ink/40">
-                        {isSubmitted ? "Submitted" : "Reviewed"} {relativeTime(isSubmitted ? r.submitted_at : r.reviewed_at)}
-                      </p>
+                      )}
+                      <span className="text-xs text-ink/40">{contractor.tasks.length} task{contractor.tasks.length !== 1 ? "s" : ""}</span>
+                      <ChevronDown className={`h-4 w-4 text-ink/40 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
                     </div>
-                    {r.earnings_usd && (
-                      <span className="shrink-0 text-sm font-semibold text-lime">${Number(r.earnings_usd).toFixed(2)}</span>
-                    )}
-                  </div>
-                  {isSubmitted && (
-                    <div className="border-t border-ink/8 px-4 py-3">
-                      <button
-                        onClick={() => void action(() => adminMarkTranscriptionReviewed({ data: { password, taskProgressId: r.id } }))}
-                        disabled={loading}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-2.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" /> Mark as reviewed
-                      </button>
-                    </div>
-                  )}
-                  {!isSubmitted && r.reviewed_at && (
-                    <div className="border-t border-emerald-100 px-4 py-2.5 flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                      <span className="text-xs text-emerald-600">Reviewed {new Date(r.reviewed_at).toLocaleDateString()}</span>
+                  </button>
+                  {/* Expanded task list */}
+                  {isExpanded && (
+                    <div className="border-t border-ink/8">
+                      {pending.length > 0 && (
+                        <div className="px-4 py-2.5 bg-rose-50/60 border-b border-ink/8 flex items-center justify-between gap-2">
+                          <span className="text-xs text-rose-700">{pending.length} task{pending.length !== 1 ? "s" : ""} awaiting review</span>
+                          <button
+                            onClick={() => void action(async () => {
+                              await adminMarkContractorAllReviewed({ data: { password, applicationId: contractor.appId } });
+                              await loadTx(password, txStatusFilter, txTimeFilter);
+                            })}
+                            disabled={loading}
+                            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
+                          >
+                            <Zap className="h-3 w-3" /> Mark all reviewed
+                          </button>
+                        </div>
+                      )}
+                      {contractor.tasks.map((r) => {
+                        const isSubmitted = r.status === "submitted";
+                        return (
+                          <div key={r.id} className={`px-4 py-3 flex items-center justify-between gap-3 border-b border-ink/6 last:border-0 ${isSubmitted ? "bg-rose-50/30" : ""}`}>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-[11px] text-ink/60">{r.task_id}</span>
+                                <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${isSubmitted ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                  {isSubmitted ? "Pending" : "Done"}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-ink/40 mt-0.5">{relativeTime(isSubmitted ? r.submitted_at : r.reviewed_at)}</p>
+                            </div>
+                            {isSubmitted ? (
+                              <button
+                                onClick={() => void action(() => adminMarkTranscriptionReviewed({ data: { password, taskProgressId: r.id } }))}
+                                disabled={loading}
+                                className="shrink-0 inline-flex items-center gap-1 rounded-full bg-ink px-2.5 py-1.5 text-[11px] font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
+                              >
+                                <CheckCircle2 className="h-3 w-3" /> Review
+                              </button>
+                            ) : (
+                              <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -992,65 +1015,92 @@ function AdminPage() {
             </div>
           )}
 
-          {/* Desktop transcriptions list */}
+          {/* Desktop transcriptions — grouped by contractor */}
           {tab === "transcriptions" && !txSetupRequired && (
-            <div className="mt-6 overflow-hidden rounded-3xl border border-ink/10 bg-card">
-              {/* Table header */}
-              <div className="grid grid-cols-[2fr_1.5fr_.9fr_.8fr_.8fr_auto] gap-4 border-b border-ink/10 bg-cream px-5 py-3 text-xs font-semibold uppercase tracking-wider text-ink/60">
-                <div>Contractor</div>
-                <div>Email</div>
-                <div>Task ID</div>
-                <div>Submitted</div>
-                <div>Status</div>
-                <div>Action</div>
-              </div>
-              <div className="divide-y divide-ink/8">
-                {filteredTx.length === 0 && !loading && (
-                  <div className="px-5 py-10 text-center text-sm text-ink/60">
-                    No transcriptions found for this filter.
-                  </div>
-                )}
-                {filteredTx.map((r) => {
-                  const app = r.applications as any;
-                  const isSubmitted = r.status === "submitted";
-                  return (
-                    <div key={r.id} className={`grid grid-cols-[2fr_1.5fr_.9fr_.8fr_.8fr_auto] gap-4 items-center px-5 py-3.5 text-sm ${
-                      isSubmitted ? "bg-amber-50/40" : ""
-                    }`}>
-                      <div className="font-medium text-ink truncate">{app?.full_name ?? "—"}</div>
-                      <div className="text-ink/60 truncate text-xs">{app?.email ?? ""}</div>
-                      <div className="font-mono text-xs text-ink/70">{r.task_id}</div>
-                      <div className="text-xs text-ink/50">{relativeTime(r.submitted_at)}</div>
-                      <div>
-                        <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-                          isSubmitted ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"
-                        }`}>
-                          {isSubmitted ? "Pending" : "Reviewed"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 justify-end">
-                        {isSubmitted ? (
-                          <button
-                            onClick={() => void action(() => adminMarkTranscriptionReviewed({ data: { password, taskProgressId: r.id } }))}
-                            disabled={loading}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50 whitespace-nowrap"
-                          >
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Mark reviewed
-                          </button>
-                        ) : (
-                          <span className="flex items-center gap-1 text-xs text-emerald-600 whitespace-nowrap">
-                            <CheckCircle2 className="h-3 w-3" />
-                            {r.reviewed_at ? relativeTime(r.reviewed_at) : "Done"}
+            <div className="mt-6 space-y-3">
+              {groupedContractors.length === 0 && !loading && (
+                <div className="rounded-3xl border border-ink/10 bg-card px-5 py-10 text-center text-sm text-ink/60">
+                  No transcriptions found for this filter.
+                </div>
+              )}
+              {groupedContractors.map((contractor) => {
+                const pending = contractor.tasks.filter((t) => t.status === "submitted");
+                const isExpanded = expandedContractors.has(contractor.appId);
+                return (
+                  <div key={contractor.appId} className="overflow-hidden rounded-3xl border border-ink/10 bg-card">
+                    {/* Contractor header */}
+                    <button
+                      onClick={() => toggleContractor(contractor.appId)}
+                      className="w-full grid grid-cols-[2fr_1.5fr_auto_auto_auto] gap-4 items-center px-5 py-4 text-left hover:bg-ink/[0.02] transition-colors"
+                    >
+                      <div className="font-medium text-ink truncate">{contractor.name}</div>
+                      <div className="text-sm text-ink/60 truncate">{contractor.email}</div>
+                      <div className="flex items-center gap-2">
+                        {pending.length > 0 && (
+                          <span className="inline-flex items-center rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-semibold text-rose-700">
+                            {pending.length} pending
                           </span>
                         )}
-                        {!isSubmitted && r.earnings_usd && (
-                          <span className="text-xs font-semibold text-lime">${Number(r.earnings_usd).toFixed(2)}</span>
-                        )}
+                        <span className="text-xs text-ink/40">{contractor.tasks.length} task{contractor.tasks.length !== 1 ? "s" : ""}</span>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
+                      {pending.length > 0 && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void action(async () => {
+                              await adminMarkContractorAllReviewed({ data: { password, applicationId: contractor.appId } });
+                              await loadTx(password, txStatusFilter, txTimeFilter);
+                            });
+                          }}
+                          disabled={loading}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50 whitespace-nowrap"
+                        >
+                          <Zap className="h-3 w-3" /> Mark all reviewed
+                        </button>
+                      )}
+                      {pending.length === 0 && <div />}
+                      <ChevronDown className={`h-4 w-4 text-ink/40 transition-transform justify-self-end ${isExpanded ? "rotate-180" : ""}`} />
+                    </button>
+                    {/* Expanded task rows */}
+                    {isExpanded && (
+                      <div className="border-t border-ink/8 divide-y divide-ink/6">
+                        <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-4 bg-cream/70 px-5 py-2 text-[11px] font-semibold uppercase tracking-wider text-ink/50">
+                          <div>Task</div><div>Submitted</div><div>Status</div><div>Action</div>
+                        </div>
+                        {contractor.tasks.map((r) => {
+                          const isSubmitted = r.status === "submitted";
+                          return (
+                            <div key={r.id} className={`grid grid-cols-[1fr_1fr_1fr_auto] gap-4 items-center px-5 py-3 text-sm ${isSubmitted ? "bg-rose-50/30" : ""}`}>
+                              <div className="font-mono text-xs text-ink/70">{r.task_id}</div>
+                              <div className="text-xs text-ink/50">{relativeTime(r.submitted_at)}</div>
+                              <div>
+                                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${isSubmitted ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                                  {isSubmitted ? "Pending" : "Reviewed"}
+                                </span>
+                              </div>
+                              <div className="justify-self-end">
+                                {isSubmitted ? (
+                                  <button
+                                    onClick={() => void action(() => adminMarkTranscriptionReviewed({ data: { password, taskProgressId: r.id } }))}
+                                    disabled={loading}
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground disabled:opacity-50"
+                                  >
+                                    <CheckCircle2 className="h-3.5 w-3.5" /> Mark reviewed
+                                  </button>
+                                ) : (
+                                  <span className="flex items-center gap-1 text-xs text-emerald-600">
+                                    <CheckCircle2 className="h-3 w-3" /> {r.reviewed_at ? relativeTime(r.reviewed_at) : "Done"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
