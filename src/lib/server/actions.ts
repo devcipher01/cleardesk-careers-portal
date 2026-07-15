@@ -1487,8 +1487,14 @@ export const adminListTranscriptions = createServerFn({ method: "POST" })
     }
 
     const { data: rows, error } = await q;
-    if (error) throw new Error(error.message);
-    return { rows: (rows ?? []) as any[] };
+    if (error) {
+      // Table not yet created in this Supabase project — return setup flag instead of crashing
+      if (error.message.includes("task_progress") || error.message.includes("schema cache") || error.code === "42P01") {
+        return { rows: [] as any[], setupRequired: true };
+      }
+      throw new Error(error.message);
+    }
+    return { rows: (rows ?? []) as any[], setupRequired: false };
   });
 
 export const adminMarkTranscriptionReviewed = createServerFn({ method: "POST" })
@@ -1506,7 +1512,12 @@ export const adminMarkTranscriptionReviewed = createServerFn({ method: "POST" })
       .from("task_progress")
       .update({ status: "reviewed", reviewed_at: now, updated_at: now })
       .eq("id", data.taskProgressId);
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes("task_progress") || error.message.includes("schema cache") || error.code === "42P01") {
+        throw new Error("The task_progress table does not exist yet. Please run schema-additions.sql in your Supabase SQL editor.");
+      }
+      throw new Error(error.message);
+    }
     return { ok: true };
   });
 
@@ -1527,7 +1538,12 @@ export const adminBulkMarkReviewed = createServerFn({ method: "POST" })
       .update({ status: "reviewed", reviewed_at: now, updated_at: now })
       .eq("status", "submitted")
       .gte("submitted_at", data.since);
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.message.includes("task_progress") || error.message.includes("schema cache") || error.code === "42P01") {
+        return { ok: true, updated: 0 };
+      }
+      throw new Error(error.message);
+    }
     return { ok: true, updated: count ?? 0 };
   });
 
@@ -1541,7 +1557,13 @@ export const adminGetContractorBreakdown = createServerFn({ method: "POST" })
       .from("task_progress")
       .select("application_id, status, earnings_usd, applications(full_name, email)")
       .in("status", ["submitted", "reviewed"]);
-    if (error) throw new Error(error.message);
+    if (error) {
+      // Table not yet created — return empty gracefully
+      if (error.message.includes("task_progress") || error.message.includes("schema cache") || error.code === "42P01") {
+        return { contractors: [], setupRequired: true };
+      }
+      throw new Error(error.message);
+    }
 
     // Aggregate per application
     const map = new Map<string, { name: string; email: string; submitted: number; reviewed: number; earnings: number }>();
@@ -1557,6 +1579,7 @@ export const adminGetContractorBreakdown = createServerFn({ method: "POST" })
 
     return {
       contractors: Array.from(map.values()).sort((a, b) => (b.submitted + b.reviewed) - (a.submitted + a.reviewed)),
+      setupRequired: false,
     };
   });
 

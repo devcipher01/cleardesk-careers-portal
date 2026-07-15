@@ -76,6 +76,24 @@ interface ContractorRow {
   earnings: number;
 }
 
+const SETUP_SQL = `-- Run this in your Supabase SQL editor
+CREATE TABLE IF NOT EXISTS public.task_progress (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  application_id  uuid NOT NULL REFERENCES public.applications(id) ON DELETE CASCADE,
+  task_id         text NOT NULL,
+  status          text NOT NULL DEFAULT 'available'
+                  CHECK (status IN ('available','in_progress','submitted','reviewed')),
+  transcription_text text,
+  submitted_at    timestamptz,
+  reviewed_at     timestamptz,
+  earnings_usd    numeric(10,2),
+  created_at      timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.task_progress ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "admin only" ON public.task_progress USING (true);`;
+
 const APP_FILTERS: [AppFilter, string][] = [
   ["all", "All"],
   ["pending", "Pending"],
@@ -140,6 +158,7 @@ function AdminPage() {
   const [txRows, setTxRows] = useState<any[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [bulkConfirm, setBulkConfirm] = useState(false);
+  const [txSetupRequired, setTxSetupRequired] = useState(false);
 
   // Stats tab
   const [contractorRows, setContractorRows] = useState<ContractorRow[]>([]);
@@ -181,14 +200,16 @@ function AdminPage() {
   const loadTx = async (pwd = password, sf = txStatusFilter, tf = txTimeFilter) => {
     setLoading(true);
     setError("");
+    setTxSetupRequired(false);
     try {
       const since = sinceIso(tf);
       const [txRes, statsRes] = await Promise.all([
         adminListTranscriptions({ data: { password: pwd, status: sf, since } }),
-        adminGetStats({ data: { password: pwd } }),
+        adminGetStats({ data: { password: pwd } }).catch(() => null),
       ]);
       setTxRows(txRes.rows);
-      setStats(statsRes);
+      if (txRes.setupRequired) setTxSetupRequired(true);
+      if (statsRes) setStats(statsRes);
     } catch (e: any) {
       const msg: string = e?.message || "Failed to load transcriptions";
       setError(msg);
@@ -548,6 +569,18 @@ function AdminPage() {
         )}
         {loading && (
           <div className="py-12 text-center text-sm text-ink/50">Loading…</div>
+        )}
+
+        {/* Mobile: DB setup required notice */}
+        {tab === "transcriptions" && !loading && txSetupRequired && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-ink space-y-2">
+            <p className="font-semibold text-amber-800">⚠ Database table not set up yet</p>
+            <p className="text-amber-700 text-xs leading-relaxed">
+              The <code className="font-mono bg-amber-100 px-1 rounded">task_progress</code> table doesn't exist in your Supabase project.
+              Run the SQL below in your <strong>Supabase SQL editor</strong> to create it.
+            </p>
+            <pre className="mt-2 overflow-x-auto rounded-xl bg-amber-100 p-3 text-[10px] font-mono text-amber-900 whitespace-pre-wrap">{SETUP_SQL}</pre>
+          </div>
         )}
 
         {/* Mobile: Bulk action (transcriptions) */}
@@ -947,8 +980,20 @@ function AdminPage() {
             </div>
           )}
 
+          {/* Desktop: DB setup required notice */}
+          {tab === "transcriptions" && !loading && txSetupRequired && (
+            <div className="mt-6 rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-ink space-y-2">
+              <p className="font-semibold text-amber-800">⚠ Database table not set up yet</p>
+              <p className="text-amber-700 text-xs leading-relaxed">
+                The <code className="font-mono bg-amber-100 px-1 rounded">task_progress</code> table doesn't exist in your Supabase project.
+                Open your <strong>Supabase dashboard → SQL Editor</strong> and run the SQL below to create it.
+              </p>
+              <pre className="mt-2 overflow-x-auto rounded-xl bg-amber-100 p-4 text-xs font-mono text-amber-900 whitespace-pre">{SETUP_SQL}</pre>
+            </div>
+          )}
+
           {/* Desktop transcriptions list */}
-          {tab === "transcriptions" && (
+          {tab === "transcriptions" && !txSetupRequired && (
             <div className="mt-6 overflow-hidden rounded-3xl border border-ink/10 bg-card">
               {/* Table header */}
               <div className="grid grid-cols-[2fr_1.5fr_.9fr_.8fr_.8fr_auto] gap-4 border-b border-ink/10 bg-cream px-5 py-3 text-xs font-semibold uppercase tracking-wider text-ink/60">
