@@ -27,17 +27,17 @@ import teamJames from "@/assets/team-james.jpg";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Worknesta — Remote Data Entry & Transcription Jobs" },
+      { title: "Worknesta — Freelance Transcription Projects" },
       {
         name: "description",
         content:
-          "Work from anywhere. Worknesta hires remote professionals globally for data entry, transcription, and document processing. Apply today.",
+          "Work from anywhere. Worknesta connects independent contractors with transcription projects from enterprise clients. Apply today.",
       },
       { property: "og:title", content: "Worknesta — Work From Anywhere" },
       {
         property: "og:description",
         content:
-          "Build a remote career in data entry, transcription, and document processing. 800+ team members across North America and Western Europe.",
+          "Build a freelance career in transcription. 800+ contractors across North America and Western Europe earn weekly on Worknesta.",
       },
     ],
   }),
@@ -46,9 +46,9 @@ export const Route = createFileRoute("/")({
 
 const benefits = [
   { icon: Clock, color: "bg-lavender", title: "Flexible hours", body: "Full-time, part-time, or flexible — you set the pace." },
-  { icon: Wallet, color: "bg-mint", title: "Paid weekly", body: "Reliable Friday payouts via Wise, Payoneer, or bank transfer." },
-  { icon: GraduationCap, color: "bg-butter", title: "No experience needed", body: "Most entry roles only require attention to detail." },
-  { icon: Globe2, color: "bg-rose", title: "Focused regional team", body: "Join teammates across the US, Canada, UK, and Western Europe." },
+  { icon: Wallet, color: "bg-mint", title: "Earnings paid weekly", body: "Reliable Friday payouts via Wise, Payoneer, or bank transfer." },
+  { icon: GraduationCap, color: "bg-butter", title: "No experience needed", body: "Most entry projects only require attention to detail." },
+  { icon: Globe2, color: "bg-rose", title: "Focused contractor network", body: "Join contractors across the US, Canada, UK, and Western Europe." },
 ];
 
 const testimonials = [
