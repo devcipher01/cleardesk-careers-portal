@@ -37,7 +37,7 @@ export function Footer() {
           <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">Company</h4>
           <ul className="mt-4 space-y-2 text-sm text-ink/80">
             <li><Link to="/about" className="hover:text-ink">About</Link></li>
-            <li><Link to="/careers" className="hover:text-ink">Open Roles</Link></li>
+            <li><Link to="/careers" className="hover:text-ink">Open Projects</Link></li>
             <li><Link to="/how-it-works" className="hover:text-ink">How It Works</Link></li>
             <li><Link to="/contact" className="hover:text-ink">Contact</Link></li>
           </ul>

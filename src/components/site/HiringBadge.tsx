@@ -12,7 +12,7 @@ export function HiringBadge() {
         <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
       </span>
       <Sparkles className="h-4 w-4 text-lime" />
-      We're Hiring
+      Now Accepting Contractors
     </Link>
   );
 }

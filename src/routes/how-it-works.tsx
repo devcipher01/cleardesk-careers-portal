@@ -15,17 +15,17 @@ import { Section, SectionHeader } from "@/components/site/Section";
 export const Route = createFileRoute("/how-it-works")({
   head: () => ({
     meta: [
-      { title: "How It Works — Hiring Process | Worknesta" },
+      { title: "How It Works — Contractor Onboarding | Worknesta" },
       {
         name: "description",
         content:
-          "From application to first paycheck: our 6-step remote hiring process at Worknesta. Apply, interview, get paid weekly.",
+          "From application to first earnings: our 6-step contractor onboarding process at Worknesta. Apply, complete your workspace setup, get paid weekly.",
       },
-      { property: "og:title", content: "How Hiring Works at Worknesta" },
+      { property: "og:title", content: "How Onboarding Works at Worknesta" },
       {
         property: "og:description",
         content:
-          "Apply → Text Interview → Skill Assessment → Offer → Onboarding → First Paycheck. Most candidates complete the process in under a week.",
+          "Apply → Skills Screening → Skill Assessment → Project Agreement → Workspace Setup → First Earnings. Most contractors complete the process in under a week.",
       },
     ],
   }),
@@ -34,45 +34,45 @@ export const Route = createFileRoute("/how-it-works")({
 
 const steps = [
   { icon: FileText, color: "bg-lime", title: "Apply online", body: "Fill out our short application form — about 5 minutes." },
-  { icon: MessageSquare, color: "bg-peach", title: "Text interview", body: "Answer a few screening questions right on screen." },
-  { icon: ClipboardCheck, color: "bg-lavender", title: "Skill assessment", body: "Complete a short 30-minute data entry or transcription task." },
-  { icon: Mail, color: "bg-mint", title: "Offer letter", body: "Receive your official offer via email." },
-  { icon: Rocket, color: "bg-butter", title: "Onboarding", body: "Get access to tools, your team, and your schedule." },
-  { icon: Wallet, color: "bg-rose", title: "First paycheck", body: "Get paid weekly via Wise, Payoneer, or bank transfer." },
+  { icon: MessageSquare, color: "bg-peach", title: "Skills screening", body: "Answer a few profile questions right on screen to confirm fit." },
+  { icon: ClipboardCheck, color: "bg-lavender", title: "Skill assessment", body: "Complete a short 30-minute transcription task to demonstrate your accuracy." },
+  { icon: Mail, color: "bg-mint", title: "Project agreement", body: "Receive your official contractor agreement via email." },
+  { icon: Rocket, color: "bg-butter", title: "Workspace setup", body: "Get access to your workspace, project modules, and onboarding materials." },
+  { icon: Wallet, color: "bg-rose", title: "First earnings", body: "Get paid weekly via Wise, Payoneer, or bank transfer." },
 ];
 
 const faqs = [
   {
-    q: "Is this really a fully remote job?",
-    a: "Yes — 100%. Worknesta has no physical office requirement. All work is completed online from wherever you are.",
+    q: "Is this really fully remote?",
+    a: "Yes — 100%. Worknesta has no physical office requirement. All transcription projects are completed online from wherever you are.",
   },
   {
     q: "What equipment do I need?",
-    a: "You will need a laptop or desktop computer, a stable internet connection, and a quiet workspace. For transcription roles, a good pair of headphones is strongly recommended. We recommend free tools like oTranscribe or Express Scribe for transcription work — we'll guide you during onboarding.",
+    a: "You will need a laptop or desktop computer, a stable internet connection, and a quiet workspace. A good pair of headphones is strongly recommended for transcription projects. We recommend free tools like oTranscribe or Express Scribe — we'll guide you during workspace setup.",
   },
   {
-    q: "What countries do you hire from?",
-    a: "We currently hire from North America and Western Europe. Ideal candidates are based in the US, Canada, UK, or Western European countries with availability in EST, GMT, or CET timezones.",
+    q: "What countries do you accept contractors from?",
+    a: "We currently work with contractors from North America and Western Europe. Ideal candidates are based in the US, Canada, UK, or Western European countries with availability in EST, GMT, or CET timezones.",
   },
   {
-    q: "How and when do I get paid?",
-    a: "All contractors are paid weekly every Friday via Wise, Payoneer, or direct bank transfer depending on your country. Pay rates are listed on each job card.",
+    q: "How and when do I receive my earnings?",
+    a: "All contractors are paid weekly every Friday via Wise, Payoneer, or direct bank transfer depending on your country. Earnings rates are listed on each project card.",
   },
   {
     q: "Is there any application or registration fee?",
-    a: "Absolutely not. Worknesta will never charge you to apply, register, or onboard. Any website or person claiming to charge fees on our behalf is fraudulent. Our hiring is always 100% free.",
+    a: "Absolutely not. Worknesta will never charge you to apply, register, or onboard. Any website or person claiming to charge fees on our behalf is fraudulent. Our onboarding is always 100% free.",
   },
   {
-    q: "How long does the full hiring process take?",
-    a: "From application to offer typically takes 5–10 business days depending on volume. The steps are: application review (2–3 days), text interview (on your time), skill task (24–48 hours), then offer letter.",
+    q: "How long does the full onboarding process take?",
+    a: "From application to workspace access typically takes 5–10 business days depending on volume. The steps are: application review (2–3 days), skills screening (on your time), skill task (24–48 hours), then project agreement.",
   },
   {
-    q: "Is prior experience required for all roles?",
-    a: "Not for entry-level roles like our AI Content & Transcription Validator. We look for attention to detail, reliable internet, and a good typing speed. Senior roles like QA Reviewer and Medical Transcriptionist do require relevant experience.",
+    q: "Is prior experience required?",
+    a: "Not for entry-level projects like our Remote Transcription Specialist module. We look for attention to detail, reliable internet, and a good typing speed. Specialist projects like Medical Transcriptionist do require relevant experience.",
   },
   {
     q: "What hours will I work?",
-    a: "It depends on the role and your agreement. Most roles offer flexible scheduling within an agreed weekly hour commitment. Some client accounts have preferred timezone windows which will be communicated during onboarding.",
+    a: "It depends on the project and your agreement. Most projects offer flexible scheduling within an agreed weekly module commitment. Some client accounts have preferred timezone windows which will be communicated during workspace setup.",
   },
 ];
 
@@ -84,13 +84,13 @@ function HowItWorksPage() {
           <div className="absolute -top-16 right-10 h-56 w-56 rounded-full bg-butter/50 blur-3xl" />
           <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-mint/40 blur-3xl" />
           <div className="relative mx-auto max-w-3xl text-center">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Our hiring process</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-ink/50">Our onboarding process</p>
             <h1 className="mt-4 text-balance text-4xl font-medium leading-[1.05] text-ink md:text-6xl">
               From application to your{" "}
-              <span className="font-serif italic">first paycheck.</span>
+              <span className="font-serif italic">first earnings.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-ink/65 md:text-lg">
-              A clear, fast, fair process — built for remote candidates across North America and
+              A clear, fast, fair process — built for independent contractors across North America and
               Western Europe.
             </p>
           </div>

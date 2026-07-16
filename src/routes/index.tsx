@@ -13,16 +13,11 @@ import {
   Star,
   CheckCircle2,
 } from "lucide-react";
-import { VideoEmbed } from "@/components/site/VideoEmbed";
 import { Section, SectionHeader } from "@/components/site/Section";
 import { JOBS } from "@/lib/jobs";
 import contractorMaria from "@/assets/contractor-maria.jpg";
 import contractorDavid from "@/assets/contractor-david.jpg";
 import contractorAna from "@/assets/contractor-ana.jpg";
-import teamElena from "@/assets/team-elena.jpg";
-import teamMarcus from "@/assets/team-marcus.jpg";
-import teamPriya from "@/assets/team-priya.jpg";
-import teamJames from "@/assets/team-james.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -33,11 +28,11 @@ export const Route = createFileRoute("/")({
         content:
           "Work from anywhere. Worknesta connects independent contractors with transcription projects from enterprise clients. Apply today.",
       },
-      { property: "og:title", content: "Worknesta — Work From Anywhere" },
+      { property: "og:title", content: "Worknesta — Freelance Transcription Projects" },
       {
         property: "og:description",
         content:
-          "Build a freelance career in transcription. 800+ contractors across North America and Western Europe earn weekly on Worknesta.",
+          "Build a freelance transcription career. 800+ contractors across North America and Western Europe earn weekly on Worknesta.",
       },
     ],
   }),
@@ -45,33 +40,26 @@ export const Route = createFileRoute("/")({
 });
 
 const benefits = [
-  { icon: Clock, color: "bg-lavender", title: "Flexible hours", body: "Full-time, part-time, or flexible — you set the pace." },
+  { icon: Clock, color: "bg-lavender", title: "Flexible schedule", body: "Take on projects full-time, part-time, or at your own pace — you choose." },
   { icon: Wallet, color: "bg-mint", title: "Earnings paid weekly", body: "Reliable Friday payouts via Wise, Payoneer, or bank transfer." },
-  { icon: GraduationCap, color: "bg-butter", title: "No experience needed", body: "Most entry projects only require attention to detail." },
+  { icon: GraduationCap, color: "bg-butter", title: "No experience needed", body: "Most entry-level projects only require attention to detail and clear English." },
   { icon: Globe2, color: "bg-rose", title: "Focused contractor network", body: "Join contractors across the US, Canada, UK, and Western Europe." },
 ];
 
 const testimonials = [
-  { name: "Maria S.", country: "United States", role: "AI Content & Transcription Validator", image: contractorMaria,
-    quote: "Worknesta gave me the chance to work from home with a real team and steady weekly pay. The onboarding was clear and the support is genuine." },
-  { name: "David O.", country: "United Kingdom", role: "Data Entry Specialist", image: contractorDavid,
-    quote: "I applied without any prior remote experience. Within a week I had finished training and was working on real client accounts." },
-  { name: "Ana P.", country: "Canada", role: "Quality Assurance Reviewer", image: contractorAna,
-    quote: "The flexibility is unmatched. I work the hours I choose and get paid every Friday — no surprises, no fees." },
-];
-
-const team = [
-  { name: "Elena Vasquez", role: "Founder & CEO", image: teamElena, accent: "bg-peach" },
-  { name: "Marcus Chen", role: "Head of Talent", image: teamMarcus, accent: "bg-lime" },
-  { name: "Priya Anand", role: "Head of Operations", image: teamPriya, accent: "bg-lavender" },
-  { name: "James Okafor", role: "Head of Engineering", image: teamJames, accent: "bg-mint" },
+  { name: "Maria S.", country: "United States", role: "Transcription Specialist", image: contractorMaria,
+    quote: "Worknesta gave me the chance to work from home with real projects and steady weekly earnings. The onboarding modules were clear and the support is genuine." },
+  { name: "David O.", country: "United Kingdom", role: "Transcription Specialist", image: contractorDavid,
+    quote: "I applied without any prior remote experience. Within a week I had completed the workspace setup and was working on real client transcription projects." },
+  { name: "Ana P.", country: "Canada", role: "Transcription Contractor", image: contractorAna,
+    quote: "The flexibility is unmatched. I complete my modules when I choose and receive my earnings every Friday — no surprises, no fees." },
 ];
 
 const journeySteps = [
   { n: "01", title: "Submit Application", body: "Complete the short application form with your details and work setup.", color: "bg-lime" },
-  { n: "02", title: "Skills Profile Review", body: "Answer role-fit questions; successful submissions receive a follow-up email.", color: "bg-peach" },
-  { n: "03", title: "Conditional Selection", body: "Top profiles are invited to continue based on review scores and role demand.", color: "bg-lavender" },
-  { n: "04", title: "Technical Workspace Configuration", body: "Sign agreements, verify network credentials, and await platform activation.", color: "bg-mint" },
+  { n: "02", title: "Skills Profile Review", body: "Answer role-fit questions; successful submissions receive a follow-up email within a few days.", color: "bg-peach" },
+  { n: "03", title: "Conditional Selection", body: "Top profiles are invited to continue based on review scores and project demand.", color: "bg-lavender" },
+  { n: "04", title: "Workspace Setup", body: "Sign your contractor agreement, configure your workspace, and await platform activation.", color: "bg-mint" },
 ];
 
 function HomePage() {
@@ -98,38 +86,37 @@ function HomePage() {
           <div className="absolute -top-20 -right-20 h-64 w-64 rounded-full bg-lime/30 blur-3xl" />
           <div className="absolute -bottom-24 -left-10 h-72 w-72 rounded-full bg-peach/40 blur-3xl" />
 
-          <div className="relative grid items-center gap-10 md:grid-cols-12">
+          <div className="relative max-w-3xl">
             <motion.div
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="md:col-span-7"
             >
               <span className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-cream px-3 py-1 text-xs font-medium text-ink/70">
                 <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-                Now hiring · NA & Western Europe
+                Now accepting contractors · NA & Western Europe
               </span>
               <h1 className="mt-6 text-balance text-5xl font-medium leading-[1.02] text-ink md:text-7xl">
                 Work from anywhere.
                 <br />
-                <span className="font-serif italic text-ink/85">Build a career,</span>
+                <span className="font-serif italic text-ink/85">Build a freelance</span>
                 <br />
-                remotely.
+                transcription career.
               </h1>
               <p className="mt-6 max-w-xl text-base text-ink/65 md:text-lg">
-                We hire detail-oriented remote professionals across North America and Western
-                Europe for data entry, transcription, and document processing roles.
+                We connect detail-oriented independent contractors with transcription projects
+                from enterprise clients across North America and Western Europe.
               </p>
               <p className="mt-3 max-w-xl text-sm text-ink/55 md:text-base">
-                Worknesta is a data services company — we work directly with enterprise clients
-                and need reliable people on our team.
+                Worknesta is a freelance platform — contractors earn weekly by completing
+                transcription projects and modules at their own pace.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Link
                   to="/careers"
                   className="inline-flex items-center gap-2 rounded-full bg-lime px-6 py-3 text-sm font-medium text-lime-foreground shadow-sm transition-transform hover:-translate-y-0.5"
                 >
-                  View open roles <ArrowUpRight className="h-4 w-4" />
+                  View open projects <ArrowUpRight className="h-4 w-4" />
                 </Link>
                 <Link
                   to="/how-it-works"
@@ -142,15 +129,6 @@ function HomePage() {
                 ✦ no fees, ever — applying is always free
               </p>
             </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="md:col-span-5"
-            >
-              <VideoEmbed label="HOME — HR Welcome" caption="A note from our talent team" />
-            </motion.div>
           </div>
         </div>
       </section>
@@ -159,7 +137,7 @@ function HomePage() {
       <section className="container-page mt-10">
         <div className="grid gap-3 rounded-3xl bg-ink p-6 text-ink-foreground md:grid-cols-4 md:p-8">
           {[
-            ["800+", "Team Members", "bg-lime"],
+            ["800+", "Active Contractors", "bg-lime"],
             ["15+", "Countries", "bg-peach"],
             ["98%", "Client satisfaction", "bg-lavender"],
             ["100%", "Remote, always", "bg-mint"],
@@ -182,9 +160,9 @@ function HomePage() {
         <div className="container-page">
           <SectionHeader
             eyebrow="Why Worknesta"
-            title="Real opportunities,"
+            title="Real projects,"
             italicWord="real respect."
-            description="No gatekeepers, no fees, no fluff. A modern remote hiring experience built for talent across North America and Western Europe."
+            description="No gatekeepers, no fees, no fluff. A modern freelance platform built for independent contractors across North America and Western Europe."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {benefits.map((b, i) => (
@@ -207,21 +185,21 @@ function HomePage() {
         </div>
       </Section>
 
-      {/* OPEN ROLES PEEK */}
+      {/* OPEN PROJECTS PEEK */}
       <Section className="!py-12">
         <div className="container-page">
           <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
             <SectionHeader
-              eyebrow="Open positions"
+              eyebrow="Open projects"
               title="Find your"
-              italicWord="next role."
-              description="Open positions across our team — fully remote. Apply in under five minutes."
+              italicWord="next project."
+              description="Open transcription projects — fully remote. Apply in under five minutes."
             />
             <Link
               to="/careers"
               className="inline-flex items-center gap-1.5 rounded-full border border-ink/15 bg-card px-5 py-2 text-sm font-medium text-ink hover:bg-ink/5"
             >
-              See all roles <ArrowRight className="h-4 w-4" />
+              See all projects <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
 
@@ -273,30 +251,30 @@ function HomePage() {
         <div className="container-page">
           <SectionHeader
             eyebrow="The honest pitch"
-            title="Life at"
-            italicWord="Worknesta."
-            description="What working here actually looks like — no embellishment."
+            title="Life as a"
+            italicWord="Worknesta contractor."
+            description="What working on our platform actually looks like — no embellishment."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2">
             {[
               {
-                title: "Real client work, real deadlines",
-                body: "You'll process actual documents for enterprise clients. The work matters and accuracy is non-negotiable.",
+                title: "Real client projects, real deadlines",
+                body: "You'll transcribe actual content for enterprise clients. The work matters and accuracy is non-negotiable.",
                 color: "bg-lime",
               },
               {
-                title: "Quiet, focused days",
-                body: "This isn't a chatty startup. Most days are heads-down work with async check-ins from your team lead.",
+                title: "Quiet, focused modules",
+                body: "This isn't a chatty startup. Most sessions are heads-down transcription work with async feedback from your project lead.",
                 color: "bg-peach",
               },
               {
-                title: "Steady, predictable pay",
+                title: "Steady, predictable earnings",
                 body: "Weekly payouts every Friday via Wise, Payoneer, or bank transfer. No surprise fees, no missed cycles.",
                 color: "bg-lavender",
               },
               {
-                title: "Room to grow into senior roles",
-                body: "Top performers move into QA, team lead, and account specialist positions within 6–12 months.",
+                title: "Room to take on higher-tier projects",
+                body: "Top contractors move into specialist and quality-lead modules with higher earnings within 6–12 months.",
                 color: "bg-mint",
               },
             ].map((p) => (
@@ -316,9 +294,9 @@ function HomePage() {
       <Section>
         <div className="container-page">
           <SectionHeader
-            eyebrow="From our team"
+            eyebrow="From our contractors"
             title="Stories from"
-            italicWord="our team."
+            italicWord="our contractors."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-3">
             {testimonials.map((t, i) => (
@@ -345,48 +323,9 @@ function HomePage() {
                   </div>
                 </div>
                 <blockquote className="mt-5 text-[15px] leading-relaxed text-ink/80">
-                  “{t.quote}”
+                  "{t.quote}"
                 </blockquote>
               </motion.figure>
-            ))}
-          </div>
-        </div>
-      </Section>
-
-      {/* MEET THE MINDS */}
-      <Section>
-        <div className="container-page">
-          <SectionHeader
-            eyebrow="Meet the minds"
-            title="The team behind"
-            italicWord="Worknesta."
-            description="A small, distributed crew delivering precision data entry and transcription services for clients across industries."
-          />
-          <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-            {team.map((m, i) => (
-              <motion.div
-                key={m.name}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.07 }}
-                className="group overflow-hidden rounded-3xl border border-ink/10 bg-card transition hover:-translate-y-1 hover:shadow-xl"
-              >
-                <div className={`relative aspect-[4/5] overflow-hidden ${m.accent}`}>
-                  <img
-                    src={m.image}
-                    alt={`Portrait of ${m.name}, ${m.role}`}
-                    loading="lazy"
-                    width={512}
-                    height={640}
-                    className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                  />
-                </div>
-                <div className="p-5">
-                  <h3 className="text-lg font-medium text-ink">{m.name}</h3>
-                  <p className="mt-1 font-serif text-sm italic text-ink/60">{m.role}</p>
-                </div>
-              </motion.div>
             ))}
           </div>
         </div>
@@ -403,7 +342,7 @@ function HomePage() {
                 eyebrow="The path ahead"
                 title="Start your"
                 italicWord="journey."
-                description="Four simple steps from clicking apply to your first weekly paycheck."
+                description="Four simple steps from clicking apply to your first weekly earnings."
               />
               <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                 {journeySteps.map((s, i) => (
@@ -448,16 +387,16 @@ function HomePage() {
           <div className="absolute -top-16 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-lime/20 blur-3xl" />
           <p className="font-script text-2xl text-lime">ready when you are</p>
           <h2 className="mt-2 text-balance text-3xl font-medium md:text-5xl">
-            Start your <span className="font-serif italic">remote career</span> today.
+            Start your <span className="font-serif italic">freelance transcription</span> career today.
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-ink-foreground/60">
-            Browse our open positions and apply in under 5 minutes — no fees, no commute.
+            Browse our open transcription projects and apply in under 5 minutes — no fees, no commute.
           </p>
           <Link
             to="/careers"
             className="mt-7 inline-flex items-center gap-2 rounded-full bg-lime px-6 py-3 text-sm font-medium text-lime-foreground transition hover:opacity-90"
           >
-            View open roles <ArrowUpRight className="h-4 w-4" />
+            View open projects <ArrowUpRight className="h-4 w-4" />
           </Link>
         </div>
       </section>

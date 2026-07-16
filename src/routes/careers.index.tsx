@@ -7,17 +7,17 @@ import { JOBS } from "@/lib/jobs";
 export const Route = createFileRoute("/careers/")({
   head: () => ({
     meta: [
-      { title: "Open Remote Jobs — Worknesta" },
+      { title: "Open Transcription Projects — Worknesta" },
       {
         name: "description",
         content:
-          "Browse open remote positions in data entry, transcription, and document processing across North America and Western Europe.",
+          "Browse open transcription projects for independent contractors across North America and Western Europe. Weekly earnings, fully remote.",
       },
-      { property: "og:title", content: "Open Remote Jobs at Worknesta" },
+      { property: "og:title", content: "Open Transcription Projects at Worknesta" },
       {
         property: "og:description",
         content:
-          "Data entry, transcription, QA, and more. Fully remote across the US, Canada, UK, and Western Europe. Weekly pay.",
+          "Transcription projects for independent contractors. Fully remote across the US, Canada, UK, and Western Europe. Weekly earnings.",
       },
     ],
   }),
@@ -39,14 +39,14 @@ function CareersIndexPage() {
           <div className="relative mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-cream px-3 py-1 text-xs font-medium text-ink/70">
               <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-              {openCount} open roles · North America & Europe
+              {openCount} open {openCount === 1 ? "project" : "projects"} · North America & Europe
             </span>
             <h1 className="mt-6 text-balance text-4xl font-medium leading-[1.05] text-ink md:text-6xl">
-              Open remote{" "}
-              <span className="font-serif italic">positions.</span>
+              Open transcription{" "}
+              <span className="font-serif italic">projects.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-ink/65 md:text-lg">
-              Roles are open to candidates in North America and Western Europe. Worknesta is
+              Projects are open to independent contractors in North America and Western Europe. Worknesta is
               headquartered in Wilmington, Delaware, USA.
             </p>
           </div>
@@ -58,8 +58,8 @@ function CareersIndexPage() {
         <div className="container-page">
           <div className="mx-auto mb-10 max-w-3xl rounded-3xl border border-ink/10 bg-card p-6 text-center md:p-8">
             <p className="text-sm text-ink/70 md:text-base">
-              We regularly open new positions. Can't see an open role that fits you? Submit a
-              general application and we'll reach out when a matching role becomes available.
+              We regularly open new projects. Don't see a project that fits your skills? Submit a
+              general application and we'll reach out when a matching project becomes available.
             </p>
             <Link
               to="/careers/apply"
@@ -92,7 +92,7 @@ function CareersIndexPage() {
                     {isFilled ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-ink/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink/60">
                         <Lock className="h-3 w-3" />
-                        Position Filled
+                        Project Filled
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-lime/40 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-ink">
@@ -136,7 +136,7 @@ function CareersIndexPage() {
                     params={{ slug: job.slug }}
                     className="mb-3 inline-flex text-sm font-medium text-ink/70 underline-offset-4 transition hover:text-ink hover:underline"
                   >
-                    View role details
+                    View project details
                   </Link>
                   {isFilled ? (
                     <>
@@ -146,14 +146,14 @@ function CareersIndexPage() {
                         aria-disabled="true"
                         className="inline-flex cursor-not-allowed items-center justify-between gap-2 rounded-full bg-ink/15 px-5 py-3 text-sm font-medium text-ink/50"
                       >
-                        Position Filled
+                        Project Filled
                         <Lock className="h-4 w-4" />
                       </button>
                       <Link
                         to="/careers/apply"
                         className="mt-3 text-center text-xs text-ink/55 underline-offset-4 hover:text-ink hover:underline"
                       >
-                        Join our talent pool — we hire for this role regularly
+                        Join our contractor pool — we open this project regularly
                       </Link>
                     </>
                   ) : (
@@ -172,7 +172,7 @@ function CareersIndexPage() {
           </div>
 
           <p className="mt-12 text-center font-script text-xl text-ink/60">
-            ✦ no application fees · 100% remote · NA & Europe team
+            ✦ no application fees · 100% remote · NA & Europe contractors
           </p>
         </div>
       </Section>
