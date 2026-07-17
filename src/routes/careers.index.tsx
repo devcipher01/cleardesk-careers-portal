@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, MapPin, CheckCircle2, Lock } from "lucide-react";
+import { ArrowUpRight, MapPin, CheckCircle2, GraduationCap, Lock } from "lucide-react";
 import { motion } from "framer-motion";
 import { Section } from "@/components/site/Section";
 import { JOBS } from "@/lib/jobs";
@@ -131,6 +131,22 @@ function CareersIndexPage() {
                   </ul>
 
                   <div className="mt-6 flex-1" />
+                  {job.certUrl && (
+                    <div className="mb-4 rounded-2xl border border-lavender/60 bg-lavender/15 p-3">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="h-4 w-4 shrink-0 text-ink/70" />
+                        <span className="text-xs text-ink/70">Certification required —</span>
+                        <a
+                          href={job.certUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-ink underline-offset-4 hover:underline"
+                        >
+                          Get certified <ArrowUpRight className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </div>
+                  )}
                   <Link
                     to="/careers/$slug"
                     params={{ slug: job.slug }}

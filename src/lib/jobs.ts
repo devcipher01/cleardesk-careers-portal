@@ -20,6 +20,8 @@ export interface Job {
   status: JobStatus;
   /** Extended copy for /careers/:slug */
   details?: JobDetails;
+  /** Optional certification link shown on the listing card and detail page */
+  certUrl?: string;
 }
 
 export function getJobBySlug(slug: string): Job | undefined {
@@ -80,5 +82,6 @@ export const JOBS: Job[] = [
       "HIPAA awareness",
     ],
     status: "open",
+    certUrl: "https://certpath.live/courses/medical-transcriptionist#course-content",
   },
 ];

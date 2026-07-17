@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { ArrowLeft, ArrowUpRight, CheckCircle2, Lock, MapPin } from "lucide-react";
+import { ArrowLeft, ArrowUpRight, CheckCircle2, GraduationCap, Lock, MapPin } from "lucide-react";
 import { Section } from "@/components/site/Section";
 import { getJobBySlug } from "@/lib/jobs";
 
@@ -46,7 +46,7 @@ function JobDetailPage() {
           className="inline-flex items-center gap-2 text-sm font-medium text-ink/60 transition hover:text-ink"
         >
           <ArrowLeft className="h-4 w-4" />
-          All open roles
+          All open projects
         </Link>
 
         <div className="relative mt-6 overflow-hidden rounded-3xl border border-ink/10 bg-card p-8 shadow-sm md:p-12">
@@ -135,6 +135,29 @@ function JobDetailPage() {
                 </li>
               ))}
             </ul>
+            {job.certUrl && (
+              <div className="mt-6 rounded-2xl border border-lavender/60 bg-lavender/15 p-4">
+                <div className="flex items-start gap-3">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lavender text-ink">
+                    <GraduationCap className="h-4 w-4" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-ink">Don't have certification yet?</p>
+                    <p className="mt-0.5 text-xs text-ink/60">
+                      Get certified before you apply — accepted by Worknesta.
+                    </p>
+                    <a
+                      href={job.certUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-ink underline-offset-4 hover:underline"
+                    >
+                      View certification course <ArrowUpRight className="h-3 w-3" />
+                    </a>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="rounded-3xl border border-ink/10 bg-card p-6 md:p-8">
