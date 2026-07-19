@@ -84,21 +84,23 @@ const MODULES: ModuleDef[] = [
 ];
 
 // ─── Task definitions ──────────────────────────────────────────────────────────
-// 8 tasks total. Tasks 7–8 require a medical cert (gate fires on start; not shown in description).
-// Audio files: upload m1t01.mp3 … m1t08.mp3 to the "task-audio" Supabase bucket.
+// 6 tasks per module. Tasks 5–6 are medical category and require a cert.
+// Audio files: upload m1t01.mp3 … m1t06.mp3 to the "task-audio" Supabase bucket.
+// Durations stored as decimal minutes so fmtDuration renders exact MM:SS.
 const TASKS: TaskDef[] = [
-  { id: "m1t01", num: 1, module: 1, category: "general", durationMin:  8, title: "Client Interview — Part 1",  description: "Transcribe a recorded client intake interview. Focus on speaker clarity and accurate terminology.",                   earningsUsd: earn(8)  },
-  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 15, title: "Team Standup Recording",      description: "Brief meeting with multiple speakers. Label each as Speaker A, B, etc.",                                            earningsUsd: earn(15) },
-  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 22, title: "Product Feedback Session",    description: "User feedback recording with occasional background noise. Flag inaudible sections with [inaudible].",               earningsUsd: earn(22) },
-  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 12, title: "Sales Call Excerpt",          description: "Single-speaker sales presentation. Accurate product name transcription is critical.",                               earningsUsd: earn(12) },
-  { id: "m1t05", num: 5, module: 1, category: "general", durationMin: 25, title: "HR Policy Briefing",          description: "Formal HR audio briefing. Legal and policy terminology must be transcribed exactly as spoken.",                     earningsUsd: earn(25) },
-  { id: "m1t06", num: 6, module: 1, category: "general", durationMin: 16, title: "Customer Support Call",       description: "Customer support interaction. Transcribe both agent and customer, noting hold music as [on hold].",                 earningsUsd: earn(16) },
-  { id: "m1t07", num: 7, module: 1, category: "general", durationMin: 28, title: "Webinar Segment — Q&A Block", description: "Live webinar Q&A with host and multiple audience questions. Each question speaker should be labeled.",              earningsUsd: earn(28) },
-  { id: "m1t08", num: 8, module: 1, category: "general", durationMin: 20, title: "Medical Consultation Notes",  description: "Consultation recording with clinical discussion. Transcribe verbatim and flag unclear terminology with [?term].",   earningsUsd: earn(20) },
+  // Tasks 1–2 — Revenue growth & marketing systems
+  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Revenue Growth Systems — Session 1",        description: "Expert panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",                                     earningsUsd: 12 },
+  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Pipeline & Conversion Fundamentals — Session 2", description: "Single-speaker walkthrough of demand generation and conversion rate optimisation strategies. Transcribe verbatim, preserving all hesitations and self-corrections.",                                earningsUsd: 12 },
+  // Tasks 3–4 — Business transformation
+  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Organizational Change Dynamics — Part 1",   description: "Three-speaker panel on leading workforce and structural transformation. Label speakers clearly and flag any overlapping dialogue with [crosstalk].",                                                             earningsUsd: 15 },
+  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Enterprise Agility Workshop — Part 2",      description: "Executive roundtable on agile restructuring and adaptive strategy. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                                                     earningsUsd: 15 },
+  // Tasks 5–6 — Medical (cert required)
+  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients — Part 1", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsUsd: 25 },
+  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Hormonal Pharmacology & Side Effect Profiles — Part 2", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effects. Exact transcription of clinical terminology required; flag any unclear terms with [?term].", earningsUsd: 25 },
 ];
 
-// Cert required from task 7 onward — gate fires when contractor clicks Start; not shown in task card
-const MEDICAL_CERT_TASK_IDS = new Set(["m1t07", "m1t08"]);
+// Cert required for tasks 5–6 (medical category) — gate fires when contractor clicks Start
+const MEDICAL_CERT_TASK_IDS = new Set(["m1t05", "m1t06"]);
 
 // ─── Storage helpers ───────────────────────────────────────────────────────────
 function progressKey(appId: string)   { return `wn_task_progress_${appId}`; }
@@ -149,10 +151,15 @@ function computeEffectiveStatus(task: TaskDef, progress: LocalProgress, contract
 }
 
 function fmtDuration(min: number) {
-  if (min < 60) return `${min} min`;
-  const h = Math.floor(min / 60);
-  const m = min % 60;
-  return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  const totalSec = Math.round(min * 60);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  if (m >= 60) {
+    const h = Math.floor(m / 60);
+    const rm = m % 60;
+    return rm > 0 ? `${h}h ${rm}m` : `${h}h`;
+  }
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 // ─── Countdown timer ───────────────────────────────────────────────────────────
