@@ -8,6 +8,7 @@ import {
   CalendarDays,
   CheckCircle2,
   CreditCard,
+  ExternalLink,
   FileText,
   Loader2,
   Save,
@@ -22,6 +23,7 @@ import {
   savePaymentInfoBySession,
   getDocumentsBySession,
   uploadDocumentBySession,
+  verifyCertPath,
 } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 
@@ -153,6 +155,12 @@ function SettingsPage() {
   const [docError, setDocError] = useState("");
   const [docSuccess, setDocSuccess] = useState("");
 
+  // CertPath verification
+  const [certInputType, setCertInputType] = useState<"url" | "code">("url");
+  const [certInput, setCertInput] = useState("");
+  const [certVerifyState, setCertVerifyState] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [certVerifyMsg, setCertVerifyMsg] = useState("");
+
   useEffect(() => {
     void (async () => {
       try {
@@ -211,6 +219,32 @@ function SettingsPage() {
       setPaymentError(err?.message ?? "Failed to save payment info.");
     } finally {
       setPaymentSaving(false);
+    }
+  }
+
+  async function handleCertVerify() {
+    const trimmed = certInput.trim();
+    if (!trimmed || certVerifyState === "loading") return;
+    setCertVerifyState("loading");
+    setCertVerifyMsg("");
+    try {
+      const { appId: curId, accessToken: curToken } = await getSessionData();
+      const result = await verifyCertPath({
+        data: { input: trimmed, inputType: certInputType, clientAppId: curId, accessToken: curToken },
+      });
+      if (result.valid) {
+        setCertVerifyState("success");
+        setCertVerifyMsg(result.certName ? `Certificate verified — ${result.certName}.` : "Certificate verified.");
+        // Refresh docs so the card shows the new verified record
+        const docResult = await getDocumentsBySession({ data: { clientAppId: curId, accessToken: curToken } });
+        if (docResult.authenticated) setDocs(docResult.docs);
+      } else {
+        setCertVerifyState("error");
+        setCertVerifyMsg("Invalid certificate — please check your URL or code and try again.");
+      }
+    } catch {
+      setCertVerifyState("error");
+      setCertVerifyMsg("Verification failed — please try again in a moment.");
     }
   }
 
@@ -306,13 +340,82 @@ function SettingsPage() {
 
               <div className="space-y-3">
                 {Object.keys(DOC_TYPE_LABELS).map((docType) => (
-                  <DocCard
-                    key={docType}
-                    docType={docType}
-                    info={docMap[docType] ?? null}
-                    uploading={uploadingDocType === docType}
-                    onUpload={handleUploadDoc}
-                  />
+                  <React.Fragment key={docType}>
+                    <DocCard
+                      docType={docType}
+                      info={docMap[docType] ?? null}
+                      uploading={uploadingDocType === docType}
+                      onUpload={handleUploadDoc}
+                    />
+                    {/* CertPath instant verification — medical cert only */}
+                    {docType === "medical_cert" && !docMap["medical_cert"]?.verified_at && (
+                      <div className="rounded-xl border border-lavender/50 bg-lavender/10 p-4">
+                        <div className="flex items-center gap-2 mb-3">
+                          <ShieldCheck className="h-4 w-4 text-ink/60" />
+                          <p className="text-xs font-semibold text-gray-800">Instant verification via CertPath</p>
+                        </div>
+                        <p className="mb-3 text-xs text-gray-500 leading-relaxed">
+                          Already certified on CertPath? Paste your certificate URL or code below to verify instantly — no manual review needed.
+                        </p>
+
+                        {/* Toggle */}
+                        <div className="mb-2 flex rounded-lg border border-gray-200 bg-white p-0.5">
+                          {(["url", "code"] as const).map((t) => (
+                            <button
+                              key={t}
+                              type="button"
+                              onClick={() => { setCertInputType(t); setCertInput(""); setCertVerifyState("idle"); setCertVerifyMsg(""); }}
+                              className={`flex-1 rounded-md py-1 text-xs font-medium transition ${certInputType === t ? "bg-gray-100 text-gray-900" : "text-gray-400 hover:text-gray-600"}`}
+                            >
+                              {t === "url" ? "Certificate URL" : "Certificate Code"}
+                            </button>
+                          ))}
+                        </div>
+
+                        <div className="flex gap-2 mb-2">
+                          <input
+                            type="text"
+                            value={certInput}
+                            onChange={(e) => { setCertInput(e.target.value); if (certVerifyState !== "idle") { setCertVerifyState("idle"); setCertVerifyMsg(""); } }}
+                            placeholder={certInputType === "url" ? "https://certpath.live/certificate/…?code=CERTPATH-…" : "CERTPATH-A1B2-C3D4"}
+                            disabled={certVerifyState === "loading" || certVerifyState === "success"}
+                            className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20 disabled:opacity-60"
+                          />
+                          <button
+                            onClick={() => void handleCertVerify()}
+                            disabled={!certInput.trim() || certVerifyState === "loading" || certVerifyState === "success"}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-ink px-3 py-2 text-xs font-medium text-white transition hover:bg-lime hover:text-ink disabled:opacity-40"
+                          >
+                            {certVerifyState === "loading" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ShieldCheck className="h-3.5 w-3.5" />}
+                            {certVerifyState === "loading" ? "Verifying…" : "Verify"}
+                          </button>
+                        </div>
+
+                        {certVerifyState === "success" && (
+                          <div className="flex items-start gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2">
+                            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" />
+                            <p className="text-xs text-emerald-800 font-medium">{certVerifyMsg}</p>
+                          </div>
+                        )}
+                        {certVerifyState === "error" && (
+                          <div className="flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2">
+                            <X className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-500" />
+                            <p className="text-xs text-rose-700">{certVerifyMsg}</p>
+                          </div>
+                        )}
+
+                        <a
+                          href="https://certpath.live/courses/medical-transcriptionist#course-content"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-2 inline-flex items-center gap-1 text-xs text-sky-600 hover:underline"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                          Get your medical transcription certificate on CertPath
+                        </a>
+                      </div>
+                    )}
+                  </React.Fragment>
                 ))}
               </div>
             </div>

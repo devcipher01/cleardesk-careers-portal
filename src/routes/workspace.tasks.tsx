@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
-import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, uploadDocumentBySession } from "@/lib/server/actions";
+import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, uploadDocumentBySession, verifyCertPath } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 
 // ─── Auto-construct audio URL from Supabase public bucket ─────────────────────
@@ -335,6 +335,10 @@ function CategoryBadge({ category }: { category: TaskCategory }) {
 }
 
 // ─── Medical cert modal ────────────────────────────────────────────────────────
+const CERTPATH_CERT_URL = "https://certpath.live/courses/medical-transcriptionist#course-content";
+
+type VerifyState = "idle" | "loading" | "success" | "error";
+
 function MedicalCertModal({
   onVerified,
   onClose,
@@ -342,52 +346,45 @@ function MedicalCertModal({
   onVerified: () => void;
   onClose: () => void;
 }) {
-  const [file, setFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const [inputType, setInputType] = useState<"url" | "code">("url");
+  const [input, setInput] = useState("");
+  const [verifyState, setVerifyState] = useState<VerifyState>("idle");
+  const [certName, setCertName] = useState("");
   const [error, setError] = useState("");
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (f.size > 5 * 1024 * 1024) { setError("File too large — maximum 5 MB."); return; }
+  async function handleVerify() {
+    const trimmed = input.trim();
+    if (!trimmed || verifyState === "loading") return;
+    setVerifyState("loading");
     setError("");
-    setFile(f);
-  }
-
-  async function handleSubmit() {
-    if (!file || uploading) return;
-    setUploading(true);
-    setError("");
+    setCertName("");
     try {
-      const reader = new FileReader();
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
       const { getSessionData: sd } = await import("@/lib/client/supabase");
       const { appId, accessToken } = await sd();
-      await uploadDocumentBySession({
-        data: {
-          docType: "medical_cert",
-          fileName: file.name,
-          mimeType: file.type || "application/octet-stream",
-          base64Data,
-          clientAppId: appId,
-          accessToken,
-        },
+      const result = await verifyCertPath({
+        data: { input: trimmed, inputType, clientAppId: appId, accessToken },
       });
-      onVerified();
-    } catch (err: any) {
-      setError(err?.message ?? "Upload failed — please try again.");
-    } finally {
-      setUploading(false);
+      if (result.valid) {
+        setVerifyState("success");
+        setCertName(result.certName ?? "");
+      } else {
+        setVerifyState("error");
+        setError("Invalid certificate — please check your URL or code and try again.");
+      }
+    } catch {
+      setVerifyState("error");
+      setError("Verification failed — please try again in a moment.");
     }
   }
 
+  const placeholder =
+    inputType === "url"
+      ? "https://certpath.live/certificate/medical-transcriptionist/your-name?code=CERTPATH-…"
+      : "CERTPATH-A1B2-C3D4";
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="relative w-full max-w-md rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
+      <div className="relative w-full max-w-lg rounded-2xl border border-gray-200 bg-white p-6 shadow-xl">
         {/* Close */}
         <button
           onClick={onClose}
@@ -403,58 +400,104 @@ function MedicalCertModal({
           </div>
           <div>
             <h2 className="text-base font-semibold text-gray-900">Medical certification required</h2>
-            <p className="text-xs text-gray-500">Tasks 8–10 involve sensitive medical audio</p>
+            <p className="text-xs text-gray-500">Tasks 7–8 involve sensitive medical audio</p>
           </div>
         </div>
 
         <p className="text-sm text-gray-600 leading-relaxed mb-5">
-          These tasks cover real medical recordings — patient consultations, intake interviews, and radiology
-          dictation. A valid <strong className="text-gray-800">medical transcription certification</strong> is
-          required before you can access them. Your certificate is saved to your account.
+          These tasks cover real medical recordings — consultations and clinical dictation. Verify your
+          CertPath medical transcription certificate to unlock them.
         </p>
 
-        {/* Upload section */}
-        <div className={`rounded-xl border border-dashed p-4 mb-4 ${file ? "border-lime/40 bg-lime/5" : "border-gray-300 bg-gray-50"}`}>
-          <label className="flex cursor-pointer flex-col items-center gap-2 text-center">
-            {uploading ? (
-              <Loader2 className="h-6 w-6 text-gray-400 animate-spin" />
-            ) : (
-              <Upload className="h-6 w-6 text-gray-400" />
-            )}
-            <span className="text-sm font-medium text-gray-700">
-              {file ? file.name : "Upload your certificate"}
-            </span>
-            <span className="text-xs text-gray-400">PDF, JPG or PNG · max 5 MB</span>
-            <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={handleFile} disabled={uploading} />
-          </label>
+        {/* Input type toggle */}
+        <div className="mb-3 flex rounded-xl border border-gray-200 bg-gray-50 p-1">
+          {(["url", "code"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => { setInputType(t); setInput(""); setVerifyState("idle"); setError(""); }}
+              className={`flex-1 rounded-lg py-1.5 text-xs font-medium transition ${
+                inputType === t
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {t === "url" ? "Certificate URL" : "Certificate Code"}
+            </button>
+          ))}
         </div>
 
-        {error && <p className="mb-3 text-xs text-rose-500">{error}</p>}
+        {/* Input */}
+        <div className="mb-3">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => { setInput(e.target.value); if (verifyState !== "idle") { setVerifyState("idle"); setError(""); } }}
+            placeholder={placeholder}
+            disabled={verifyState === "loading" || verifyState === "success"}
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime/20 disabled:opacity-60"
+          />
+        </div>
+
+        {/* Verify button + status */}
+        {verifyState !== "success" && (
+          <button
+            onClick={() => void handleVerify()}
+            disabled={!input.trim() || verifyState === "loading"}
+            className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 bg-gray-50 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
+          >
+            {verifyState === "loading" ? (
+              <><Loader2 className="h-4 w-4 animate-spin" /> Verifying…</>
+            ) : (
+              <><ShieldCheck className="h-4 w-4" /> Verify certificate</>
+            )}
+          </button>
+        )}
+
+        {/* Success state */}
+        {verifyState === "success" && (
+          <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
+            <div className="text-xs text-emerald-800">
+              <p className="font-semibold">Certificate verified{certName ? ` — ${certName}` : ""}.</p>
+              <p className="mt-0.5 text-emerald-700">Your certification has been recorded. You can now continue to the task.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error state */}
+        {verifyState === "error" && error && (
+          <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
+            <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+            <p className="text-xs text-rose-700">{error}</p>
+          </div>
+        )}
 
         {/* Get cert link */}
         <a
-          href="#"
+          href={CERTPATH_CERT_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className="mb-5 inline-flex items-center gap-1.5 text-xs text-sky-600 hover:underline"
-          onClick={(e) => e.preventDefault()}
         >
           <ExternalLink className="h-3.5 w-3.5" />
-          Don't have a certificate? Get certified here (link coming soon)
+          Don't have a certificate? Get certified on CertPath
         </a>
 
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            disabled={uploading}
+            disabled={verifyState === "loading"}
             className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
           >
             Cancel
           </button>
           <button
-            onClick={() => void handleSubmit()}
-            disabled={!file || uploading}
+            onClick={onVerified}
+            disabled={verifyState !== "success"}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-lime py-2.5 text-sm font-semibold text-ink disabled:opacity-40 hover:opacity-90 transition"
           >
-            {uploading ? <><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</> : "Continue to task"}
+            <ArrowUpRight className="h-4 w-4" /> Continue to task
           </button>
         </div>
       </div>

@@ -1459,6 +1459,72 @@ export const getDocumentsBySession = createServerFn({ method: "POST" })
     }
   });
 
+// ─── CertPath certificate verification ────────────────────────────────────────
+// Base URL is read from CERTPATH_API_BASE env var so it can switch from
+// certpath-gold.vercel.app to certpath.live without a code change.
+
+export const verifyCertPath = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      input: z.string().min(1).max(500),
+      inputType: z.enum(["url", "code"]),
+      clientAppId: z.string().optional(),
+      accessToken: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
+    if (!applicationId) throw new Error("Not authenticated");
+
+    const base = (process.env.CERTPATH_API_BASE ?? "https://certpath-gold.vercel.app").replace(/\/$/, "");
+    const param =
+      data.inputType === "url"
+        ? `url=${encodeURIComponent(data.input)}`
+        : `code=${encodeURIComponent(data.input)}`;
+
+    let valid = false;
+    let certName: string | undefined;
+    try {
+      const res = await fetch(`${base}/api/verify?${param}`, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(8000),
+      });
+      if (res.ok) {
+        const json = (await res.json()) as Record<string, unknown>;
+        valid =
+          json.valid === true ||
+          json.verified === true ||
+          json.status === "valid" ||
+          json.status === "verified";
+        certName = (json.name ?? json.candidate_name ?? json.holder) as string | undefined;
+      }
+    } catch {
+      // Network error / timeout — treat as invalid
+    }
+
+    if (valid) {
+      const sb = getSupabaseAdmin();
+      const now = new Date().toISOString();
+      await sb.from("contractor_documents").upsert(
+        {
+          application_id: applicationId,
+          doc_type: "medical_cert",
+          file_name:
+            data.inputType === "code"
+              ? `CertPath Code: ${data.input}`
+              : `CertPath URL: ${data.input}`,
+          storage_path: data.input,
+          uploaded_at: now,
+          verified_at: now,
+          verified_by: "certpath",
+        },
+        { onConflict: "application_id,doc_type" },
+      );
+    }
+
+    return { valid, certName: certName ?? undefined };
+  });
+
 // ─── Admin: transcription review ───────────────────────────────────────────────
 
 export const adminListTranscriptions = createServerFn({ method: "POST" })
