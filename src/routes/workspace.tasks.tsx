@@ -88,19 +88,19 @@ const MODULES: ModuleDef[] = [
 // Audio files: upload m1t01.mp3 … m1t06.mp3 to the "task-audio" Supabase bucket.
 // Durations stored as decimal minutes so fmtDuration renders exact MM:SS.
 const TASKS: TaskDef[] = [
-  // Tasks 1–2 — Revenue growth & marketing systems
-  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Revenue Growth Systems — Session 1",        description: "Expert panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",                                     earningsUsd: 12 },
-  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Pipeline & Conversion Fundamentals — Session 2", description: "Single-speaker walkthrough of demand generation and conversion rate optimisation strategies. Transcribe verbatim, preserving all hesitations and self-corrections.",                                earningsUsd: 12 },
-  // Tasks 3–4 — Business transformation
-  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Organizational Change Dynamics — Part 1",   description: "Three-speaker panel on leading workforce and structural transformation. Label speakers clearly and flag any overlapping dialogue with [crosstalk].",                                                             earningsUsd: 15 },
-  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Enterprise Agility Workshop — Part 2",      description: "Executive roundtable on agile restructuring and adaptive strategy. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                                                     earningsUsd: 15 },
-  // Tasks 5–6 — Medical (cert required)
-  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients — Part 1", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsUsd: 25 },
-  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Hormonal Pharmacology & Side Effect Profiles — Part 2", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effects. Exact transcription of clinical terminology required; flag any unclear terms with [?term].", earningsUsd: 25 },
+  // Tasks 1–2 — Same event header: Sales & Marketing Machine Summit
+  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Sales & Marketing Machine Summit", description: "Opening keynote panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",       earningsUsd: 12 },
+  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Sales & Marketing Machine Summit", description: "Breakout session on demand generation strategy and conversion rate optimisation. Single speaker; transcribe verbatim, preserving all hesitations and self-corrections.",                     earningsUsd: 12 },
+  // Tasks 3–4 — Same event header: Business Transformation Summit
+  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Business Transformation Summit",   description: "Opening panel on leading workforce restructuring and organisational change. Three speakers — label clearly and flag any overlapping dialogue with [crosstalk].",                                  earningsUsd: 15 },
+  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Business Transformation Summit",   description: "Executive roundtable on adaptive strategy and agile enterprise restructuring. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                             earningsUsd: 15 },
+  // Tasks 5–6 — Same medical header (cert gate fires only at task 5; once verified, task 6 unlocks automatically)
+  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsUsd: 25 },
+  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Adverse Drug Reactions in Female Patients", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effect profiles. Exact transcription of all clinical terminology required; flag unclear terms with [?term].", earningsUsd: 25 },
 ];
 
-// Cert required for tasks 5–6 (medical category) — gate fires when contractor clicks Start
-const MEDICAL_CERT_TASK_IDS = new Set(["m1t05", "m1t06"]);
+// Cert gate fires only at task 5 — once verified, certVerified=true so task 6 opens without a second prompt
+const MEDICAL_CERT_TASK_IDS = new Set(["m1t05"]);
 
 // ─── Storage helpers ───────────────────────────────────────────────────────────
 function progressKey(appId: string)   { return `wn_task_progress_${appId}`; }
