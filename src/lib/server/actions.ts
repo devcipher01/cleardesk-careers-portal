@@ -1460,8 +1460,7 @@ export const getDocumentsBySession = createServerFn({ method: "POST" })
   });
 
 // ─── CertPath certificate verification ────────────────────────────────────────
-// Base URL is read from CERTPATH_API_BASE env var so it can switch from
-// certpath-gold.vercel.app to certpath.live without a code change.
+// Base URL is read from CERTPATH_API_BASE env var; defaults to certifypath.online.
 
 export const verifyCertPath = createServerFn({ method: "POST" })
   .inputValidator(
@@ -1476,7 +1475,7 @@ export const verifyCertPath = createServerFn({ method: "POST" })
     const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
 
-    const base = (process.env.CERTPATH_API_BASE ?? "https://certpath-gold.vercel.app").replace(/\/$/, "");
+    const base = (process.env.CERTPATH_API_BASE ?? "https://certifypath.online").replace(/\/$/, "");
     const param =
       data.inputType === "url"
         ? `url=${encodeURIComponent(data.input)}`

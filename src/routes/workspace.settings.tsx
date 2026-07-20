@@ -377,7 +377,7 @@ function SettingsPage() {
                             type="text"
                             value={certInput}
                             onChange={(e) => { setCertInput(e.target.value); if (certVerifyState !== "idle") { setCertVerifyState("idle"); setCertVerifyMsg(""); } }}
-                            placeholder={certInputType === "url" ? "https://certpath.live/certificate/…?code=CERTPATH-…" : "CERTPATH-A1B2-C3D4"}
+                            placeholder={certInputType === "url" ? "https://certifypath.online/certificate/…?code=CERTPATH-…" : "CERTPATH-A1B2-C3D4"}
                             disabled={certVerifyState === "loading" || certVerifyState === "success"}
                             className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20 disabled:opacity-60"
                           />
@@ -405,7 +405,7 @@ function SettingsPage() {
                         )}
 
                         <a
-                          href="https://certpath.live/courses/medical-transcriptionist#course-content"
+                          href="https://certifypath.online/courses/medical-transcriptionist#course-content"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="mt-2 inline-flex items-center gap-1 text-xs text-sky-600 hover:underline"

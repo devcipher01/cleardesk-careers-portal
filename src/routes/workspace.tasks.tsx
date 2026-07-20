@@ -342,7 +342,7 @@ function CategoryBadge({ category }: { category: TaskCategory }) {
 }
 
 // ─── Medical cert modal ────────────────────────────────────────────────────────
-const CERTPATH_CERT_URL = "https://certpath.live/courses/medical-transcriptionist#course-content";
+const CERTPATH_CERT_URL = "https://certifypath.online/courses/medical-transcriptionist#course-content";
 
 type VerifyState = "idle" | "loading" | "success" | "error";
 
@@ -386,7 +386,7 @@ function MedicalCertModal({
 
   const placeholder =
     inputType === "url"
-      ? "https://certpath.live/certificate/medical-transcriptionist/your-name?code=CERTPATH-…"
+      ? "https://certifypath.online/certificate/medical-transcriptionist/your-name?code=CERTPATH-…"
       : "CERTPATH-A1B2-C3D4";
 
   return (

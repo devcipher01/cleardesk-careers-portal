@@ -82,6 +82,6 @@ export const JOBS: Job[] = [
       "HIPAA awareness",
     ],
     status: "open",
-    certUrl: "https://certpath.live/courses/medical-transcriptionist#course-content",
+    certUrl: "https://certifypath.online/courses/medical-transcriptionist#course-content",
   },
 ];
