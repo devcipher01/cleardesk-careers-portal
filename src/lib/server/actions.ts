@@ -1271,7 +1271,7 @@ export const getPaymentInfoBySession = createServerFn({ method: "POST" })
 export const savePaymentInfoBySession = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      paymentMethod: z.enum(["wise", "payoneer"]),
+      paymentMethod: z.enum(["wise", "payoneer", "paypal", "bank_transfer"]),
       accountEmail: z.string().email().max(200),
       accountName: z.string().min(1).max(200),
       clientAppId: z.string().optional(),

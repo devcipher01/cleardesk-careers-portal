@@ -89,14 +89,14 @@ const MODULES: ModuleDef[] = [
 // Durations stored as decimal minutes so fmtDuration renders exact MM:SS.
 const TASKS: TaskDef[] = [
   // Tasks 1–2 — Same event header: Sales & Marketing Machine Summit
-  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Sales & Marketing Machine Summit", description: "Opening keynote panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",       earningsUsd: 12 },
-  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Sales & Marketing Machine Summit", description: "Breakout session on demand generation strategy and conversion rate optimisation. Single speaker; transcribe verbatim, preserving all hesitations and self-corrections.",                     earningsUsd: 12 },
+  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Sales & Marketing Machine Summit — Part 1", description: "Opening keynote panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",       earningsUsd: 12 },
+  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Sales & Marketing Machine Summit — Part 2", description: "Breakout session on demand generation strategy and conversion rate optimisation. Single speaker; transcribe verbatim, preserving all hesitations and self-corrections.",                     earningsUsd: 12 },
   // Tasks 3–4 — Same event header: Business Transformation Summit
-  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Business Transformation Summit",   description: "Opening panel on leading workforce restructuring and organisational change. Three speakers — label clearly and flag any overlapping dialogue with [crosstalk].",                                  earningsUsd: 15 },
-  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Business Transformation Summit",   description: "Executive roundtable on adaptive strategy and agile enterprise restructuring. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                             earningsUsd: 15 },
+  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Business Transformation Summit — Part 1",   description: "Opening panel on leading workforce restructuring and organisational change. Three speakers — label clearly and flag any overlapping dialogue with [crosstalk].",                                  earningsUsd: 15 },
+  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Business Transformation Summit — Part 2",   description: "Executive roundtable on adaptive strategy and agile enterprise restructuring. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                             earningsUsd: 15 },
   // Tasks 5–6 — Same medical header (cert gate fires only at task 5; once verified, task 6 unlocks automatically)
-  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsUsd: 25 },
-  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Adverse Drug Reactions in Female Patients", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effect profiles. Exact transcription of all clinical terminology required; flag unclear terms with [?term].", earningsUsd: 25 },
+  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients — Part 1", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsUsd: 25 },
+  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Adverse Drug Reactions in Female Patients — Part 2", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effect profiles. Exact transcription of all clinical terminology required; flag unclear terms with [?term].", earningsUsd: 25 },
 ];
 
 // Cert gate fires only at task 5 — once verified, certVerified=true so task 6 opens without a second prompt
@@ -162,8 +162,8 @@ function fmtDuration(min: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-// ─── Countdown timer ───────────────────────────────────────────────────────────
-function CountdownTimer({ deadline, className = "" }: { deadline: Date; className?: string }) {
+// ─── (CountdownTimer removed — no longer used) ─────────────────────────────────
+function _unusedCountdownTimerPlaceholder({ deadline, className = "" }: { deadline: Date; className?: string }) {
   const [ms, setMs] = useState<number | null>(null);
 
   useEffect(() => {
@@ -782,34 +782,6 @@ function ModuleHeader({
           </div>
         </div>
 
-        {/* Timer row */}
-        {available && !isComplete && deadline && (
-          <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-400">
-              <Timer className="h-3 w-3" />
-              {isReserved ? (
-                <>Complete by <CountdownTimer deadline={deadline} className="ml-1" /></>
-              ) : (
-                <>Reserve by <CountdownTimer deadline={deadline} className="ml-1" /></>
-              )}
-            </div>
-
-            {!isReserved && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onReserve(); }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/20 transition"
-              >
-                <ShieldCheck className="h-3.5 w-3.5 text-lime" />
-                Reserve slot
-              </button>
-            )}
-            {isReserved && (
-              <span className="inline-flex items-center gap-1 text-[11px] text-lime">
-                <ShieldCheck className="h-3 w-3" /> Slot reserved
-              </span>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -126,11 +126,16 @@ function WorkspaceDashboard() {
             value={scorePercent != null ? `${scorePercent}%` : "—"}
             tone="emerald"
           />
-          <StatCard icon={Wallet} label="Offered rate" value="$24.50/hr" tone="sky" />
+          <StatCard
+            icon={Wallet}
+            label="Workspace"
+            value="Active"
+            tone="sky"
+          />
           <StatCard
             icon={Clock}
-            label="Onboarding"
-            value={contractSubmitted ? "Complete" : ndaSigned ? "In progress" : "Action needed"}
+            label="Agreement"
+            value={contractSubmitted ? "Complete" : ndaSigned ? "In progress" : "Pending"}
             tone={contractSubmitted ? "emerald" : "amber"}
           />
         </div>
@@ -144,11 +149,10 @@ function WorkspaceDashboard() {
                   Action required
                 </p>
                 <h2 className="mt-2 text-xl font-medium text-gray-900">
-                  Complete workspace setup
+                  Review your contractor agreement
                 </h2>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-600">
-                  Review the workspace guide, confirm payment terms ($24.50/hr USD,
-                  twice-monthly disbursement), and read required documents before starting tasks.
+                  Read through your contractor agreement and project terms before accessing your task modules.
                 </p>
               </div>
               <Link
@@ -156,7 +160,7 @@ function WorkspaceDashboard() {
                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-lime px-6 py-3 text-sm font-semibold text-ink hover:opacity-90 transition"
               >
                 <FileSignature className="h-4 w-4" />
-                Read guide
+                View agreement
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </div>
@@ -196,8 +200,7 @@ function WorkspaceDashboard() {
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <h3 className="text-sm font-semibold text-gray-900">Payroll</h3>
             <p className="mt-2 text-sm text-gray-500">
-              Paid twice monthly (1st and 15th) via Wise or Payoneer. Add your payment details
-              in{" "}
+              Earnings are released after module completion and review. Most modules are reviewed within 48 hours. Add your payment details in{" "}
               <Link to="/workspace/settings" className="underline hover:text-gray-700">
                 Settings
               </Link>

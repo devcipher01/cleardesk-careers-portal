@@ -74,11 +74,11 @@ function SupportPage() {
   const FAQ = [
     {
       q: "When do I get paid?",
-      a: "Payments are processed on the 1st and 15th of each month. You must have reviewed transcriptions to receive a payout.",
+      a: "Earnings are released after module completion and review. Most modules are reviewed within 48 hours.",
     },
     {
       q: "What is the accuracy standard?",
-      a: "We expect 97%+ accuracy on all submitted work. Your supervisor will review your first submissions personally.",
+      a: "We expect 97%+ accuracy on all submitted work. Your first submissions are reviewed closely to ensure quality.",
     },
     {
       q: "What if I can't hear part of the audio?",
@@ -86,11 +86,11 @@ function SupportPage() {
     },
     {
       q: "How do I add my payment details?",
-      a: "Go to Settings and fill in your Wise or Payoneer account information.",
+      a: "Go to Settings and add your preferred payment method — Wise, Payoneer, PayPal, or bank transfer.",
     },
     {
       q: "I need more time on a task. What do I do?",
-      a: "Message your supervisor at least 2 hours before the deadline — never after. Use the contact form below.",
+      a: "Message support using the contact form below as early as possible.",
     },
   ];
 

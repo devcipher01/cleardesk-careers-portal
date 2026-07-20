@@ -179,7 +179,7 @@ function EarningsPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Earnings overview</p>
           <h1 className="mt-2 text-2xl font-semibold text-gray-900 md:text-3xl">Your earnings</h1>
-          <p className="mt-1 text-sm text-gray-500">Rate: $24.50/hr · Paid 1st and 15th of each month</p>
+          <p className="mt-1 text-sm text-gray-500">Earnings released after module completion and review · Most modules reviewed within 48 hours</p>
         </div>
 
         {/* Summary cards */}
@@ -213,20 +213,9 @@ function EarningsPage() {
             <h2 className="text-sm font-semibold text-gray-900">Payment schedule</h2>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Reviewed transcriptions are paid out twice monthly — on the 1st and 15th. Payments are sent via your chosen method (Wise or Payoneer).
+            Earnings are released after module completion and review. Most modules are reviewed within 48 hours. Payments are sent via your chosen method — Wise, Payoneer, PayPal, or bank transfer.
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {payDates.map((pd) => (
-              <div key={pd.date} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
-                <CalendarDays className="h-4 w-4 shrink-0 text-lime" />
-                <div>
-                  <p className="text-xs text-gray-500">{pd.label}</p>
-                  <p className="text-sm font-semibold text-gray-900">{pd.date}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-4 text-xs text-gray-400">
+          <p className="text-xs text-gray-400">
             Make sure your payment info is up to date in{" "}
             <Link to="/workspace/settings" className="text-lime hover:underline font-medium">Settings</Link>.
           </p>

@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Linkedin, Facebook, Instagram } from "lucide-react";
+import { Linkedin } from "lucide-react";
 
 export function Footer() {
   return (
@@ -20,16 +20,13 @@ export function Footer() {
             transcription services.
           </p>
           <div className="mt-5 flex gap-2">
-            {[Linkedin, Facebook, Instagram].map((Icon, i) => (
-              <a
-                key={i}
-                href="#"
-                aria-label="social"
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/10 bg-card text-ink/70 hover:bg-ink hover:text-ink-foreground"
-              >
-                <Icon className="h-4 w-4" />
-              </a>
-            ))}
+            <a
+              href="#"
+              aria-label="LinkedIn"
+              className="flex h-9 w-9 items-center justify-center rounded-full border border-ink/10 bg-card text-ink/70 hover:bg-ink hover:text-ink-foreground"
+            >
+              <Linkedin className="h-4 w-4" />
+            </a>
           </div>
         </div>
 

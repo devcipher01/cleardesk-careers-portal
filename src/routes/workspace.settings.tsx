@@ -48,15 +48,9 @@ type DocInfo = {
 const DOC_TYPE_LABELS: Record<string, { label: string; description: string; icon: React.ReactNode; required: boolean }> = {
   medical_cert: {
     label: "Medical transcription certificate",
-    description: "Required to unlock medical tasks (tasks 8–10 in Module 1). PDF, JPG or PNG · max 5 MB.",
+    description: "Required to unlock medical tasks (tasks 5–6 in Module 1). PDF, JPG or PNG · max 5 MB.",
     icon: <Activity className="h-4 w-4 text-rose-500" />,
     required: true,
-  },
-  id_document: {
-    label: "Government-issued ID",
-    description: "A copy of your national ID, passport, or driver's licence for identity verification. PDF, JPG or PNG · max 5 MB.",
-    icon: <FileText className="h-4 w-4 text-sky-500" />,
-    required: false,
   },
 };
 
@@ -142,7 +136,7 @@ function SettingsPage() {
   const [timezone, setTimezone] = useState("UTC");
 
   // Payment info
-  const [paymentMethod, setPaymentMethod] = useState<"wise" | "payoneer">("wise");
+  const [paymentMethod, setPaymentMethod] = useState<"wise" | "payoneer" | "paypal" | "bank_transfer">("wise");
   const [accountEmail, setAccountEmail] = useState("");
   const [accountName, setAccountName] = useState("");
   const [paymentSaving, setPaymentSaving] = useState(false);
@@ -172,7 +166,8 @@ function SettingsPage() {
         try {
           const pi = await getPaymentInfoBySession({ data: { clientAppId: appId, accessToken } });
           if (pi) {
-            if (pi.payment_method === "wise" || pi.payment_method === "payoneer") setPaymentMethod(pi.payment_method);
+            const validMethods = ["wise", "payoneer", "paypal", "bank_transfer"] as const;
+            if (validMethods.includes(pi.payment_method as any)) setPaymentMethod(pi.payment_method as typeof validMethods[number]);
             setAccountEmail(pi.account_email ?? "");
             setAccountName(pi.account_name ?? "");
           }
@@ -427,25 +422,29 @@ function SettingsPage() {
                 <h2 className="text-sm font-semibold text-gray-900">Payment info</h2>
               </div>
               <p className="mb-4 text-xs text-gray-500">
-                Payments are processed on the{" "}
-                <span className="font-semibold text-gray-700">1st and 15th</span> of each month via your chosen method.
+                Earnings are released after module completion and review. Select your preferred payout method below.
               </p>
               <form onSubmit={(e) => void handleSavePayment(e)} className="space-y-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-2">Payment method</label>
                   <div className="grid grid-cols-2 gap-2">
-                    {(["wise", "payoneer"] as const).map((m) => (
+                    {([
+                      { value: "wise",          label: "Wise" },
+                      { value: "payoneer",      label: "Payoneer" },
+                      { value: "paypal",        label: "PayPal" },
+                      { value: "bank_transfer", label: "Bank Transfer" },
+                    ] as const).map((m) => (
                       <button
-                        key={m}
+                        key={m.value}
                         type="button"
-                        onClick={() => setPaymentMethod(m)}
+                        onClick={() => setPaymentMethod(m.value)}
                         className={`rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
-                          paymentMethod === m
+                          paymentMethod === m.value
                             ? "border-lime bg-lime/10 text-gray-900"
                             : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100"
                         }`}
                       >
-                        {m === "wise" ? "Wise" : "Payoneer"}
+                        {m.label}
                       </button>
                     ))}
                   </div>
@@ -453,7 +452,7 @@ function SettingsPage() {
 
                 <label className="block">
                   <span className="text-xs font-medium text-gray-600">
-                    {paymentMethod === "wise" ? "Wise" : "Payoneer"} account email
+                    {paymentMethod === "bank_transfer" ? "Bank account email / reference" : paymentMethod === "paypal" ? "PayPal account email" : paymentMethod === "wise" ? "Wise account email" : "Payoneer account email"}
                   </span>
                   <input
                     type="email"
@@ -466,7 +465,7 @@ function SettingsPage() {
 
                 <label className="block">
                   <span className="text-xs font-medium text-gray-600">
-                    Account holder name (as shown on {paymentMethod === "wise" ? "Wise" : "Payoneer"})
+                    Account holder name
                   </span>
                   <input
                     type="text"
