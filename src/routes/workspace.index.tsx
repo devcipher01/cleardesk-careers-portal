@@ -2,9 +2,9 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   ArrowUpRight,
+  BookOpen,
   CheckCircle2,
   Clock,
-  FileSignature,
   Wallet,
 } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
@@ -149,18 +149,18 @@ function WorkspaceDashboard() {
                   Action required
                 </p>
                 <h2 className="mt-2 text-xl font-medium text-gray-900">
-                  Review your contractor agreement
+                  Complete your workspace setup
                 </h2>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-gray-600">
-                  Read through your contractor agreement and project terms before accessing your task modules.
+                  Review your workspace guide and project instructions before starting your transcription tasks.
                 </p>
               </div>
               <Link
                 to="/onboarding/workspace-setup"
                 className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-lime px-6 py-3 text-sm font-semibold text-ink hover:opacity-90 transition"
               >
-                <FileSignature className="h-4 w-4" />
-                View agreement
+                <BookOpen className="h-4 w-4" />
+                View workspace guide
                 <ArrowUpRight className="h-4 w-4" />
               </Link>
             </div>

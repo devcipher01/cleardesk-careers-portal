@@ -71,6 +71,8 @@ interface ModuleDef {
   label: string;
   subtitle: string;
   deadlineHours: number;
+  placeholder?: boolean;
+  topics?: string[];
 }
 
 interface ModuleMeta {
@@ -80,7 +82,23 @@ interface ModuleMeta {
 
 // ─── Module definitions ────────────────────────────────────────────────────────
 const MODULES: ModuleDef[] = [
-  { num: 1, label: "Module 1", subtitle: "Transcription Tasks", deadlineHours: 72 },
+  { num: 1, label: "Module 1", subtitle: "Business & Marketing",  deadlineHours: 72 },
+  {
+    num: 2, label: "Module 2", subtitle: "Legal & Finance", deadlineHours: 72, placeholder: true,
+    topics: ["Corporate Earnings Calls", "Legal Depositions", "Financial Advisory Sessions",
+             "Regulatory Compliance Interviews", "Contract Review Recordings", "Arbitration Proceedings"],
+  },
+  {
+    num: 3, label: "Module 3", subtitle: "Academic & Research", deadlineHours: 72, placeholder: true,
+    topics: ["University Lecture Recordings", "Research Interviews", "Academic Conference Panels",
+             "Focus Group Discussions", "Thesis Defence Sessions", "Scientific Peer Reviews"],
+  },
+  {
+    num: 4, label: "Module 4", subtitle: "Advanced Medical", deadlineHours: 72, placeholder: true,
+    topics: ["Surgical Dictation & Operative Notes", "Psychiatric Evaluation Recordings",
+             "Clinical Trial Briefings", "Specialist Referral Consultations",
+             "Medical Board Proceedings", "Diagnostic Imaging Reports"],
+  },
 ];
 
 // ─── Task definitions ──────────────────────────────────────────────────────────
@@ -655,7 +673,7 @@ function TaskCard({
       {status === "locked" && (
         <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
           <Lock className="h-3.5 w-3.5" />
-          Complete the previous module to unlock
+          Available upon completion of the previous module
         </div>
       )}
 
@@ -726,6 +744,47 @@ function TaskCard({
           onClose={() => setShowCertModal(false)}
         />
       )}
+    </div>
+  );
+}
+
+// ─── Placeholder module card ───────────────────────────────────────────────────
+// Modules 2–4 are not yet active. They display upcoming topic areas but are
+// never expandable or startable, regardless of Module 1 completion status.
+function PlaceholderModuleCard({ mod }: { mod: ModuleDef }) {
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-gray-100">
+      <div className="p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-start gap-4 min-w-0 flex-1">
+            <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-500">
+              {mod.num}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <h2 className="text-base font-semibold text-gray-400">{mod.label}</h2>
+                <span className="text-sm font-normal text-gray-400">— {mod.subtitle}</span>
+                <span className="inline-flex items-center rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-[11px] font-medium text-gray-400">
+                  Upcoming
+                </span>
+              </div>
+              {mod.topics && (
+                <div className="flex flex-wrap gap-1.5">
+                  {mod.topics.map((topic) => (
+                    <span key={topic} className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[11px] text-gray-400">
+                      {topic}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-400">
+            <Lock className="h-3.5 w-3.5" />
+            Not yet available
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -834,7 +893,7 @@ function ModuleHeader({
             {!available && (
               <div className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-400">
                 <Lock className="h-3.5 w-3.5" />
-                Locked
+                Not yet available
               </div>
             )}
           </div>
@@ -1015,7 +1074,7 @@ function TasksPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Module 1–4 · Transcription Tasks</p>
               <h1 className="mt-2 text-2xl font-semibold text-gray-900">Available tasks</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                {TASKS.length} transcription tasks across 4 modules. Each module unlocks after the previous is complete.
+                {TASKS.length} transcription tasks in Module 1, with 3 further modules releasing progressively upon completion of the prior module.
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
@@ -1041,6 +1100,15 @@ function TasksPage() {
 
         {/* Modules */}
         {MODULES.map((mod) => {
+          // Modules 2–4 are placeholder — show topics preview only, never expandable
+          if (mod.placeholder) {
+            return (
+              <section key={mod.num}>
+                <PlaceholderModuleCard mod={mod} />
+              </section>
+            );
+          }
+
           const modTasks = TASKS.filter((t) => t.module === mod.num);
           const meta     = moduleMeta[String(mod.num)];
           const isOpen   = openModules.has(mod.num);
