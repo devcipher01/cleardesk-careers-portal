@@ -371,10 +371,8 @@ function MedicalCertModal({
   const [error, setError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  // Only CertPath verification unlocks the task gate.
-  // File upload is advisory — it submits the cert for manual review but does
-  // not grant immediate access (no retrievable file evidence until reviewed).
-  const canContinue = verifyState === "success";
+  // Both steps are required: CertPath URL/code verification AND a file upload.
+  const canContinue = verifyState === "success" && uploadSuccess;
 
   async function handleVerify() {
     const trimmed = input.trim();
@@ -437,8 +435,7 @@ function MedicalCertModal({
         </div>
 
         <p className="text-sm text-gray-600 leading-relaxed mb-5">
-          These tasks cover real medical recordings — consultations and clinical dictation. Verify your
-          CertPath medical transcription certificate below to continue.
+          These tasks cover real medical recordings — consultations and clinical dictation. Complete <strong>both steps</strong> below to continue.
         </p>
 
         {/* Input type toggle */}
@@ -491,8 +488,8 @@ function MedicalCertModal({
           <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" />
             <div className="text-xs text-emerald-800">
-              <p className="font-semibold">Certificate verified{certName ? ` — ${certName}` : ""}.</p>
-              <p className="mt-0.5 text-emerald-700">Your certification has been recorded. You can now continue to the task.</p>
+              <p className="font-semibold">Step 1 done — Certificate verified{certName ? ` (${certName})` : ""}.</p>
+              {!uploadSuccess && <p className="mt-0.5 text-emerald-700">Now upload your certificate file below to unlock the task.</p>}
             </div>
           </div>
         )}
@@ -519,7 +516,7 @@ function MedicalCertModal({
         {/* Divider */}
         <div className="mb-4 flex items-center gap-3">
           <div className="flex-1 border-t border-gray-200" />
-          <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">or upload your certificate file</span>
+          <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">and upload your certificate file</span>
           <div className="flex-1 border-t border-gray-200" />
         </div>
 
@@ -546,8 +543,8 @@ function MedicalCertModal({
           <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
             <div className="text-xs text-sky-800">
-              <p className="font-semibold">Certificate file received.</p>
-              <p className="mt-0.5 text-sky-700">To unlock the task, verify your CertPath URL or code above and click Verify.</p>
+              <p className="font-semibold">Step 2 done — Certificate file received.</p>
+              {verifyState !== "success" && <p className="mt-0.5 text-sky-700">Now verify your CertPath URL or code above to unlock the task.</p>}
             </div>
           </div>
         )}
