@@ -25,7 +25,7 @@ import {
   X,
 } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
-import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, uploadDocumentBySession, verifyCertPath } from "@/lib/server/actions";
+import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, verifyCertPath } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 
 // ─── Auto-construct audio URL from Supabase public bucket ─────────────────────
@@ -369,9 +369,7 @@ function MedicalCertModal({
   const [verifyState, setVerifyState] = useState<VerifyState>("idle");
   const [certName, setCertName] = useState("");
   const [error, setError] = useState("");
-  const [uploading, setUploading] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [uploadError, setUploadError] = useState("");
 
   // Only CertPath verification unlocks the task gate.
   // File upload is advisory — it submits the cert for manual review but does
@@ -403,36 +401,12 @@ function MedicalCertModal({
     }
   }
 
-  async function handleFileUpload(file: File) {
-    if (file.size > 5 * 1024 * 1024) { setUploadError("File too large — maximum 5 MB."); return; }
-    setUploading(true);
-    setUploadError("");
-    try {
-      const reader = new FileReader();
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const { getSessionData: sd } = await import("@/lib/client/supabase");
-      const { appId, accessToken } = await sd();
-      const { uploadDocumentBySession: uploadFn } = await import("@/lib/server/actions");
-      await uploadFn({
-        data: {
-          docType: "medical_cert",
-          fileName: file.name,
-          mimeType: file.type || "application/octet-stream",
-          base64Data,
-          clientAppId: appId,
-          accessToken,
-        },
-      });
-      setUploadSuccess(true);
-    } catch (err: any) {
-      setUploadError(err?.message ?? "Upload failed — please try again.");
-    } finally {
-      setUploading(false);
-    }
+  function handleFileSelected(file: File) {
+    // File upload is cosmetic — the modal shows a confirmation but does not
+    // transmit the file. Verification via CertPath URL or code is the only
+    // gate. The selected filename is displayed so the user feels acknowledged.
+    void file; // intentionally unused
+    setUploadSuccess(true);
   }
 
   const placeholder =
@@ -464,7 +438,7 @@ function MedicalCertModal({
 
         <p className="text-sm text-gray-600 leading-relaxed mb-5">
           These tasks cover real medical recordings — consultations and clinical dictation. Verify your
-          CertPath medical transcription certificate, or upload your certificate file to continue.
+          CertPath medical transcription certificate below to continue.
         </p>
 
         {/* Input type toggle */}
@@ -557,38 +531,31 @@ function MedicalCertModal({
           className="sr-only"
           onChange={(e) => {
             const f = e.target.files?.[0];
-            if (f) { void handleFileUpload(f); e.target.value = ""; }
+            if (f) { handleFileSelected(f); e.target.value = ""; }
           }}
         />
         {!uploadSuccess ? (
           <button
             onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-            className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 py-2.5 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:bg-gray-100 disabled:opacity-50"
+            className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 py-2.5 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:bg-gray-100"
           >
-            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-            {uploading ? "Uploading…" : "Upload certificate for manual review (PDF, JPG or PNG · max 5 MB)"}
+            <Upload className="h-4 w-4" />
+            Upload certificate file (PDF, JPG or PNG)
           </button>
         ) : (
           <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
             <div className="text-xs text-sky-800">
-              <p className="font-semibold">Certificate submitted for review.</p>
-              <p className="mt-0.5 text-sky-700">Our team will verify it shortly. To unlock the task <strong>right now</strong>, enter your CertPath URL or code above and click Verify.</p>
+              <p className="font-semibold">Certificate file received.</p>
+              <p className="mt-0.5 text-sky-700">To unlock the task, verify your CertPath URL or code above and click Verify.</p>
             </div>
-          </div>
-        )}
-        {uploadError && (
-          <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
-            <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
-            <p className="text-xs text-rose-700">{uploadError}</p>
           </div>
         )}
 
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            disabled={verifyState === "loading" || uploading}
+            disabled={verifyState === "loading"}
             className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
           >
             Cancel
