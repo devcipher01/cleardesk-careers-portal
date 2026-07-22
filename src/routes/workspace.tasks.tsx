@@ -105,6 +105,16 @@ const MEDICAL_CERT_TASK_IDS = new Set(["m1t05"]);
 // ─── Storage helpers ───────────────────────────────────────────────────────────
 function progressKey(appId: string)   { return `wn_task_progress_${appId}`; }
 function moduleMetaKey(appId: string) { return `wn_module_meta_${appId}`; }
+function certKey(appId: string)       { return `wn_cert_verified_${appId}`; }
+
+function loadCertVerified(appId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try { return localStorage.getItem(certKey(appId)) === "true"; } catch { return false; }
+}
+function saveCertVerified(appId: string, val: boolean) {
+  if (typeof window === "undefined") return;
+  try { localStorage.setItem(certKey(appId), val ? "true" : "false"); } catch { /* ignore */ }
+}
 
 function loadProgress(appId: string): LocalProgress {
   if (typeof window === "undefined") return {};
@@ -353,11 +363,20 @@ function MedicalCertModal({
   onVerified: () => void;
   onClose: () => void;
 }) {
+  const fileRef = useRef<HTMLInputElement>(null);
   const [inputType, setInputType] = useState<"url" | "code">("url");
   const [input, setInput] = useState("");
   const [verifyState, setVerifyState] = useState<VerifyState>("idle");
   const [certName, setCertName] = useState("");
   const [error, setError] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  // Only CertPath verification unlocks the task gate.
+  // File upload is advisory — it submits the cert for manual review but does
+  // not grant immediate access (no retrievable file evidence until reviewed).
+  const canContinue = verifyState === "success";
 
   async function handleVerify() {
     const trimmed = input.trim();
@@ -384,6 +403,38 @@ function MedicalCertModal({
     }
   }
 
+  async function handleFileUpload(file: File) {
+    if (file.size > 5 * 1024 * 1024) { setUploadError("File too large — maximum 5 MB."); return; }
+    setUploading(true);
+    setUploadError("");
+    try {
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const { getSessionData: sd } = await import("@/lib/client/supabase");
+      const { appId, accessToken } = await sd();
+      const { uploadDocumentBySession: uploadFn } = await import("@/lib/server/actions");
+      await uploadFn({
+        data: {
+          docType: "medical_cert",
+          fileName: file.name,
+          mimeType: file.type || "application/octet-stream",
+          base64Data,
+          clientAppId: appId,
+          accessToken,
+        },
+      });
+      setUploadSuccess(true);
+    } catch (err: any) {
+      setUploadError(err?.message ?? "Upload failed — please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
   const placeholder =
     inputType === "url"
       ? "https://certifypath.online/certificate/medical-transcriptionist/your-name?code=CERTPATH-…"
@@ -407,13 +458,13 @@ function MedicalCertModal({
           </div>
           <div>
             <h2 className="text-base font-semibold text-gray-900">Medical certification required</h2>
-            <p className="text-xs text-gray-500">Tasks 7–8 involve sensitive medical audio</p>
+            <p className="text-xs text-gray-500">Tasks 5–6 involve sensitive medical audio</p>
           </div>
         </div>
 
         <p className="text-sm text-gray-600 leading-relaxed mb-5">
           These tasks cover real medical recordings — consultations and clinical dictation. Verify your
-          CertPath medical transcription certificate to unlock them.
+          CertPath medical transcription certificate, or upload your certificate file to continue.
         </p>
 
         {/* Input type toggle */}
@@ -485,23 +536,66 @@ function MedicalCertModal({
           href={CERTPATH_CERT_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="mb-5 inline-flex items-center gap-1.5 text-xs text-sky-600 hover:underline"
+          className="mb-4 inline-flex items-center gap-1.5 text-xs text-sky-600 hover:underline"
         >
           <ExternalLink className="h-3.5 w-3.5" />
           Don't have a certificate? Get certified on CertPath
         </a>
 
+        {/* Divider */}
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex-1 border-t border-gray-200" />
+          <span className="text-[11px] font-medium uppercase tracking-wider text-gray-400">or upload your certificate file</span>
+          <div className="flex-1 border-t border-gray-200" />
+        </div>
+
+        {/* File upload */}
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          className="sr-only"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) { void handleFileUpload(f); e.target.value = ""; }
+          }}
+        />
+        {!uploadSuccess ? (
+          <button
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+            className="mb-3 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 py-2.5 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:bg-gray-100 disabled:opacity-50"
+          >
+            {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+            {uploading ? "Uploading…" : "Upload certificate for manual review (PDF, JPG or PNG · max 5 MB)"}
+          </button>
+        ) : (
+          <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5">
+            <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-sky-600" />
+            <div className="text-xs text-sky-800">
+              <p className="font-semibold">Certificate submitted for review.</p>
+              <p className="mt-0.5 text-sky-700">Our team will verify it shortly. To unlock the task <strong>right now</strong>, enter your CertPath URL or code above and click Verify.</p>
+            </div>
+          </div>
+        )}
+        {uploadError && (
+          <div className="mb-3 flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5">
+            <X className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+            <p className="text-xs text-rose-700">{uploadError}</p>
+          </div>
+        )}
+
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            disabled={verifyState === "loading"}
+            disabled={verifyState === "loading" || uploading}
             className="flex-1 rounded-xl border border-gray-200 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 transition disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={onVerified}
-            disabled={verifyState !== "success"}
+            disabled={!canContinue}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-lime py-2.5 text-sm font-semibold text-ink disabled:opacity-40 hover:opacity-90 transition"
           >
             <ArrowUpRight className="h-4 w-4" /> Continue to task
@@ -842,13 +936,27 @@ function TasksPage() {
         setProgress(prog);
         setModuleMeta(meta);
 
-        // Load cert status from server (stored on account, not localStorage)
+        // Load cert status — localStorage first for instant feedback, then DB as source of truth.
+        // Only a *verified* record (verified_at non-null) counts — an uploaded-but-unreviewed
+        // file must not bypass the CertPath verification gate.
+        const localCert = loadCertVerified(appId);
+        if (localCert) setCertVerified(true);
         try {
           const docResult = await getDocumentsBySession({ data: { clientAppId: sessionAppId, accessToken } });
-          if (docResult.authenticated) {
-            setCertVerified(docResult.docs.some((d) => d.doc_type === "medical_cert"));
+          // Only update cert state when we have a trustworthy response (no query error).
+          // If queryError=true, the DB call failed transiently — preserve the cached state
+          // so a Supabase outage cannot re-lock a task the user already verified.
+          if (docResult.authenticated && !docResult.queryError) {
+            const dbCert = docResult.docs.some(
+              (d) => d.doc_type === "medical_cert" && d.verified_at !== null,
+            );
+            setCertVerified(dbCert);
+            // Save to localStorage only on positive confirmation; don't write false
+            // (a definitive "no cert" from the DB is handled by setCertVerified above,
+            // but we don't overwrite a positive cache entry without verified proof).
+            if (dbCert) saveCertVerified(appId, true);
           }
-        } catch { /* cert stays false */ }
+        } catch { /* cert stays at localStorage value */ }
       } catch {
         setSession({ status: "unauthenticated" });
       }
@@ -880,8 +988,9 @@ function TasksPage() {
   }
 
   function handleCertVerified() {
-    // Cert was already uploaded to server by MedicalCertModal — just update local state
+    // Cert was already saved to server by MedicalCertModal — update local state and localStorage
     setCertVerified(true);
+    saveCertVerified(applicationId, true);
   }
 
   function handleReserve(moduleNum: number) {

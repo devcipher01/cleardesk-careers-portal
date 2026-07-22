@@ -1259,10 +1259,10 @@ export const getPaymentInfoBySession = createServerFn({ method: "POST" })
     try {
       const { data } = await sb
         .from("payment_info")
-        .select("payment_method, account_email, account_name")
+        .select("payment_method, account_email, account_name, extra_details")
         .eq("application_id", applicationId)
         .maybeSingle();
-      return data as { payment_method: string | null; account_email: string | null; account_name: string | null } | null;
+      return data as { payment_method: string | null; account_email: string | null; account_name: string | null; extra_details: string | null } | null;
     } catch {
       return null;
     }
@@ -1274,6 +1274,7 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
       paymentMethod: z.enum(["wise", "payoneer", "paypal", "bank_transfer"]),
       accountEmail: z.string().email().max(200),
       accountName: z.string().min(1).max(200),
+      extraDetails: z.string().max(2000).optional(),
       clientAppId: z.string().optional(),
       accessToken: z.string().optional(),
     }),
@@ -1290,6 +1291,7 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
         payment_method: data.paymentMethod,
         account_email: data.accountEmail,
         account_name: data.accountName,
+        extra_details: data.extraDetails ?? null,
         updated_at: now,
       },
       { onConflict: "application_id" },
@@ -1410,11 +1412,28 @@ export const uploadDocumentBySession = createServerFn({ method: "POST" })
     const ext = data.fileName.split(".").pop()?.toLowerCase() ?? "bin";
     const storagePath = `${applicationId}/${data.docType}.${ext}`;
 
-    // Upload to Supabase Storage bucket "contractor-docs"
+    // Try to upload to Supabase Storage bucket "contractor-docs".
+    // If the bucket doesn't exist (infrastructure not yet provisioned), degrade
+    // gracefully and record the intent in the DB without a stored file.
+    // Any other storage error (network, permissions, content-type, etc.) is
+    // re-thrown so the caller knows the upload genuinely failed.
+    let actualStoragePath = storagePath;
+    let fileStored = true;
     const { error: uploadErr } = await sb.storage
       .from("contractor-docs")
       .upload(storagePath, buffer, { contentType: data.mimeType, upsert: true });
-    if (uploadErr) throw new Error(`Storage upload failed: ${uploadErr.message}`);
+    if (uploadErr) {
+      const isBucketMissing =
+        uploadErr.message.toLowerCase().includes("bucket not found") ||
+        uploadErr.message.toLowerCase().includes("does not exist");
+      if (isBucketMissing) {
+        // Bucket not provisioned — store a placeholder path and flag as unstored
+        actualStoragePath = `pending:${applicationId}/${data.fileName}`;
+        fileStored = false;
+      } else {
+        throw new Error(`Storage upload failed: ${uploadErr.message}`);
+      }
+    }
 
     const now = new Date().toISOString();
     await sb.from("contractor_documents").upsert(
@@ -1422,41 +1441,45 @@ export const uploadDocumentBySession = createServerFn({ method: "POST" })
         application_id: applicationId,
         doc_type: data.docType,
         file_name: data.fileName,
-        storage_path: storagePath,
+        storage_path: actualStoragePath,
         uploaded_at: now,
         verified_at: null,
         verified_by: null,
       },
       { onConflict: "application_id,doc_type" },
     );
-    return { ok: true, storagePath };
+    return { ok: true, stored: fileStored, storagePath: actualStoragePath };
   });
 
 export const getDocumentsBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
     const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
-    if (!applicationId) return { authenticated: false as const, docs: [] };
+    if (!applicationId) return { authenticated: false as const, queryError: false, docs: [] };
 
     const sb = getSupabaseAdmin();
-    try {
-      const { data: rows } = await sb
-        .from("contractor_documents")
-        .select("doc_type, file_name, uploaded_at, verified_at, verified_by")
-        .eq("application_id", applicationId);
-      return {
-        authenticated: true as const,
-        docs: (rows ?? []) as {
-          doc_type: string;
-          file_name: string;
-          uploaded_at: string;
-          verified_at: string | null;
-          verified_by: string | null;
-        }[],
-      };
-    } catch {
-      return { authenticated: true as const, docs: [] };
+    const { data: rows, error: queryErr } = await sb
+      .from("contractor_documents")
+      .select("doc_type, file_name, uploaded_at, verified_at, verified_by")
+      .eq("application_id", applicationId);
+
+    if (queryErr) {
+      // Return a distinct queryError flag so callers can distinguish a transient
+      // DB failure (empty docs due to error) from a genuine "no documents" state.
+      return { authenticated: true as const, queryError: true, docs: [] };
     }
+
+    return {
+      authenticated: true as const,
+      queryError: false,
+      docs: (rows ?? []) as {
+        doc_type: string;
+        file_name: string;
+        uploaded_at: string;
+        verified_at: string | null;
+        verified_by: string | null;
+      }[],
+    };
   });
 
 // ─── CertPath certificate verification ────────────────────────────────────────

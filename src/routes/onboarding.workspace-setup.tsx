@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowUpRight, BookOpen, DollarSign, Clock, CheckCircle2, Headphones, ShieldCheck } from "lucide-react";
+import { ArrowUpRight, BookOpen, Clock, CheckCircle2, Headphones, ShieldCheck } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
@@ -52,20 +52,6 @@ function WorkspaceSetupPage() {
           <h1 className="mt-2 text-2xl font-semibold text-gray-900 md:text-3xl">Getting started</h1>
           <p className="mt-2 text-sm text-gray-500">
             Everything you need to know before working on your first task.
-          </p>
-        </div>
-
-        {/* Compensation card */}
-        <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5">
-          <div className="flex items-center gap-2">
-            <DollarSign className="h-4 w-4 text-sky-600" />
-            <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">Compensation</p>
-          </div>
-          <p className="mt-2 text-2xl font-semibold text-gray-900">
-            $24.50 <span className="text-base font-normal text-gray-500">USD / hour</span>
-          </p>
-          <p className="mt-2 text-sm text-gray-600">
-            Paid twice monthly — 1st and 15th — via Wise or Payoneer. You work as an independent contractor.
           </p>
         </div>
 

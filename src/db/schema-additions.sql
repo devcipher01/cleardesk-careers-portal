@@ -19,12 +19,15 @@ CREATE TABLE IF NOT EXISTS task_progress (
 CREATE TABLE IF NOT EXISTS payment_info (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   application_id uuid NOT NULL REFERENCES applications(id) ON DELETE CASCADE UNIQUE,
-  payment_method text,        -- 'wise' | 'payoneer'
+  payment_method text,        -- 'wise' | 'payoneer' | 'paypal' | 'bank_transfer'
   account_email text,
   account_name text,
+  extra_details text,         -- JSON string for method-specific fields (bank transfer, etc.)
   created_at timestamptz DEFAULT now(),
   updated_at timestamptz DEFAULT now()
 );
+-- If table already exists, add the extra_details column if missing:
+ALTER TABLE payment_info ADD COLUMN IF NOT EXISTS extra_details text;
 
 -- Contractor uploaded documents (medical certs, ID docs, etc.)
 CREATE TABLE IF NOT EXISTS contractor_documents (

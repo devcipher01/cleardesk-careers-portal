@@ -48,9 +48,9 @@ type DocInfo = {
 const DOC_TYPE_LABELS: Record<string, { label: string; description: string; icon: React.ReactNode; required: boolean }> = {
   medical_cert: {
     label: "Medical transcription certificate",
-    description: "Required to unlock medical tasks (tasks 5–6 in Module 1). PDF, JPG or PNG · max 5 MB.",
+    description: "Upload your certificate file (optional). To unlock medical tasks instantly, use the CertPath URL verification below — that's the required step.",
     icon: <Activity className="h-4 w-4 text-rose-500" />,
-    required: true,
+    required: false,
   },
 };
 
@@ -139,6 +139,11 @@ function SettingsPage() {
   const [paymentMethod, setPaymentMethod] = useState<"wise" | "payoneer" | "paypal" | "bank_transfer">("wise");
   const [accountEmail, setAccountEmail] = useState("");
   const [accountName, setAccountName] = useState("");
+  // Bank transfer extra fields
+  const [bankAccountNumber, setBankAccountNumber] = useState("");
+  const [bankName, setBankName] = useState("");
+  const [bankSwiftIban, setBankSwiftIban] = useState("");
+  const [bankCountry, setBankCountry] = useState("");
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [paymentSaved, setPaymentSaved] = useState(false);
   const [paymentError, setPaymentError] = useState("");
@@ -170,12 +175,21 @@ function SettingsPage() {
             if (validMethods.includes(pi.payment_method as any)) setPaymentMethod(pi.payment_method as typeof validMethods[number]);
             setAccountEmail(pi.account_email ?? "");
             setAccountName(pi.account_name ?? "");
+            if (pi.extra_details) {
+              try {
+                const extra = JSON.parse(pi.extra_details) as Record<string, string>;
+                setBankAccountNumber(extra.accountNumber ?? "");
+                setBankName(extra.bankName ?? "");
+                setBankSwiftIban(extra.swiftIban ?? "");
+                setBankCountry(extra.country ?? "");
+              } catch { /* ignore malformed extra_details */ }
+            }
           }
         } catch { /* table may not exist yet */ }
 
         try {
           const docResult = await getDocumentsBySession({ data: { clientAppId: appId, accessToken } });
-          if (docResult.authenticated) setDocs(docResult.docs);
+          if (docResult.authenticated && !docResult.queryError) setDocs(docResult.docs);
         } catch { /* ignore */ }
       } catch {
         setSession({ status: "unauthenticated" });
@@ -203,12 +217,27 @@ function SettingsPage() {
   async function handleSavePayment(e: React.FormEvent) {
     e.preventDefault();
     if (!accountEmail.trim() || !accountName.trim()) { setPaymentError("All payment fields are required."); return; }
+    if (paymentMethod === "bank_transfer") {
+      if (!bankAccountNumber.trim() || !bankName.trim() || !bankSwiftIban.trim() || !bankCountry.trim()) {
+        setPaymentError("All bank transfer fields are required.");
+        return;
+      }
+    }
     setPaymentSaving(true);
     setPaymentError("");
     setPaymentSaved(false);
     try {
       const { appId: curId, accessToken: curToken } = await getSessionData();
-      await savePaymentInfoBySession({ data: { paymentMethod, accountEmail: accountEmail.trim(), accountName: accountName.trim(), clientAppId: curId, accessToken: curToken } });
+      let extraDetails: string | undefined;
+      if (paymentMethod === "bank_transfer") {
+        extraDetails = JSON.stringify({
+          accountNumber: bankAccountNumber.trim(),
+          bankName: bankName.trim(),
+          swiftIban: bankSwiftIban.trim(),
+          country: bankCountry.trim(),
+        });
+      }
+      await savePaymentInfoBySession({ data: { paymentMethod, accountEmail: accountEmail.trim(), accountName: accountName.trim(), extraDetails, clientAppId: curId, accessToken: curToken } });
       setPaymentSaved(true);
     } catch (err: any) {
       setPaymentError(err?.message ?? "Failed to save payment info.");
@@ -232,7 +261,7 @@ function SettingsPage() {
         setCertVerifyMsg(result.certName ? `Certificate verified — ${result.certName}.` : "Certificate verified.");
         // Refresh docs so the card shows the new verified record
         const docResult = await getDocumentsBySession({ data: { clientAppId: curId, accessToken: curToken } });
-        if (docResult.authenticated) setDocs(docResult.docs);
+        if (docResult.authenticated && !docResult.queryError) setDocs(docResult.docs);
       } else {
         setCertVerifyState("error");
         setCertVerifyMsg("Invalid certificate — please check your URL or code and try again.");
@@ -274,7 +303,7 @@ function SettingsPage() {
 
       // Refresh docs list
       const docResult = await getDocumentsBySession({ data: { clientAppId: curId, accessToken: curToken } });
-      if (docResult.authenticated) setDocs(docResult.docs);
+      if (docResult.authenticated && !docResult.queryError) setDocs(docResult.docs);
       setDocSuccess("Document uploaded successfully — our team will review it shortly.");
     } catch (err: any) {
       setDocError(err?.message ?? "Upload failed. Please try again.");
@@ -348,6 +377,7 @@ function SettingsPage() {
                         <div className="flex items-center gap-2 mb-3">
                           <ShieldCheck className="h-4 w-4 text-ink/60" />
                           <p className="text-xs font-semibold text-gray-800">Instant verification via CertPath</p>
+                          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-600">Required</span>
                         </div>
                         <p className="mb-3 text-xs text-gray-500 leading-relaxed">
                           Already certified on CertPath? Paste your certificate URL or code below to verify instantly — no manual review needed.
@@ -452,7 +482,7 @@ function SettingsPage() {
 
                 <label className="block">
                   <span className="text-xs font-medium text-gray-600">
-                    {paymentMethod === "bank_transfer" ? "Bank account email / reference" : paymentMethod === "paypal" ? "PayPal account email" : paymentMethod === "wise" ? "Wise account email" : "Payoneer account email"}
+                    {paymentMethod === "bank_transfer" ? "Contact email (for payment notifications)" : paymentMethod === "paypal" ? "PayPal account email" : paymentMethod === "wise" ? "Wise account email" : "Payoneer account email"}
                   </span>
                   <input
                     type="email"
@@ -464,9 +494,7 @@ function SettingsPage() {
                 </label>
 
                 <label className="block">
-                  <span className="text-xs font-medium text-gray-600">
-                    Account holder name
-                  </span>
+                  <span className="text-xs font-medium text-gray-600">Account holder name</span>
                   <input
                     type="text"
                     value={accountName}
@@ -475,6 +503,53 @@ function SettingsPage() {
                     className="mt-1.5 w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-lime/20"
                   />
                 </label>
+
+                {/* Bank transfer extra fields */}
+                {paymentMethod === "bank_transfer" && (
+                  <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50/80 p-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-400">Bank account details</p>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600">Account number <span className="text-rose-500">*</span></span>
+                      <input
+                        type="text"
+                        value={bankAccountNumber}
+                        onChange={(e) => setBankAccountNumber(e.target.value)}
+                        placeholder="e.g. 1234567890"
+                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600">Bank name <span className="text-rose-500">*</span></span>
+                      <input
+                        type="text"
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        placeholder="e.g. First National Bank"
+                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600">SWIFT / IBAN / Routing number <span className="text-rose-500">*</span></span>
+                      <input
+                        type="text"
+                        value={bankSwiftIban}
+                        onChange={(e) => setBankSwiftIban(e.target.value)}
+                        placeholder="e.g. BOFAUS3N or GB29NWBK60161331926819"
+                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-xs font-medium text-gray-600">Country <span className="text-rose-500">*</span></span>
+                      <input
+                        type="text"
+                        value={bankCountry}
+                        onChange={(e) => setBankCountry(e.target.value)}
+                        placeholder="e.g. United States"
+                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20"
+                      />
+                    </label>
+                  </div>
+                )}
 
                 {paymentError && <p className="text-xs text-rose-500">{paymentError}</p>}
                 {paymentSaved && (
