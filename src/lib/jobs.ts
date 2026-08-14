@@ -33,7 +33,7 @@ export const JOBS: Job[] = [
     slug: "ai-content-transcription-validator",
     title: "Remote Transcription Specialist",
     types: ["Full-Time", "Part-Time", "Remote"],
-    pay: "$16–$22/hr USD",
+  pay: "Project-based rates",
     description:
       "Review and correct AI-generated text, audio transcriptions, and data sheets for accuracy.",
     pitch:
@@ -73,7 +73,7 @@ export const JOBS: Job[] = [
     slug: "medical-transcriptionist",
     title: "Medical Transcriptionist",
     types: ["Full-Time", "Remote"],
-    pay: "$20–$28/hr USD",
+  pay: "Project-based rates",
     description:
       "Transcribing medical dictations and clinical notes with strict accuracy and confidentiality.",
     requirements: [

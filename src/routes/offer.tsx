@@ -125,7 +125,7 @@ function OfferPage() {
           <dl className="divide-y divide-ink/5 text-sm">
             <Row label="Role" value={offer.roleTitle} />
             <Row label="Type" value="Remote Contractor" />
-            <Row label="Pay" value={`${offer.payRate} USD per hour`} />
+            <Row label="Contract payment" value={`₦${Number(offer.payRate).toLocaleString("en-NG")}`} />
             <Row label="Payment" value="Every Friday via Wise or Payoneer" />
             <Row label="Hours" value="As agreed per week" />
             <Row label="Contract" value={`${offer.contractDuration} initial term, renewable monthly after that`} />
@@ -169,8 +169,8 @@ function OfferPage() {
           <Clause n="2" title="CONFIDENTIALITY">
             The Contractor agrees to keep all client data, project materials, internal processes, and proprietary information strictly confidential, both during and after the term of this agreement.
           </Clause>
-          <Clause n="3" title="PAYMENT TERMS">
-            The Contractor will be paid at the agreed hourly rate stated above. Payments are issued weekly on Fridays via Wise or Payoneer. The Contractor is responsible for all applicable taxes in their country of residence.
+           <Clause n="3" title="PAYMENT TERMS">
+             The Contractor will receive the agreed project payment stated above. Payments are issued weekly on Fridays via Wise or Payoneer. The Contractor is responsible for all applicable taxes in their country of residence.
           </Clause>
           <Clause n="4" title="HARDWARE & INTERNET">
             The Contractor provides their own hardware (laptop/desktop) and stable internet suitable for remote work.
@@ -400,7 +400,7 @@ function DeclineModal({
               className="mt-2 w-full rounded-2xl border border-ink/10 bg-cream p-3 text-sm text-ink outline-none focus:border-ink"
             >
               <option value="">Select…</option>
-              <option>Pay rate</option>
+              <option>Payment amount</option>
               <option>Start date</option>
               <option>Schedule / hours</option>
               <option>Found another opportunity</option>

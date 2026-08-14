@@ -363,12 +363,12 @@ function HomePage() {
                 ))}
               </div>
               <div className="mt-10 flex flex-wrap items-center gap-3">
-                <Link
-                  to="/careers/apply"
-                  className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium text-ink-foreground transition hover:bg-lime hover:text-lime-foreground"
-                >
-                  Start your application <ArrowUpRight className="h-4 w-4" />
-                </Link>
+                  <span
+                    aria-disabled="true"
+                    className="inline-flex cursor-not-allowed items-center gap-2 rounded-full bg-ink/35 px-6 py-3 text-sm font-medium text-ink-foreground/70"
+                  >
+                    Applications temporarily closed
+                  </span>
                 <Link
                   to="/how-it-works"
                   className="inline-flex items-center gap-2 rounded-full border border-ink/15 bg-card px-6 py-3 text-sm font-medium text-ink hover:bg-ink/5"

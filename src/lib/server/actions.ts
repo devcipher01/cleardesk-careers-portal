@@ -489,7 +489,7 @@ export const adminSendOffer = createServerFn({ method: "POST" })
       paragraphs: [
         "Congratulations — we’re excited to offer you a position at Worknesta.",
         `Role: ${app.role_title}`,
-        `Pay rate: ${data.payRate} USD per hour`,
+        `Contract payment: ₦${Number(data.payRate).toLocaleString("en-NG")}`,
         `Start date: ${data.startDate}`,
         `Contract duration: ${data.contractDuration}`,
         "You get paid every Friday via Wise or Payoneer.",
@@ -504,7 +504,7 @@ export const adminSendOffer = createServerFn({ method: "POST" })
       paragraphs: [
         "Congratulations — we’re excited to offer you a position at Worknesta.",
         `Role: ${app.role_title}`,
-        `Pay rate: ${data.payRate} USD per hour`,
+        `Contract payment: ₦${Number(data.payRate).toLocaleString("en-NG")}`,
         `Start date: ${data.startDate}`,
         `Contract duration: ${data.contractDuration}`,
         "You get paid every Friday via Wise or Payoneer.",
@@ -1713,7 +1713,7 @@ export const adminGetStats = createServerFn({ method: "POST" })
       totalSubmitted: totalSubmitted ?? 0,
       underReview: underReview ?? 0,
       totalReviewed: totalReviewed ?? 0,
-      totalEarningsUsd: parseFloat(totalEarningsUsd.toFixed(2)),
+      totalEarningsNaira: Math.round(totalEarningsUsd * 750),
     };
   });
 
@@ -1751,7 +1751,7 @@ export const sendSupportMessageBySession = createServerFn({ method: "POST" })
       .eq("id", applicationId)
       .maybeSingle();
 
-    const adminEmail = process.env.ADMIN_NOTIFY_EMAIL || "talent@worknesta.com";
+    const adminEmail = "admin@worknesta.com";
     const subject = `Workspace support request — ${app?.full_name ?? applicationId}`;
     const html = renderEmailHtml({
       subjectHeadline: "Support request",

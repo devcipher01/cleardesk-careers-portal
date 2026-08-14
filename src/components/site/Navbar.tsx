@@ -40,12 +40,12 @@ export function Navbar() {
         </nav>
 
         <div className="hidden md:block">
-          <Link
-            to="/careers/apply"
-            className="inline-flex items-center rounded-full bg-lime px-4 py-2 text-sm font-medium text-lime-foreground shadow-sm transition-transform hover:-translate-y-0.5 lg:px-5"
+          <span
+            aria-disabled="true"
+            className="inline-flex cursor-not-allowed items-center rounded-full bg-lime/40 px-4 py-2 text-sm font-medium text-lime-foreground/70 lg:px-5"
           >
-            Apply now
-          </Link>
+            Applications closed
+          </span>
         </div>
 
         <button
@@ -73,13 +73,12 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
-            <Link
-              to="/careers/apply"
-              onClick={() => setOpen(false)}
-              className="mt-2 block rounded-xl bg-lime px-3 py-2.5 text-center text-sm font-medium text-lime-foreground"
+            <span
+              aria-disabled="true"
+              className="mt-2 block cursor-not-allowed rounded-xl bg-lime/40 px-3 py-2.5 text-center text-sm font-medium text-lime-foreground/70"
             >
-              Apply now
-            </Link>
+              Applications closed
+            </span>
           </div>
         </div>
       )}

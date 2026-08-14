@@ -31,7 +31,7 @@ const QUESTIONS = [
   "What tools or software have you used before? (e.g. Microsoft Excel, Google Sheets, Express Scribe, oTranscribe, or any transcription/data tools)",
   "Walk us through how you check your own work for errors before submitting.",
   "What is your estimated typing speed, and what hours of the day are you most productive?",
-  "What are your pay expectations per hour (in USD), and when are you available to start?",
+  "What project payment level would you expect, and when are you available to start?",
 ];
 
 const TOTAL_SECONDS = 20 * 60;

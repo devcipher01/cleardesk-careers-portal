@@ -67,7 +67,7 @@ interface Stats {
   totalSubmitted: number;
   underReview: number;
   totalReviewed: number;
-  totalEarningsUsd: number;
+  totalEarningsNaira: number;
 }
 
 interface ContractorRow {
@@ -76,6 +76,10 @@ interface ContractorRow {
   submitted: number;
   reviewed: number;
   earnings: number;
+}
+
+function formatNaira(amount: number) {
+  return `₦${amount.toLocaleString("en-NG")}`;
 }
 
 const SETUP_SQL = `-- Run this in your Supabase SQL editor
@@ -528,7 +532,7 @@ function AdminPage() {
                   { label: "Total submitted", value: stats.totalSubmitted },
                   { label: "Under review", value: stats.underReview },
                   { label: "Reviewed", value: stats.totalReviewed },
-                  { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}` },
+                  { label: "Payments owed", value: formatNaira(stats.totalEarningsNaira) },
                 ].map(({ label, value }) => (
                   <div key={label} className="flex items-center justify-between rounded-xl border border-ink/10 px-3 py-2.5">
                     <span className="text-xs text-ink/60">{label}</span>
@@ -771,7 +775,7 @@ function AdminPage() {
                     { label: "Total tasks submitted", value: stats.totalSubmitted },
                     { label: "Under review", value: stats.underReview },
                     { label: "Reviewed", value: stats.totalReviewed },
-                    { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}` },
+                    { label: "Payments owed", value: formatNaira(stats.totalEarningsNaira) },
                   ].map(({ label, value }) => (
                     <div key={label} className="rounded-xl border border-ink/10 bg-cream p-3">
                       <p className="text-[11px] text-ink/50">{label}</p>
@@ -796,7 +800,7 @@ function AdminPage() {
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-xs text-ink/60">{c.submitted} pending · {c.reviewed} reviewed</p>
-                    {c.earnings > 0 && <p className="text-xs font-semibold text-lime">${c.earnings.toFixed(2)}</p>}
+                    {c.earnings > 0 && <p className="text-xs font-semibold text-lime">{formatNaira(c.earnings * 750)}</p>}
                   </div>
                 </div>
               ))}
@@ -873,7 +877,7 @@ function AdminPage() {
                 { label: "Total submitted", value: stats.totalSubmitted, color: "text-sky-600" },
                 { label: "Under review", value: stats.underReview, color: "text-amber-600" },
                 { label: "Reviewed", value: stats.totalReviewed, color: "text-emerald-600" },
-                { label: "Earnings owed", value: `$${stats.totalEarningsUsd.toFixed(2)}`, color: "text-lime" },
+                { label: "Payments owed", value: formatNaira(stats.totalEarningsNaira), color: "text-lime" },
               ].map(({ label, value, color }) => (
                 <div key={label} className="rounded-2xl border border-ink/10 bg-card p-4">
                   <p className={`mb-1 text-xs font-medium ${color}`}>{label}</p>
@@ -1133,7 +1137,7 @@ function AdminPage() {
                         {c.reviewed}
                       </div>
                       <div className={`font-semibold ${c.earnings > 0 ? "text-lime" : "text-ink/40"}`}>
-                        {c.earnings > 0 ? `$${c.earnings.toFixed(2)}` : "—"}
+                        {c.earnings > 0 ? formatNaira(c.earnings * 750) : "—"}
                       </div>
                     </div>
                   ))}
@@ -1240,8 +1244,8 @@ function OfferModal({
             <p className="mt-1 text-sm text-ink/60">Fill these fields and send the offer link.</p>
             <div className="mt-5 space-y-4">
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-ink">Pay rate (USD/hr)</span>
-                <input value={local.payRate} onChange={(e) => setLocal((s) => s ? { ...s, payRate: e.target.value } : s)} className="ipt" placeholder="e.g. 18" />
+                <span className="mb-1.5 block text-sm font-medium text-ink">Contract payment (NGN)</span>
+                <input value={local.payRate} onChange={(e) => setLocal((s) => s ? { ...s, payRate: e.target.value } : s)} className="ipt" placeholder="e.g. 7500" />
               </label>
               <label className="block">
                 <span className="mb-1.5 block text-sm font-medium text-ink">Start date</span>

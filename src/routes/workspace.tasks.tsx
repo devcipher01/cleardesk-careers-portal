@@ -8,7 +8,6 @@ import {
   ChevronDown,
   ChevronUp,
   Clock,
-  DollarSign,
   ExternalLink,
   Headphones,
   Lock,
@@ -45,9 +44,14 @@ export const Route = createFileRoute("/workspace/tasks")({
 });
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-const RATE = 24.5;
-function earn(min: number) {
-  return parseFloat(((RATE * min) / 60).toFixed(2));
+const USD_TO_NGN = 1500;
+const TASK_PAYOUT_FACTOR = 0.5;
+const NGN_PER_USD_TASK = USD_TO_NGN * TASK_PAYOUT_FACTOR;
+function priceFromUsd(usd: number) {
+  return Math.round(usd * NGN_PER_USD_TASK);
+}
+function formatNaira(amount: number) {
+  return `₦${amount.toLocaleString("en-NG")}`;
 }
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -63,7 +67,7 @@ interface TaskDef {
   durationMin: number;
   title: string;
   description: string;
-  earningsUsd: number;
+  earningsNaira: number;
 }
 
 interface ModuleDef {
@@ -107,14 +111,14 @@ const MODULES: ModuleDef[] = [
 // Durations stored as decimal minutes so fmtDuration renders exact MM:SS.
 const TASKS: TaskDef[] = [
   // Tasks 1–2 — Same event header: Sales & Marketing Machine Summit
-  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Sales & Marketing Machine Summit — Part 1", description: "Opening keynote panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",       earningsUsd: 12 },
-  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Sales & Marketing Machine Summit — Part 2", description: "Breakout session on demand generation strategy and conversion rate optimisation. Single speaker; transcribe verbatim, preserving all hesitations and self-corrections.",                     earningsUsd: 12 },
+  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Sales & Marketing Machine Summit — Part 1", description: "Opening keynote panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",       earningsNaira: priceFromUsd(12) },
+  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Sales & Marketing Machine Summit — Part 2", description: "Breakout session on demand generation strategy and conversion rate optimisation. Single speaker; transcribe verbatim, preserving all hesitations and self-corrections.",                     earningsNaira: priceFromUsd(12) },
   // Tasks 3–4 — Same event header: Business Transformation Summit
-  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Business Transformation Summit — Part 1",   description: "Opening panel on leading workforce restructuring and organisational change. Three speakers — label clearly and flag any overlapping dialogue with [crosstalk].",                                  earningsUsd: 15 },
-  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Business Transformation Summit — Part 2",   description: "Executive roundtable on adaptive strategy and agile enterprise restructuring. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                             earningsUsd: 15 },
+  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Business Transformation Summit — Part 1",   description: "Opening panel on leading workforce restructuring and organisational change. Three speakers — label clearly and flag any overlapping dialogue with [crosstalk].",                                  earningsNaira: priceFromUsd(15) },
+  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Business Transformation Summit — Part 2",   description: "Executive roundtable on adaptive strategy and agile enterprise restructuring. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                             earningsNaira: priceFromUsd(15) },
   // Tasks 5–6 — Same medical header (cert gate fires only at task 5; once verified, task 6 unlocks automatically)
-  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients — Part 1", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsUsd: 25 },
-  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Adverse Drug Reactions in Female Patients — Part 2", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effect profiles. Exact transcription of all clinical terminology required; flag unclear terms with [?term].", earningsUsd: 25 },
+  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients — Part 1", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsNaira: priceFromUsd(25) },
+  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Adverse Drug Reactions in Female Patients — Part 2", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effect profiles. Exact transcription of all clinical terminology required; flag unclear terms with [?term].", earningsNaira: priceFromUsd(25) },
 ];
 
 // Cert gate fires only at task 5 — once verified, certVerified=true so task 6 opens without a second prompt
@@ -665,7 +669,7 @@ function TaskCard({
           </span>
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{fmtDuration(task.durationMin)}</span>
-            <span className="flex items-center gap-1 font-semibold text-lime"><DollarSign className="h-3 w-3" />${task.earningsUsd.toFixed(2)}</span>
+            <span className="font-semibold text-lime">{formatNaira(task.earningsNaira)}</span>
           </div>
         </div>
       </div>
@@ -724,7 +728,7 @@ function TaskCard({
               className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20 resize-y" />
           </div>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-gray-400">{draft.trim().length} characters · ${task.earningsUsd.toFixed(2)} earned on submit</p>
+            <p className="text-xs text-gray-400">{draft.trim().length} characters · {formatNaira(task.earningsNaira)} earned on submit</p>
             <button onClick={() => void handleSubmit()} disabled={!draft.trim() || submitting}
               className="inline-flex items-center gap-2 rounded-lg bg-lime px-4 py-2 text-sm font-semibold text-ink disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -814,7 +818,7 @@ function ModuleHeader({
   const deadline     = meta ? new Date(meta.deadlineIso) : null;
   const generalCnt   = tasks.filter((t) => t.category === "general").length;
   const medicalCnt   = tasks.filter((t) => t.category === "medical").length;
-  const modEarnings  = tasks.reduce((s, t) => s + t.earningsUsd, 0);
+  const modEarnings  = tasks.reduce((s, t) => s + t.earningsNaira, 0);
 
   // Colour scheme: complete = lime-tinted, available = dark ink, locked = light gray
   const wrapperClass = isComplete
@@ -855,7 +859,7 @@ function ModuleHeader({
               <p className={`mt-1 text-xs ${subClass}`}>
                 {tasks.length} tasks ·{" "}
                 {generalCnt} general{medicalCnt > 0 ? ` + ${medicalCnt} medical` : ""} ·{" "}
-                <span className={available ? "text-lime font-medium" : "text-gray-400"}>${modEarnings.toFixed(2)}</span>
+                 <span className={available ? "text-lime font-medium" : "text-gray-400"}>{formatNaira(modEarnings)}</span>
               </p>
             </div>
           </div>
@@ -1049,13 +1053,13 @@ function TasksPage() {
       const { submitTranscriptionTask } = await import("@/lib/server/actions");
       const { getSessionData: sd } = await import("@/lib/client/supabase");
       const { appId: curAppId, accessToken: curToken } = await sd();
-      await submitTranscriptionTask({ data: { taskId, transcriptionText: text, earningsUsd: task.earningsUsd, clientAppId: curAppId ?? applicationId, accessToken: curToken } });
+       await submitTranscriptionTask({ data: { taskId, transcriptionText: text, earningsUsd: task.earningsNaira / NGN_PER_USD_TASK, clientAppId: curAppId ?? applicationId, accessToken: curToken } });
     } catch { /* silent — localStorage already updated */ }
   }
 
   const totalEarned = TASKS.reduce((sum, t) => {
     const s = computeEffectiveStatus(t, progress, contractSubmitted);
-    return s === "submitted" || s === "reviewed" ? sum + t.earningsUsd : sum;
+    return s === "submitted" || s === "reviewed" ? sum + t.earningsNaira : sum;
   }, 0);
   const submittedCount = TASKS.filter((t) => {
     const s = computeEffectiveStatus(t, progress, contractSubmitted);

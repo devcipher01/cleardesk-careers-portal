@@ -65,7 +65,7 @@ function SupportPage() {
       await sendSupportMessageBySession({ data: { message: message.trim(), clientAppId: currentAppId, accessToken: currentToken } });
       setSent(true);
     } catch (e: any) {
-      setError(e?.message || "Failed to send. Please email talent@worknesta.com directly.");
+      setError(e?.message || "Failed to send. Please email admin@worknesta.com directly.");
     } finally {
       setSubmitting(false);
     }
@@ -149,8 +149,8 @@ function SupportPage() {
                 <div className="flex items-center gap-1.5 text-xs text-gray-400">
                   <Mail className="h-3.5 w-3.5" />
                   Or email{" "}
-                  <a href="mailto:talent@worknesta.com" className="text-gray-600 hover:underline">
-                    talent@worknesta.com
+                  <a href="mailto:admin@worknesta.com" className="text-gray-600 hover:underline">
+                    admin@worknesta.com
                   </a>
                 </div>
                 <button

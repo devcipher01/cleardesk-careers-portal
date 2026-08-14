@@ -1,4 +1,4 @@
-export const CONTRACTOR_HOURLY_RATE = "$24.50";
+export const CONTRACTOR_PROJECT_PAYMENT = "₦7,500";
 
 export const CONTRACTOR_AGREEMENT_SECTIONS = [
   {
@@ -8,7 +8,7 @@ export const CONTRACTOR_AGREEMENT_SECTIONS = [
   },
   {
     title: "Compensation",
-    body: `Your contracted rate is ${CONTRACTOR_HOURLY_RATE} USD per hour for approved production work. Payments are disbursed weekly via Wise or Payoneer after tasks pass quality review.`,
+      body: `Your contracted project payment is ${CONTRACTOR_PROJECT_PAYMENT} for approved production work. Payments are disbursed weekly via Wise or Payoneer after tasks pass quality review.`,
   },
   {
     title: "Accuracy and turnaround",

@@ -5,7 +5,6 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
-  DollarSign,
   TrendingUp,
   Activity,
   Headphones,
@@ -19,47 +18,52 @@ export const Route = createFileRoute("/workspace/earnings")({
   component: EarningsPage,
 });
 
-const RATE = 24.5;
-function earn(min: number) {
-  return parseFloat(((RATE * min) / 60).toFixed(2));
+const USD_TO_NGN = 1500;
+const TASK_PAYOUT_FACTOR = 0.5;
+const NGN_PER_USD_TASK = USD_TO_NGN * TASK_PAYOUT_FACTOR;
+function earnNaira(min: number) {
+  return Math.round(((24.5 * min) / 60) * NGN_PER_USD_TASK);
+}
+function formatNaira(amount: number) {
+  return `₦${amount.toLocaleString("en-NG")}`;
 }
 
 // ─── All task metadata keyed by the actual task IDs used in localStorage ───────
-const ALL_TASKS: Record<string, { title: string; earningsUsd: number; durationMin: number; module: 1|2|3|4 }> = {
+const ALL_TASKS: Record<string, { title: string; earningsNaira: number; durationMin: number; module: 1|2|3|4 }> = {
   // Module 1
-  m1t01: { title: "Client Interview — Part 1",     earningsUsd: earn(8),   durationMin: 8,   module: 1 },
-  m1t02: { title: "Team Standup Recording",         earningsUsd: earn(15),  durationMin: 15,  module: 1 },
-  m1t03: { title: "Product Feedback Session",       earningsUsd: earn(22),  durationMin: 22,  module: 1 },
-  m1t04: { title: "Sales Call Excerpt",             earningsUsd: earn(12),  durationMin: 12,  module: 1 },
-  m1t05: { title: "HR Policy Briefing",             earningsUsd: earn(25),  durationMin: 25,  module: 1 },
-  m1t06: { title: "Customer Support Call",          earningsUsd: earn(16),  durationMin: 16,  module: 1 },
-  m1t07: { title: "Webinar Segment — Q&A Block",   earningsUsd: earn(28),  durationMin: 28,  module: 1 },
-  m1t08: { title: "Medical Consultation Notes",     earningsUsd: earn(20),  durationMin: 20,  module: 1 },
-  m1t09: { title: "Patient Intake Interview",       earningsUsd: earn(28),  durationMin: 28,  module: 1 },
-  m1t10: { title: "Radiology Report Dictation",     earningsUsd: earn(15),  durationMin: 15,  module: 1 },
+  m1t01: { title: "Client Interview — Part 1",     earningsNaira: 9000,  durationMin: 8,   module: 1 },
+  m1t02: { title: "Team Standup Recording",         earningsNaira: 9000,  durationMin: 15,  module: 1 },
+  m1t03: { title: "Product Feedback Session",       earningsNaira: 11250, durationMin: 22,  module: 1 },
+  m1t04: { title: "Sales Call Excerpt",             earningsNaira: 11250, durationMin: 12,  module: 1 },
+  m1t05: { title: "HR Policy Briefing",             earningsNaira: 18750, durationMin: 25,  module: 1 },
+  m1t06: { title: "Customer Support Call",          earningsNaira: 18750, durationMin: 16,  module: 1 },
+  m1t07: { title: "Webinar Segment — Q&A Block",   earningsNaira: earnNaira(28),  durationMin: 28,  module: 1 },
+  m1t08: { title: "Medical Consultation Notes",     earningsNaira: earnNaira(20),  durationMin: 20,  module: 1 },
+  m1t09: { title: "Patient Intake Interview",       earningsNaira: earnNaira(28),  durationMin: 28,  module: 1 },
+  m1t10: { title: "Radiology Report Dictation",     earningsNaira: earnNaira(15),  durationMin: 15,  module: 1 },
   // Module 2
-  m2t01: { title: "Executive Panel Q&A",            earningsUsd: earn(30),  durationMin: 30,  module: 2 },
-  m2t02: { title: "Training Workshop Recording",    earningsUsd: earn(45),  durationMin: 45,  module: 2 },
-  m2t03: { title: "Investor Pitch Presentation",    earningsUsd: earn(35),  durationMin: 35,  module: 2 },
-  m2t04: { title: "Podcast Interview Segment",      earningsUsd: earn(40),  durationMin: 40,  module: 2 },
-  m2t05: { title: "Performance Review Meeting",     earningsUsd: earn(28),  durationMin: 28,  module: 2 },
-  m2t06: { title: "Clinical Case Discussion",       earningsUsd: earn(35),  durationMin: 35,  module: 2 },
-  m2t07: { title: "Surgical Prep Briefing",         earningsUsd: earn(40),  durationMin: 40,  module: 2 },
+  m2t01: { title: "Executive Panel Q&A",            earningsNaira: earnNaira(30),  durationMin: 30,  module: 2 },
+  m2t02: { title: "Training Workshop Recording",    earningsNaira: earnNaira(45),  durationMin: 45,  module: 2 },
+  m2t03: { title: "Investor Pitch Presentation",    earningsNaira: earnNaira(35),  durationMin: 35,  module: 2 },
+  m2t04: { title: "Podcast Interview Segment",      earningsNaira: earnNaira(40),  durationMin: 40,  module: 2 },
+  m2t05: { title: "Performance Review Meeting",     earningsNaira: earnNaira(28),  durationMin: 28,  module: 2 },
+  m2t06: { title: "Clinical Case Discussion",       earningsNaira: earnNaira(35),  durationMin: 35,  module: 2 },
+  m2t07: { title: "Surgical Prep Briefing",         earningsNaira: earnNaira(40),  durationMin: 40,  module: 2 },
   // Module 3
-  m3t01: { title: "Legal Deposition Excerpt",       earningsUsd: earn(55),  durationMin: 55,  module: 3 },
-  m3t02: { title: "Academic Conference Talk",        earningsUsd: earn(60),  durationMin: 60,  module: 3 },
-  m3t03: { title: "Documentary Interview Segment",  earningsUsd: earn(50),  durationMin: 50,  module: 3 },
-  m3t04: { title: "Technical Seminar Recording",    earningsUsd: earn(65),  durationMin: 65,  module: 3 },
-  m3t05: { title: "Psychiatric Evaluation Notes",   earningsUsd: earn(50),  durationMin: 50,  module: 3 },
-  m3t06: { title: "Cardiology Consultation",        earningsUsd: earn(55),  durationMin: 55,  module: 3 },
-  m3t07: { title: "ER Triage Documentation",        earningsUsd: earn(45),  durationMin: 45,  module: 3 },
+  m3t01: { title: "Legal Deposition Excerpt",       earningsNaira: earnNaira(55),  durationMin: 55,  module: 3 },
+  m3t02: { title: "Academic Conference Talk",        earningsNaira: earnNaira(60),  durationMin: 60,  module: 3 },
+  m3t03: { title: "Documentary Interview Segment",  earningsNaira: earnNaira(50),  durationMin: 50,  module: 3 },
+  m3t04: { title: "Technical Seminar Recording",    earningsNaira: earnNaira(65),  durationMin: 65,  module: 3 },
+  m3t05: { title: "Psychiatric Evaluation Notes",   earningsNaira: earnNaira(50),  durationMin: 50,  module: 3 },
+  m3t06: { title: "Cardiology Consultation",        earningsNaira: earnNaira(55),  durationMin: 55,  module: 3 },
+  m3t07: { title: "ER Triage Documentation",        earningsNaira: earnNaira(45),  durationMin: 45,  module: 3 },
   // Module 4
-  m4t01: { title: "Full Conference Session A",      earningsUsd: earn(130), durationMin: 130, module: 4 },
-  m4t02: { title: "Town Hall Meeting — Full",       earningsUsd: earn(110), durationMin: 110, module: 4 },
-  m4t03: { title: "Full Conference Session B",      earningsUsd: earn(150), durationMin: 150, module: 4 },
-  m4t04: { title: "Documentary Interview — Full",   earningsUsd: earn(180), durationMin: 180, module: 4 },
-  m4t05: { title: "Oncology Team Meeting",          earningsUsd: earn(120), durationMin: 120, module: 4 },
-  m4t06: { title: "Neurology Grand Rounds",         earningsUsd: earn(140), durationMin: 140, module: 4 },
+  m4t01: { title: "Full Conference Session A",      earningsNaira: earnNaira(130), durationMin: 130, module: 4 },
+  m4t02: { title: "Town Hall Meeting — Full",       earningsNaira: earnNaira(110), durationMin: 110, module: 4 },
+  m4t03: { title: "Full Conference Session B",      earningsNaira: earnNaira(150), durationMin: 150, module: 4 },
+  m4t04: { title: "Documentary Interview — Full",   earningsNaira: earnNaira(180), durationMin: 180, module: 4 },
+  m4t05: { title: "Oncology Team Meeting",          earningsNaira: earnNaira(120), durationMin: 120, module: 4 },
+  m4t06: { title: "Neurology Grand Rounds",         earningsNaira: earnNaira(140), durationMin: 140, module: 4 },
 };
 
 const MODULE_LABELS: Record<number, string> = {
@@ -149,16 +153,16 @@ function EarningsPage() {
   const submitted = Object.entries(progress)
     .filter(([, v]) => v.status === "submitted" || v.status === "reviewed")
     .map(([id, v]) => {
-      const meta = ALL_TASKS[id] ?? { title: id, earningsUsd: 0, durationMin: 0, module: 1 as const };
+      const meta = ALL_TASKS[id] ?? { title: id, earningsNaira: 0, durationMin: 0, module: 1 as const };
       return { id, ...v, ...meta };
     });
 
   const reviewed     = submitted.filter((t) => t.status === "reviewed");
   const pendingReview = submitted.filter((t) => t.status === "submitted");
 
-  const totalEarned   = submitted.reduce((s, t) => s + t.earningsUsd, 0);
-  const reviewedEarned = reviewed.reduce((s, t) => s + t.earningsUsd, 0);
-  const pendingEarned  = pendingReview.reduce((s, t) => s + t.earningsUsd, 0);
+  const totalEarned   = submitted.reduce((s, t) => s + t.earningsNaira, 0);
+  const reviewedEarned = reviewed.reduce((s, t) => s + t.earningsNaira, 0);
+  const pendingEarned  = pendingReview.reduce((s, t) => s + t.earningsNaira, 0);
 
   const payDates = nextPaymentDates();
 
@@ -185,21 +189,20 @@ function EarningsPage() {
         {/* Summary cards */}
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-lime/30 bg-lime/10 p-5">
-            <DollarSign className="h-5 w-5 text-lime" />
             <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">Total earned</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">${totalEarned.toFixed(2)}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{formatNaira(totalEarned)}</p>
             <p className="mt-1 text-xs text-gray-400">{submitted.length} task{submitted.length !== 1 ? "s" : ""} submitted</p>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">Reviewed &amp; approved</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">${reviewedEarned.toFixed(2)}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{formatNaira(reviewedEarned)}</p>
             <p className="mt-1 text-xs text-gray-400">{reviewed.length} task{reviewed.length !== 1 ? "s" : ""} reviewed</p>
           </div>
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5">
             <Clock className="h-5 w-5 text-sky-600" />
             <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">Under review</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">${pendingEarned.toFixed(2)}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{formatNaira(pendingEarned)}</p>
             <p className="mt-1 text-xs text-gray-400">
               {pendingReview.length} task{pendingReview.length !== 1 ? "s" : ""} awaiting review
             </p>
@@ -243,8 +246,8 @@ function EarningsPage() {
               {byModule.map(({ mod, tasks }) => {
                 const modReviewed     = tasks.filter((t) => t.status === "reviewed");
                 const modPending      = tasks.filter((t) => t.status === "submitted");
-                const modTotal        = tasks.reduce((s, t) => s + t.earningsUsd, 0);
-                const modReviewedAmt  = modReviewed.reduce((s, t) => s + t.earningsUsd, 0);
+                const modTotal        = tasks.reduce((s, t) => s + t.earningsNaira, 0);
+                const modReviewedAmt  = modReviewed.reduce((s, t) => s + t.earningsNaira, 0);
                 const allComplete     = tasks.length === MODULE_TASK_COUNTS[mod];
                 const allReviewed     = modReviewed.length === tasks.length && tasks.length > 0;
 
@@ -271,7 +274,7 @@ function EarningsPage() {
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <p className="text-sm font-bold text-lime">${modTotal.toFixed(2)}</p>
+                         <p className="text-sm font-bold text-lime">{formatNaira(modTotal)}</p>
                         <div className="flex items-center gap-1.5 text-[11px]">
                           <CalendarDays className="h-3 w-3 text-gray-400" />
                           <span className={allReviewed ? "text-emerald-400" : "text-gray-400"}>
@@ -306,7 +309,7 @@ function EarningsPage() {
                             }`}>
                               {t.status === "reviewed" ? "Reviewed" : "Under review"}
                             </span>
-                            <span className="text-sm font-semibold text-lime">${t.earningsUsd.toFixed(2)}</span>
+                             <span className="text-sm font-semibold text-lime">{formatNaira(t.earningsNaira)}</span>
                           </div>
                         </div>
                       ))}
@@ -317,7 +320,7 @@ function EarningsPage() {
                       <div className="mt-2 rounded-lg bg-sky-50 border border-sky-100 px-3 py-2 flex items-center gap-2">
                         <Clock className="h-3.5 w-3.5 text-sky-500 shrink-0" />
                         <p className="text-xs text-sky-700">
-                          <span className="font-semibold">{modPending.length} task{modPending.length !== 1 ? "s" : ""}</span> under review — ${modPending.reduce((s, t) => s + t.earningsUsd, 0).toFixed(2)} held pending approval
+                           <span className="font-semibold">{modPending.length} task{modPending.length !== 1 ? "s" : ""}</span> under review — {formatNaira(modPending.reduce((s, t) => s + t.earningsNaira, 0))} held pending approval
                         </p>
                       </div>
                     )}
@@ -325,7 +328,7 @@ function EarningsPage() {
                       <div className="mt-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 flex items-center gap-2">
                         <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
                         <p className="text-xs text-emerald-700">
-                          All reviewed — <span className="font-semibold">${modReviewedAmt.toFixed(2)}</span> queued for payout on {payoutStr}
+                           All reviewed — <span className="font-semibold">{formatNaira(modReviewedAmt)}</span> queued for payout on {payoutStr}
                         </p>
                       </div>
                     )}
