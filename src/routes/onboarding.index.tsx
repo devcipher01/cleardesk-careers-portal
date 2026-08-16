@@ -300,7 +300,7 @@ function OnboardingPage() {
             <p className="mt-4 text-ink/65">
               Your first task will arrive in your inbox within 24 hours of completing this
               onboarding. It will come from{" "}
-              <strong>talent@worknesta.com</strong> — add this address to your contacts now so it
+              <strong>admin@worknesta.com</strong> — add this address to your contacts now so it
               does not go to spam.
             </p>
             <div className="mt-6 rounded-2xl border border-ink/10 bg-cream p-5 text-sm text-ink/75">
@@ -369,8 +369,8 @@ function InvalidLink() {
         <p className="mt-4 text-ink/65">Please check your email for the correct link.</p>
         <p className="mt-3 text-sm text-ink/55">
           Questions? Contact{" "}
-          <a className="underline hover:text-ink" href="mailto:talent@worknesta.com">
-            talent@worknesta.com
+          <a className="underline hover:text-ink" href="mailto:admin@worknesta.com">
+            admin@worknesta.com
           </a>
         </p>
       </div>

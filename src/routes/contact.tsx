@@ -12,7 +12,7 @@ export const Route = createFileRoute("/contact")({
       {
         name: "description",
         content:
-          "Get in touch with Worknesta. We respond to all inquiries within 1–2 business days. Email talent@worknesta.com.",
+          "Get in touch with Worknesta. We respond to all inquiries within 1–2 business days. Email admin@worknesta.com.",
       },
       { property: "og:title", content: "Contact Worknesta" },
       {
@@ -63,10 +63,10 @@ function ContactPage() {
               </span>
               <p className="mt-4 text-sm font-medium text-ink/60">Email us at</p>
               <a
-                href="mailto:talent@worknesta.com"
+                href="mailto:admin@worknesta.com"
                 className="mt-1 inline-flex items-center gap-1.5 font-serif text-2xl italic text-ink hover:underline"
               >
-                talent@worknesta.com
+                admin@worknesta.com
                 <ArrowUpRight className="h-4 w-4" />
               </a>
             </div>

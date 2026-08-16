@@ -32,7 +32,7 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "Build a freelance transcription career. 800+ contractors across North America and Western Europe earn weekly on Worknesta.",
+          "Build a freelance transcription career. 800+ contractors across Africa earn weekly on Worknesta.",
       },
     ],
   }),
@@ -43,7 +43,7 @@ const benefits = [
   { icon: Clock, color: "bg-lavender", title: "Flexible schedule", body: "Take on projects full-time, part-time, or at your own pace — you choose." },
   { icon: Wallet, color: "bg-mint", title: "Earnings paid weekly", body: "Reliable Friday payouts via Wise, Payoneer, or bank transfer." },
   { icon: GraduationCap, color: "bg-butter", title: "No experience needed", body: "Most entry-level projects only require attention to detail and clear English." },
-  { icon: Globe2, color: "bg-rose", title: "Focused contractor network", body: "Join contractors across the US, Canada, UK, and Western Europe." },
+  { icon: Globe2, color: "bg-rose", title: "Focused contractor network", body: "Join contractors across Africa." },
 ];
 
 const testimonials = [
@@ -94,7 +94,7 @@ function HomePage() {
             >
               <span className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-cream px-3 py-1 text-xs font-medium text-ink/70">
                 <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-                Now accepting contractors · NA & Western Europe
+                Now accepting contractors · Africa
               </span>
               <h1 className="mt-6 text-balance text-5xl font-medium leading-[1.02] text-ink md:text-7xl">
                 Work from anywhere.
@@ -105,7 +105,7 @@ function HomePage() {
               </h1>
               <p className="mt-6 max-w-xl text-base text-ink/65 md:text-lg">
                 We connect detail-oriented independent contractors with transcription projects
-                from enterprise clients across North America and Western Europe.
+                from enterprise clients across Africa.
               </p>
               <p className="mt-3 max-w-xl text-sm text-ink/55 md:text-base">
                 Worknesta is a freelance platform — contractors earn weekly by completing
@@ -162,7 +162,7 @@ function HomePage() {
             eyebrow="Why Worknesta"
             title="Real projects,"
             italicWord="real respect."
-            description="No gatekeepers, no fees, no fluff. A modern freelance platform built for independent contractors across North America and Western Europe."
+            description="No gatekeepers, no fees, no fluff. A modern freelance platform built for independent contractors across Africa."
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {benefits.map((b, i) => (

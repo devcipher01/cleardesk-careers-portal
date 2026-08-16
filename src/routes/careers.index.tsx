@@ -11,13 +11,13 @@ export const Route = createFileRoute("/careers/")({
       {
         name: "description",
         content:
-          "Browse open transcription projects for independent contractors across North America and Western Europe. Weekly earnings, fully remote.",
+          "Browse open transcription projects for independent contractors across Africa. Weekly earnings, fully remote.",
       },
       { property: "og:title", content: "Open Transcription Projects at Worknesta" },
       {
         property: "og:description",
         content:
-          "Transcription projects for independent contractors. Fully remote across the US, Canada, UK, and Western Europe. Weekly earnings.",
+          "Transcription projects for independent contractors. Fully remote across Africa. Weekly earnings.",
       },
     ],
   }),
@@ -39,15 +39,15 @@ function CareersIndexPage() {
           <div className="relative mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-cream px-3 py-1 text-xs font-medium text-ink/70">
               <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-              {openCount} open {openCount === 1 ? "project" : "projects"} · North America & Europe
+              {openCount} open {openCount === 1 ? "project" : "projects"} · Africa
             </span>
             <h1 className="mt-6 text-balance text-4xl font-medium leading-[1.05] text-ink md:text-6xl">
               Open transcription{" "}
               <span className="font-serif italic">projects.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-ink/65 md:text-lg">
-              Projects are open to independent contractors in North America and Western Europe. Worknesta is
-              headquartered in Wilmington, Delaware, USA.
+              Projects are open to independent contractors in Africa. Worknesta is headquartered in
+              Wilmington, Delaware, USA.
             </p>
           </div>
 
@@ -63,6 +63,10 @@ function CareersIndexPage() {
             </p>
             <Link
               to="/careers/apply"
+              onClick={(event) => {
+                event.preventDefault();
+                window.alert("Applications are currently by invitation only.");
+              }}
               className="mt-5 inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-ink-foreground transition hover:bg-lime hover:text-lime-foreground"
             >
               Submit General Application <ArrowUpRight className="h-4 w-4" />
@@ -114,7 +118,7 @@ function CareersIndexPage() {
                       </span>
                     ))}
                     <span className="inline-flex items-center gap-1 text-ink/50">
-                      <MapPin className="h-3 w-3" /> 🌎 Remote · North America & Europe
+                      <MapPin className="h-3 w-3" /> 🌎 Remote · Africa
                     </span>
                   </div>
 
@@ -176,6 +180,10 @@ function CareersIndexPage() {
                     <Link
                       to="/careers/apply"
                       search={{ role: job.slug }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        window.alert("Applications are currently by invitation only.");
+                      }}
                       className="inline-flex items-center justify-between gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-ink-foreground transition hover:bg-lime hover:text-lime-foreground"
                     >
                       Apply now
@@ -188,7 +196,7 @@ function CareersIndexPage() {
           </div>
 
           <p className="mt-12 text-center font-script text-xl text-ink/60">
-            ✦ no application fees · 100% remote · NA & Europe contractors
+            ✦ no application fees · 100% remote · Africa contractors
           </p>
         </div>
       </Section>

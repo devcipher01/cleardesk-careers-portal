@@ -29,7 +29,7 @@ function TermsPage() {
           <p className="mt-2 text-muted-foreground">
             Worknesta never charges applicants any fees. If you are contacted by anyone
             requesting payment to be considered for a role, it is not us. Report it to
-            talent@worknesta.com.
+            admin@worknesta.com.
           </p>
           <h3 className="mt-6 text-lg font-semibold text-navy">3. Application Accuracy</h3>
           <p className="mt-2 text-muted-foreground">

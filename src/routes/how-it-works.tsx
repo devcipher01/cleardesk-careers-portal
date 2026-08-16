@@ -52,7 +52,7 @@ const faqs = [
   },
   {
     q: "What countries do you accept contractors from?",
-    a: "We currently work with contractors from North America and Western Europe. Ideal candidates are based in the US, Canada, UK, or Western European countries with availability in EST, GMT, or CET timezones.",
+    a: "We currently work with contractors from Africa. Ideal candidates are based in African countries with availability in WAT, CAT, EAT, or GMT timezones.",
   },
   {
     q: "How and when do I receive my earnings?",
@@ -90,8 +90,7 @@ function HowItWorksPage() {
               <span className="font-serif italic">first earnings.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-ink/65 md:text-lg">
-              A clear, fast, fair process — built for independent contractors across North America and
-              Western Europe.
+              A clear, fast, fair process — built for independent contractors across Africa.
             </p>
           </div>
         </div>

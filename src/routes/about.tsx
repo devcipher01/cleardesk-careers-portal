@@ -9,13 +9,13 @@ export const Route = createFileRoute("/about")({
       {
         name: "description",
         content:
-          "Worknesta delivers precision data entry and transcription services for enterprise clients across the US and Europe.",
+          "Worknesta delivers precision data entry and transcription services for enterprise clients across Africa.",
       },
       { property: "og:title", content: "About Worknesta" },
       {
         property: "og:description",
         content:
-          "Founded in 2019, Worknesta is a remote-first data services company hiring detail-oriented professionals across North America and Western Europe.",
+          "Founded in 2019, Worknesta is a remote-first data services company hiring detail-oriented professionals across Africa.",
       },
     ],
   }),
@@ -25,21 +25,21 @@ export const Route = createFileRoute("/about")({
 const values = [
   { icon: ShieldCheck, color: "bg-mint", title: "Integrity", body: "Honest hiring, transparent pay, and zero application fees — ever." },
   { icon: Target, color: "bg-peach", title: "Accuracy", body: "Quality is our product. Every keystroke matters." },
-  { icon: Sparkles, color: "bg-lavender", title: "Flexibility", body: "Work the hours that fit your life, from anywhere in NA or Europe." },
+  { icon: Sparkles, color: "bg-lavender", title: "Flexibility", body: "Work the hours that fit your life, from anywhere in Africa." },
   { icon: TrendingUp, color: "bg-butter", title: "Growth", body: "Entry roles today, leadership opportunities tomorrow." },
 ];
 
 const countries = [
-  { flag: "🇺🇸", name: "United States" },
-  { flag: "🇨🇦", name: "Canada" },
-  { flag: "🇬🇧", name: "United Kingdom" },
-  { flag: "🇩🇪", name: "Germany" },
-  { flag: "🇫🇷", name: "France" },
-  { flag: "🇳🇱", name: "Netherlands" },
-  { flag: "🇵🇹", name: "Portugal" },
-  { flag: "🇮🇪", name: "Ireland" },
-  { flag: "🇦🇺", name: "Australia" },
-  { flag: "🇳🇿", name: "New Zealand" },
+  { flag: "🇳🇬", name: "Nigeria" },
+  { flag: "🇬🇭", name: "Ghana" },
+  { flag: "🇰🇪", name: "Kenya" },
+  { flag: "🇿🇦", name: "South Africa" },
+  { flag: "🇪🇬", name: "Egypt" },
+  { flag: "🇪🇹", name: "Ethiopia" },
+  { flag: "🇸🇳", name: "Senegal" },
+  { flag: "🇺🇬", name: "Uganda" },
+  { flag: "🇲🇦", name: "Morocco" },
+  { flag: "🇷🇼", name: "Rwanda" },
 ];
 
 const swatches = ["bg-lime/30", "bg-peach/30", "bg-lavender/30", "bg-mint/30", "bg-butter/40", "bg-rose/30"];
@@ -58,7 +58,7 @@ function AboutPage() {
               Who <span className="font-serif italic">we are.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-ink/65 md:text-lg">
-              Precision. Reliability. Remote. Building a focused NA & Europe team since 2019.
+              Precision. Reliability. Remote. Building a focused Africa team since 2019.
             </p>
           </div>
         </div>
@@ -81,7 +81,7 @@ function AboutPage() {
               <p>
                 Today, we partner with clients across legal, healthcare, research, and e-commerce
                 industries to deliver accurate, on-time data entry, transcription, and document
-                processing services. Our team is based across North America and Western Europe.
+                processing services. Our team is based across Africa.
               </p>
               <p>
                 We don't believe in gatekeepers, hidden fees, or rigid schedules. We believe in
@@ -116,7 +116,7 @@ function AboutPage() {
             eyebrow="Our reach"
             title="Where our team"
             italicWord="works from."
-            description="Worknesta team members are based across North America and Western Europe, supporting enterprise clients who require high accuracy, timezone-aligned remote professionals."
+            description="Worknesta team members are based across Africa, supporting enterprise clients who require high accuracy, timezone-aligned remote professionals."
           />
           <div className="mx-auto mt-12 grid max-w-3xl grid-cols-2 gap-3 md:grid-cols-5">
             {countries.map((c, i) => (
@@ -131,7 +131,7 @@ function AboutPage() {
           </div>
           <p className="mx-auto mt-8 max-w-2xl text-center text-sm text-ink/60">
             We prioritize candidates with strong written English, reliable high-speed internet,
-            and availability within EST, GMT, or CET timezones.
+            and availability within African time zones such as WAT, CAT, EAT, or GMT.
           </p>
         </div>
       </Section>
@@ -139,7 +139,7 @@ function AboutPage() {
       <section className="container-page pb-16">
         <p className="mx-auto max-w-2xl text-center text-sm text-ink/55">
           Worknesta is a registered company in Wilmington, Delaware, USA. Our operations
-          are fully remote and distributed across North America and Western Europe.
+          are fully remote and distributed across Africa.
         </p>
       </section>
     </>

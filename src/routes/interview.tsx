@@ -111,8 +111,8 @@ function InvalidLink() {
         </p>
         <p className="mt-3 text-sm text-ink/55">
           Questions? Contact{" "}
-          <a className="underline hover:text-ink" href="mailto:talent@worknesta.com">
-            talent@worknesta.com
+          <a className="underline hover:text-ink" href="mailto:admin@worknesta.com">
+            admin@worknesta.com
           </a>
         </p>
       </div>

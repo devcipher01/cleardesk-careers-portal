@@ -143,8 +143,8 @@ function InvalidLink() {
         </h1>
         <p className="mt-4 text-ink/65">
           Please check your email for the correct assessment link or contact us at{" "}
-          <a className="underline hover:text-ink" href="mailto:talent@worknesta.com">
-            talent@worknesta.com
+          <a className="underline hover:text-ink" href="mailto:admin@worknesta.com">
+            admin@worknesta.com
           </a>
           .
         </p>

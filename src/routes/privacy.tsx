@@ -36,7 +36,7 @@ function PrivacyPage() {
           <h3 className="mt-6 text-lg font-semibold text-navy">3. Data Retention</h3>
           <p className="mt-2 text-muted-foreground">
             Application data is retained for up to 24 months. You may request deletion at any time
-            by emailing talent@worknesta.com.
+            by emailing admin@worknesta.com.
           </p>
           <h3 className="mt-6 text-lg font-semibold text-navy">4. Cookies</h3>
           <p className="mt-2 text-muted-foreground">
@@ -46,11 +46,11 @@ function PrivacyPage() {
           <h3 className="mt-6 text-lg font-semibold text-navy">5. Your Rights</h3>
           <p className="mt-2 text-muted-foreground">
             Depending on your jurisdiction, you may have rights to access, correct, or delete your
-            personal data. Contact talent@worknesta.com to exercise any such rights.
+            personal data. Contact admin@worknesta.com to exercise any such rights.
           </p>
           <h3 className="mt-6 text-lg font-semibold text-navy">6. Contact</h3>
           <p className="mt-2 text-muted-foreground">
-            Questions about this policy? Email talent@worknesta.com.
+            Questions about this policy? Email admin@worknesta.com.
           </p>
         </article>
       </div>

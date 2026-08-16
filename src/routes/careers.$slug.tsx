@@ -84,7 +84,7 @@ function JobDetailPage() {
 
             <p className="mt-3 inline-flex items-center gap-1 text-sm text-ink/55">
               <MapPin className="h-3.5 w-3.5" />
-              Remote · North America & Western Europe
+              Remote · Africa
             </p>
 
             {job.pitch && (
@@ -112,6 +112,10 @@ function JobDetailPage() {
                 <Link
                   to="/careers/apply"
                   search={{ role: job.slug }}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    window.alert("Applications are currently by invitation only.");
+                  }}
                   className="inline-flex items-center gap-2 rounded-full bg-ink px-6 py-3 text-sm font-medium text-ink-foreground transition hover:bg-lime hover:text-lime-foreground"
                 >
                   Apply for this role
