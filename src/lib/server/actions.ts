@@ -7,6 +7,7 @@ import { renderEmailHtml, renderEmailText } from "./emailTemplates";
 import { sendOrQueueEmail, processScheduledEmails } from "./mailer";
 import { getJobBySlug } from "@/lib/jobs";
 import { COUNTRIES } from "@/lib/countries";
+import { NGN_PER_USD_TASK } from "@/lib/taskPricing";
 import { adminNotifyEmail, publicBaseUrl } from "./devMode";
 import {
   pipelineDevInbox,
@@ -1713,7 +1714,7 @@ export const adminGetStats = createServerFn({ method: "POST" })
       totalSubmitted: totalSubmitted ?? 0,
       underReview: underReview ?? 0,
       totalReviewed: totalReviewed ?? 0,
-      totalEarningsNaira: Math.round(totalEarningsUsd * 750),
+      totalEarningsNaira: Math.round(totalEarningsUsd * NGN_PER_USD_TASK),
     };
   });
 

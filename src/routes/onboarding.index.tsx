@@ -463,7 +463,7 @@ function buildTools({
     {
       id: "stipend",
       name: "Equipment stipend note",
-      desc: "After completing your first 30 days you will receive a $25 USD equipment stipend via Wise or Payoneer.",
+      desc: "After completing your first 30 days you will receive a ₦18,750 equipment stipend via Wise or Payoneer.",
     },
   ];
   const dataEntry = [

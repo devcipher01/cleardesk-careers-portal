@@ -33,7 +33,7 @@ export const JOBS: Job[] = [
     slug: "ai-content-transcription-validator",
     title: "Remote Transcription Specialist",
     types: ["Full-Time", "Part-Time", "Remote"],
-  pay: "Project-based rates",
+  pay: "Project-based Naira rates",
     description:
       "Review and correct AI-generated text, audio transcriptions, and data sheets for accuracy.",
     pitch:
@@ -64,7 +64,7 @@ export const JOBS: Job[] = [
       goodFit: [
         "You catch typos and awkward phrasing quickly",
         "You are patient with repetitive, detail-heavy work",
-        "You want flexible remote hours with weekly earnings",
+      "You want flexible remote work with weekly earnings",
         "You are comfortable learning new guidelines each week",
       ],
     },
@@ -73,7 +73,7 @@ export const JOBS: Job[] = [
     slug: "medical-transcriptionist",
     title: "Medical Transcriptionist",
     types: ["Full-Time", "Remote"],
-  pay: "Project-based rates",
+  pay: "Project-based Naira rates",
     description:
       "Transcribing medical dictations and clinical notes with strict accuracy and confidentiality.",
     requirements: [

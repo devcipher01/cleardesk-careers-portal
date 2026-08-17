@@ -16,6 +16,7 @@ import {
   adminGetContractorBreakdown,
 } from "@/lib/server/actions";
 import { motion, AnimatePresence } from "framer-motion";
+import { formatNaira, NGN_PER_USD_TASK } from "@/lib/taskPricing";
 import {
   Activity,
   ArrowUpRight,
@@ -76,10 +77,6 @@ interface ContractorRow {
   submitted: number;
   reviewed: number;
   earnings: number;
-}
-
-function formatNaira(amount: number) {
-  return `₦${amount.toLocaleString("en-NG")}`;
 }
 
 const SETUP_SQL = `-- Run this in your Supabase SQL editor
@@ -800,7 +797,7 @@ function AdminPage() {
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="text-xs text-ink/60">{c.submitted} pending · {c.reviewed} reviewed</p>
-                    {c.earnings > 0 && <p className="text-xs font-semibold text-lime">{formatNaira(c.earnings * 750)}</p>}
+                    {c.earnings > 0 && <p className="text-xs font-semibold text-lime">{formatNaira(c.earnings * NGN_PER_USD_TASK)}</p>}
                   </div>
                 </div>
               ))}
@@ -1137,7 +1134,7 @@ function AdminPage() {
                         {c.reviewed}
                       </div>
                       <div className={`font-semibold ${c.earnings > 0 ? "text-lime" : "text-ink/40"}`}>
-                        {c.earnings > 0 ? formatNaira(c.earnings * 750) : "—"}
+                        {c.earnings > 0 ? formatNaira(c.earnings * NGN_PER_USD_TASK) : "—"}
                       </div>
                     </div>
                   ))}

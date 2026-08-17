@@ -203,7 +203,7 @@ function buildHiredEmail(opts: {
     intro: `Hi ${firstName(opts.name)},`,
     paragraphs: [
       `Your Skills Profile Review for the ${opts.roleTitle} role is complete.`,
-      "You are cleared to begin contractor onboarding. Review your agreement, confirm the $24.50/hr USD rate, and finish workspace setup before your first production tasks.",
+      "You are cleared to begin contractor onboarding. Review your agreement, confirm the project payment in your agreement, and finish workspace setup before your first production tasks.",
       "Use the secure link below to open your contractor workspace. Save this message — it contains your personal setup link.",
     ],
     ctaLabel: "Open contractor workspace",

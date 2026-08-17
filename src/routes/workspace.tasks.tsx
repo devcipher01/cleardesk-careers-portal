@@ -26,6 +26,7 @@ import {
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, verifyCertPath } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
+import { formatNaira, NGN_PER_USD_TASK, TASK_PRICES_NAIRA } from "@/lib/taskPricing";
 
 // ─── Auto-construct audio URL from Supabase public bucket ─────────────────────
 // Upload files to Supabase Storage bucket "task-audio" named exactly as the
@@ -44,16 +45,6 @@ export const Route = createFileRoute("/workspace/tasks")({
 });
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
-const USD_TO_NGN = 1500;
-const TASK_PAYOUT_FACTOR = 0.5;
-const NGN_PER_USD_TASK = USD_TO_NGN * TASK_PAYOUT_FACTOR;
-function priceFromUsd(usd: number) {
-  return Math.round(usd * NGN_PER_USD_TASK);
-}
-function formatNaira(amount: number) {
-  return `₦${amount.toLocaleString("en-NG")}`;
-}
-
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type TaskCategory = "general" | "medical";
 type TaskStatus = "locked" | "available" | "in_progress" | "submitted" | "reviewed";
@@ -111,14 +102,14 @@ const MODULES: ModuleDef[] = [
 // Durations stored as decimal minutes so fmtDuration renders exact MM:SS.
 const TASKS: TaskDef[] = [
   // Tasks 1–2 — Same event header: Sales & Marketing Machine Summit
-  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Sales & Marketing Machine Summit — Part 1", description: "Opening keynote panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",       earningsNaira: priceFromUsd(12) },
-  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Sales & Marketing Machine Summit — Part 2", description: "Breakout session on demand generation strategy and conversion rate optimisation. Single speaker; transcribe verbatim, preserving all hesitations and self-corrections.",                     earningsNaira: priceFromUsd(12) },
+  { id: "m1t01", num: 1, module: 1, category: "general", durationMin: 474 / 60, title: "Sales & Marketing Machine Summit — Part 1", description: "Opening keynote panel on building scalable revenue pipelines and automated marketing funnels. Multiple speakers — label each as Speaker A, B, etc. Flag crosstalk with [crosstalk].",       earningsNaira: TASK_PRICES_NAIRA.m1t01 },
+  { id: "m1t02", num: 2, module: 1, category: "general", durationMin: 443 / 60, title: "Sales & Marketing Machine Summit — Part 2", description: "Breakout session on demand generation strategy and conversion rate optimisation. Single speaker; transcribe verbatim, preserving all hesitations and self-corrections.",                     earningsNaira: TASK_PRICES_NAIRA.m1t02 },
   // Tasks 3–4 — Same event header: Business Transformation Summit
-  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Business Transformation Summit — Part 1",   description: "Opening panel on leading workforce restructuring and organisational change. Three speakers — label clearly and flag any overlapping dialogue with [crosstalk].",                                  earningsNaira: priceFromUsd(15) },
-  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Business Transformation Summit — Part 2",   description: "Executive roundtable on adaptive strategy and agile enterprise restructuring. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                             earningsNaira: priceFromUsd(15) },
+  { id: "m1t03", num: 3, module: 1, category: "general", durationMin: 546 / 60, title: "Business Transformation Summit — Part 1",   description: "Opening panel on leading workforce restructuring and organisational change. Three speakers — label clearly and flag any overlapping dialogue with [crosstalk].",                                  earningsNaira: TASK_PRICES_NAIRA.m1t03 },
+  { id: "m1t04", num: 4, module: 1, category: "general", durationMin: 488 / 60, title: "Business Transformation Summit — Part 2",   description: "Executive roundtable on adaptive strategy and agile enterprise restructuring. Transcribe verbatim, preserving speaker tone; note emphasis where clearly audible.",                             earningsNaira: TASK_PRICES_NAIRA.m1t04 },
   // Tasks 5–6 — Same medical header (cert gate fires only at task 5; once verified, task 6 unlocks automatically)
-  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients — Part 1", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsNaira: priceFromUsd(25) },
-  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Adverse Drug Reactions in Female Patients — Part 2", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effect profiles. Exact transcription of all clinical terminology required; flag unclear terms with [?term].", earningsNaira: priceFromUsd(25) },
+  { id: "m1t05", num: 5, module: 1, category: "medical", durationMin: 476 / 60, title: "Adverse Drug Reactions in Female Patients — Part 1", description: "Clinical review of documented adverse reactions to common medications in female patients. Transcribe all drug names and reaction terms verbatim — flag unclear dosage figures with [?].",    earningsNaira: TASK_PRICES_NAIRA.m1t05 },
+  { id: "m1t06", num: 6, module: 1, category: "medical", durationMin: 489 / 60, title: "Adverse Drug Reactions in Female Patients — Part 2", description: "Pharmacologist-led discussion of hormonal drug interactions and gender-specific side effect profiles. Exact transcription of all clinical terminology required; flag unclear terms with [?term].", earningsNaira: TASK_PRICES_NAIRA.m1t06 },
 ];
 
 // Cert gate fires only at task 5 — once verified, certVerified=true so task 6 opens without a second prompt

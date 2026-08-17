@@ -9,108 +9,43 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorkspaceRouteImport } from './routes/workspace'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as SignoutRouteImport } from './routes/signout'
-import { Route as SigninRouteImport } from './routes/signin'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as OfferRouteImport } from './routes/offer'
-import { Route as InterviewRouteImport } from './routes/interview'
-import { Route as HowItWorksRouteImport } from './routes/how-it-works'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as CareersRouteImport } from './routes/careers'
-import { Route as AssessmentRouteImport } from './routes/assessment'
-import { Route as ApplyRouteImport } from './routes/apply'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
-import { Route as OnboardingIndexRouteImport } from './routes/onboarding.index'
-import { Route as CareersIndexRouteImport } from './routes/careers.index'
-import { Route as WorkspaceTasksRouteImport } from './routes/workspace.tasks'
-import { Route as WorkspaceSupportRouteImport } from './routes/workspace.support'
-import { Route as WorkspaceSigninRouteImport } from './routes/workspace.signin'
-import { Route as WorkspaceSettingsRouteImport } from './routes/workspace.settings'
-import { Route as WorkspaceEarningsRouteImport } from './routes/workspace.earnings'
-import { Route as OnboardingWorkspaceSetupRouteImport } from './routes/onboarding.workspace-setup'
-import { Route as DevPipelineRouteImport } from './routes/dev.pipeline'
-import { Route as CareersAssessmentRouteImport } from './routes/careers.assessment'
-import { Route as CareersApplyRouteImport } from './routes/careers.apply'
-import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
+import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ApplyRouteImport } from './routes/apply'
+import { Route as AssessmentRouteImport } from './routes/assessment'
+import { Route as CareersRouteImport } from './routes/careers'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as HowItWorksRouteImport } from './routes/how-it-works'
+import { Route as InterviewRouteImport } from './routes/interview'
+import { Route as OfferRouteImport } from './routes/offer'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as SigninRouteImport } from './routes/signin'
+import { Route as SignoutRouteImport } from './routes/signout'
+import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
-import { Route as ApiCronEmailsRouteImport } from './routes/api/cron.emails'
-import { Route as ApiAuthVerifyRouteImport } from './routes/api/auth.verify'
+import { Route as CareersIndexRouteImport } from './routes/careers.index'
+import { Route as CareersSlugRouteImport } from './routes/careers.$slug'
+import { Route as CareersApplyRouteImport } from './routes/careers.apply'
+import { Route as CareersAssessmentRouteImport } from './routes/careers.assessment'
+import { Route as DevPipelineRouteImport } from './routes/dev.pipeline'
+import { Route as OnboardingIndexRouteImport } from './routes/onboarding.index'
+import { Route as OnboardingWorkspaceSetupRouteImport } from './routes/onboarding.workspace-setup'
+import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
+import { Route as WorkspaceEarningsRouteImport } from './routes/workspace.earnings'
+import { Route as WorkspaceSettingsRouteImport } from './routes/workspace.settings'
+import { Route as WorkspaceSigninRouteImport } from './routes/workspace.signin'
+import { Route as WorkspaceSupportRouteImport } from './routes/workspace.support'
+import { Route as WorkspaceTasksRouteImport } from './routes/workspace.tasks'
 import { Route as ApiAuthSignoutRouteImport } from './routes/api/auth.signout'
+import { Route as ApiAuthVerifyRouteImport } from './routes/api/auth.verify'
+import { Route as ApiCronEmailsRouteImport } from './routes/api/cron.emails'
 
-const WorkspaceRoute = WorkspaceRouteImport.update({
-  id: '/workspace',
-  path: '/workspace',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SignoutRoute = SignoutRouteImport.update({
-  id: '/signout',
-  path: '/signout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SigninRoute = SigninRouteImport.update({
-  id: '/signin',
-  path: '/signin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OfferRoute = OfferRouteImport.update({
-  id: '/offer',
-  path: '/offer',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InterviewRoute = InterviewRouteImport.update({
-  id: '/interview',
-  path: '/interview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HowItWorksRoute = HowItWorksRouteImport.update({
-  id: '/how-it-works',
-  path: '/how-it-works',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CareersRoute = CareersRouteImport.update({
-  id: '/careers',
-  path: '/careers',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AssessmentRoute = AssessmentRouteImport.update({
-  id: '/assessment',
-  path: '/assessment',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApplyRoute = ApplyRouteImport.update({
-  id: '/apply',
-  path: '/apply',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -118,70 +53,84 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => WorkspaceRoute,
+const ApplyRoute = ApplyRouteImport.update({
+  id: '/apply',
+  path: '/apply',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => OnboardingRoute,
+const AssessmentRoute = AssessmentRouteImport.update({
+  id: '/assessment',
+  path: '/assessment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CareersRoute = CareersRouteImport.update({
+  id: '/careers',
+  path: '/careers',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HowItWorksRoute = HowItWorksRouteImport.update({
+  id: '/how-it-works',
+  path: '/how-it-works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InterviewRoute = InterviewRouteImport.update({
+  id: '/interview',
+  path: '/interview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OfferRoute = OfferRouteImport.update({
+  id: '/offer',
+  path: '/offer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SigninRoute = SigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignoutRoute = SignoutRouteImport.update({
+  id: '/signout',
+  path: '/signout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthCallbackRoute = AuthCallbackRouteImport.update({
+  id: '/auth/callback',
+  path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CareersIndexRoute = CareersIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => CareersRoute,
-} as any)
-const WorkspaceTasksRoute = WorkspaceTasksRouteImport.update({
-  id: '/tasks',
-  path: '/tasks',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceSupportRoute = WorkspaceSupportRouteImport.update({
-  id: '/support',
-  path: '/support',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceSigninRoute = WorkspaceSigninRouteImport.update({
-  id: '/signin',
-  path: '/signin',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceSettingsRoute = WorkspaceSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceEarningsRoute = WorkspaceEarningsRouteImport.update({
-  id: '/earnings',
-  path: '/earnings',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const OnboardingWorkspaceSetupRoute =
-  OnboardingWorkspaceSetupRouteImport.update({
-    id: '/workspace-setup',
-    path: '/workspace-setup',
-    getParentRoute: () => OnboardingRoute,
-  } as any)
-const DevPipelineRoute = DevPipelineRouteImport.update({
-  id: '/dev/pipeline',
-  path: '/dev/pipeline',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CareersAssessmentRoute = CareersAssessmentRouteImport.update({
-  id: '/assessment',
-  path: '/assessment',
-  getParentRoute: () => CareersRoute,
-} as any)
-const CareersApplyRoute = CareersApplyRouteImport.update({
-  id: '/apply',
-  path: '/apply',
   getParentRoute: () => CareersRoute,
 } as any)
 const CareersSlugRoute = CareersSlugRouteImport.update({
@@ -189,14 +138,65 @@ const CareersSlugRoute = CareersSlugRouteImport.update({
   path: '/$slug',
   getParentRoute: () => CareersRoute,
 } as any)
-const AuthCallbackRoute = AuthCallbackRouteImport.update({
-  id: '/auth/callback',
-  path: '/auth/callback',
+const CareersApplyRoute = CareersApplyRouteImport.update({
+  id: '/apply',
+  path: '/apply',
+  getParentRoute: () => CareersRoute,
+} as any)
+const CareersAssessmentRoute = CareersAssessmentRouteImport.update({
+  id: '/assessment',
+  path: '/assessment',
+  getParentRoute: () => CareersRoute,
+} as any)
+const DevPipelineRoute = DevPipelineRouteImport.update({
+  id: '/dev/pipeline',
+  path: '/dev/pipeline',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiCronEmailsRoute = ApiCronEmailsRouteImport.update({
-  id: '/api/cron/emails',
-  path: '/api/cron/emails',
+const OnboardingIndexRoute = OnboardingIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => OnboardingRoute,
+} as any)
+const OnboardingWorkspaceSetupRoute =
+  OnboardingWorkspaceSetupRouteImport.update({
+    id: '/workspace-setup',
+    path: '/workspace-setup',
+    getParentRoute: () => OnboardingRoute,
+  } as any)
+const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceEarningsRoute = WorkspaceEarningsRouteImport.update({
+  id: '/earnings',
+  path: '/earnings',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceSettingsRoute = WorkspaceSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceSigninRoute = WorkspaceSigninRouteImport.update({
+  id: '/signin',
+  path: '/signin',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceSupportRoute = WorkspaceSupportRouteImport.update({
+  id: '/support',
+  path: '/support',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceTasksRoute = WorkspaceTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const ApiAuthSignoutRoute = ApiAuthSignoutRouteImport.update({
+  id: '/api/auth/signout',
+  path: '/api/auth/signout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthVerifyRoute = ApiAuthVerifyRouteImport.update({
@@ -204,9 +204,9 @@ const ApiAuthVerifyRoute = ApiAuthVerifyRouteImport.update({
   path: '/api/auth/verify',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAuthSignoutRoute = ApiAuthSignoutRouteImport.update({
-  id: '/api/auth/signout',
-  path: '/api/auth/signout',
+const ApiCronEmailsRoute = ApiCronEmailsRouteImport.update({
+  id: '/api/cron/emails',
+  path: '/api/cron/emails',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -444,102 +444,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/workspace': {
-      id: '/workspace'
-      path: '/workspace'
-      fullPath: '/workspace'
-      preLoaderRoute: typeof WorkspaceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signout': {
-      id: '/signout'
-      path: '/signout'
-      fullPath: '/signout'
-      preLoaderRoute: typeof SignoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/signin': {
-      id: '/signin'
-      path: '/signin'
-      fullPath: '/signin'
-      preLoaderRoute: typeof SigninRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/offer': {
-      id: '/offer'
-      path: '/offer'
-      fullPath: '/offer'
-      preLoaderRoute: typeof OfferRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/interview': {
-      id: '/interview'
-      path: '/interview'
-      fullPath: '/interview'
-      preLoaderRoute: typeof InterviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/how-it-works': {
-      id: '/how-it-works'
-      path: '/how-it-works'
-      fullPath: '/how-it-works'
-      preLoaderRoute: typeof HowItWorksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/careers': {
-      id: '/careers'
-      path: '/careers'
-      fullPath: '/careers'
-      preLoaderRoute: typeof CareersRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/assessment': {
-      id: '/assessment'
-      path: '/assessment'
-      fullPath: '/assessment'
-      preLoaderRoute: typeof AssessmentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/apply': {
-      id: '/apply'
-      path: '/apply'
-      fullPath: '/apply'
-      preLoaderRoute: typeof ApplyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -549,95 +458,116 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/workspace/': {
-      id: '/workspace/'
-      path: '/'
-      fullPath: '/workspace/'
-      preLoaderRoute: typeof WorkspaceIndexRouteImport
-      parentRoute: typeof WorkspaceRoute
+    '/apply': {
+      id: '/apply'
+      path: '/apply'
+      fullPath: '/apply'
+      preLoaderRoute: typeof ApplyRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/onboarding/': {
-      id: '/onboarding/'
-      path: '/'
-      fullPath: '/onboarding/'
-      preLoaderRoute: typeof OnboardingIndexRouteImport
-      parentRoute: typeof OnboardingRoute
+    '/assessment': {
+      id: '/assessment'
+      path: '/assessment'
+      fullPath: '/assessment'
+      preLoaderRoute: typeof AssessmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/careers': {
+      id: '/careers'
+      path: '/careers'
+      fullPath: '/careers'
+      preLoaderRoute: typeof CareersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/how-it-works': {
+      id: '/how-it-works'
+      path: '/how-it-works'
+      fullPath: '/how-it-works'
+      preLoaderRoute: typeof HowItWorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/interview': {
+      id: '/interview'
+      path: '/interview'
+      fullPath: '/interview'
+      preLoaderRoute: typeof InterviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/offer': {
+      id: '/offer'
+      path: '/offer'
+      fullPath: '/offer'
+      preLoaderRoute: typeof OfferRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signin': {
+      id: '/signin'
+      path: '/signin'
+      fullPath: '/signin'
+      preLoaderRoute: typeof SigninRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signout': {
+      id: '/signout'
+      path: '/signout'
+      fullPath: '/signout'
+      preLoaderRoute: typeof SignoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspace': {
+      id: '/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/callback': {
+      id: '/auth/callback'
+      path: '/auth/callback'
+      fullPath: '/auth/callback'
+      preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/careers/': {
       id: '/careers/'
       path: '/'
       fullPath: '/careers/'
       preLoaderRoute: typeof CareersIndexRouteImport
-      parentRoute: typeof CareersRoute
-    }
-    '/workspace/tasks': {
-      id: '/workspace/tasks'
-      path: '/tasks'
-      fullPath: '/workspace/tasks'
-      preLoaderRoute: typeof WorkspaceTasksRouteImport
-      parentRoute: typeof WorkspaceRoute
-    }
-    '/workspace/support': {
-      id: '/workspace/support'
-      path: '/support'
-      fullPath: '/workspace/support'
-      preLoaderRoute: typeof WorkspaceSupportRouteImport
-      parentRoute: typeof WorkspaceRoute
-    }
-    '/workspace/signin': {
-      id: '/workspace/signin'
-      path: '/signin'
-      fullPath: '/workspace/signin'
-      preLoaderRoute: typeof WorkspaceSigninRouteImport
-      parentRoute: typeof WorkspaceRoute
-    }
-    '/workspace/settings': {
-      id: '/workspace/settings'
-      path: '/settings'
-      fullPath: '/workspace/settings'
-      preLoaderRoute: typeof WorkspaceSettingsRouteImport
-      parentRoute: typeof WorkspaceRoute
-    }
-    '/workspace/earnings': {
-      id: '/workspace/earnings'
-      path: '/earnings'
-      fullPath: '/workspace/earnings'
-      preLoaderRoute: typeof WorkspaceEarningsRouteImport
-      parentRoute: typeof WorkspaceRoute
-    }
-    '/onboarding/workspace-setup': {
-      id: '/onboarding/workspace-setup'
-      path: '/workspace-setup'
-      fullPath: '/onboarding/workspace-setup'
-      preLoaderRoute: typeof OnboardingWorkspaceSetupRouteImport
-      parentRoute: typeof OnboardingRoute
-    }
-    '/dev/pipeline': {
-      id: '/dev/pipeline'
-      path: '/dev/pipeline'
-      fullPath: '/dev/pipeline'
-      preLoaderRoute: typeof DevPipelineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/careers/assessment': {
-      id: '/careers/assessment'
-      path: '/assessment'
-      fullPath: '/careers/assessment'
-      preLoaderRoute: typeof CareersAssessmentRouteImport
-      parentRoute: typeof CareersRoute
-    }
-    '/careers/apply': {
-      id: '/careers/apply'
-      path: '/apply'
-      fullPath: '/careers/apply'
-      preLoaderRoute: typeof CareersApplyRouteImport
       parentRoute: typeof CareersRoute
     }
     '/careers/$slug': {
@@ -647,18 +577,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CareersSlugRouteImport
       parentRoute: typeof CareersRoute
     }
-    '/auth/callback': {
-      id: '/auth/callback'
-      path: '/auth/callback'
-      fullPath: '/auth/callback'
-      preLoaderRoute: typeof AuthCallbackRouteImport
+    '/careers/apply': {
+      id: '/careers/apply'
+      path: '/apply'
+      fullPath: '/careers/apply'
+      preLoaderRoute: typeof CareersApplyRouteImport
+      parentRoute: typeof CareersRoute
+    }
+    '/careers/assessment': {
+      id: '/careers/assessment'
+      path: '/assessment'
+      fullPath: '/careers/assessment'
+      preLoaderRoute: typeof CareersAssessmentRouteImport
+      parentRoute: typeof CareersRoute
+    }
+    '/dev/pipeline': {
+      id: '/dev/pipeline'
+      path: '/dev/pipeline'
+      fullPath: '/dev/pipeline'
+      preLoaderRoute: typeof DevPipelineRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/cron/emails': {
-      id: '/api/cron/emails'
-      path: '/api/cron/emails'
-      fullPath: '/api/cron/emails'
-      preLoaderRoute: typeof ApiCronEmailsRouteImport
+    '/onboarding/': {
+      id: '/onboarding/'
+      path: '/'
+      fullPath: '/onboarding/'
+      preLoaderRoute: typeof OnboardingIndexRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
+    '/onboarding/workspace-setup': {
+      id: '/onboarding/workspace-setup'
+      path: '/workspace-setup'
+      fullPath: '/onboarding/workspace-setup'
+      preLoaderRoute: typeof OnboardingWorkspaceSetupRouteImport
+      parentRoute: typeof OnboardingRoute
+    }
+    '/workspace/': {
+      id: '/workspace/'
+      path: '/'
+      fullPath: '/workspace/'
+      preLoaderRoute: typeof WorkspaceIndexRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/earnings': {
+      id: '/workspace/earnings'
+      path: '/earnings'
+      fullPath: '/workspace/earnings'
+      preLoaderRoute: typeof WorkspaceEarningsRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/settings': {
+      id: '/workspace/settings'
+      path: '/settings'
+      fullPath: '/workspace/settings'
+      preLoaderRoute: typeof WorkspaceSettingsRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/signin': {
+      id: '/workspace/signin'
+      path: '/signin'
+      fullPath: '/workspace/signin'
+      preLoaderRoute: typeof WorkspaceSigninRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/support': {
+      id: '/workspace/support'
+      path: '/support'
+      fullPath: '/workspace/support'
+      preLoaderRoute: typeof WorkspaceSupportRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/tasks': {
+      id: '/workspace/tasks'
+      path: '/tasks'
+      fullPath: '/workspace/tasks'
+      preLoaderRoute: typeof WorkspaceTasksRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/api/auth/signout': {
+      id: '/api/auth/signout'
+      path: '/api/auth/signout'
+      fullPath: '/api/auth/signout'
+      preLoaderRoute: typeof ApiAuthSignoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/verify': {
@@ -668,11 +668,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/auth/signout': {
-      id: '/api/auth/signout'
-      path: '/api/auth/signout'
-      fullPath: '/api/auth/signout'
-      preLoaderRoute: typeof ApiAuthSignoutRouteImport
+    '/api/cron/emails': {
+      id: '/api/cron/emails'
+      path: '/api/cron/emails'
+      fullPath: '/api/cron/emails'
+      preLoaderRoute: typeof ApiCronEmailsRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
