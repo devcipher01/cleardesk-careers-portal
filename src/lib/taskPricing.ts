@@ -9,6 +9,8 @@ export const USD_TO_NGN = 1500;
 export const TASK_PAYOUT_FACTOR = 0.5;
 export const NGN_PER_USD_TASK = USD_TO_NGN * TASK_PAYOUT_FACTOR;
 
+export const PRICE_FACTOR = 0.85;
+
 export function nairaFromUsd(usd: number) {
   return Math.round(usd * NGN_PER_USD_TASK);
 }
@@ -22,10 +24,10 @@ export function formatNaira(amount: number) {
 }
 
 export const TASK_PRICES_NAIRA = {
-  m1t01: nairaFromUsd(12),
-  m1t02: nairaFromUsd(12),
-  m1t03: nairaFromUsd(15),
-  m1t04: nairaFromUsd(15),
-  m1t05: nairaFromUsd(25),
-  m1t06: nairaFromUsd(25),
+  m1t01: nairaFromUsd(12 * PRICE_FACTOR),
+  m1t02: nairaFromUsd(12 * PRICE_FACTOR),
+  m1t03: nairaFromUsd(15 * PRICE_FACTOR),
+  m1t04: nairaFromUsd(15 * PRICE_FACTOR),
+  m1t05: nairaFromUsd(25 * PRICE_FACTOR),
+  m1t06: nairaFromUsd(25 * PRICE_FACTOR),
 } as const;

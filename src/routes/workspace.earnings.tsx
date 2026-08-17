@@ -12,7 +12,7 @@ import {
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
-import { formatNaira, nairaFromUsd, TASK_PRICES_NAIRA } from "@/lib/taskPricing";
+import { formatNaira, nairaFromUsd, TASK_PRICES_NAIRA, PRICE_FACTOR } from "@/lib/taskPricing";
 
 export const Route = createFileRoute("/workspace/earnings")({
   head: () => ({ meta: [{ title: "Earnings — Worknesta Workspace" }] }),
@@ -28,33 +28,33 @@ const ALL_TASKS: Record<string, { title: string; earningsNaira: number; duration
   m1t04: { title: "Sales Call Excerpt",             earningsNaira: TASK_PRICES_NAIRA.m1t04, durationMin: 12,  module: 1 },
   m1t05: { title: "HR Policy Briefing",             earningsNaira: TASK_PRICES_NAIRA.m1t05, durationMin: 25,  module: 1 },
   m1t06: { title: "Customer Support Call",          earningsNaira: TASK_PRICES_NAIRA.m1t06, durationMin: 16,  module: 1 },
-  m1t07: { title: "Webinar Segment — Q&A Block",   earningsNaira: nairaFromUsd(28),  durationMin: 28,  module: 1 },
-  m1t08: { title: "Medical Consultation Notes",     earningsNaira: nairaFromUsd(20),  durationMin: 20,  module: 1 },
-  m1t09: { title: "Patient Intake Interview",       earningsNaira: nairaFromUsd(28),  durationMin: 28,  module: 1 },
-  m1t10: { title: "Radiology Report Dictation",     earningsNaira: nairaFromUsd(15),  durationMin: 15,  module: 1 },
+  m1t07: { title: "Webinar Segment — Q&A Block",   earningsNaira: nairaFromUsd(28 * PRICE_FACTOR),  durationMin: 28,  module: 1 },
+  m1t08: { title: "Medical Consultation Notes",     earningsNaira: nairaFromUsd(20 * PRICE_FACTOR),  durationMin: 20,  module: 1 },
+  m1t09: { title: "Patient Intake Interview",       earningsNaira: nairaFromUsd(28 * PRICE_FACTOR),  durationMin: 28,  module: 1 },
+  m1t10: { title: "Radiology Report Dictation",     earningsNaira: nairaFromUsd(15 * PRICE_FACTOR),  durationMin: 15,  module: 1 },
   // Module 2
-  m2t01: { title: "Executive Panel Q&A",            earningsNaira: nairaFromUsd(30),  durationMin: 30,  module: 2 },
-  m2t02: { title: "Training Workshop Recording",    earningsNaira: nairaFromUsd(45),  durationMin: 45,  module: 2 },
-  m2t03: { title: "Investor Pitch Presentation",    earningsNaira: nairaFromUsd(35),  durationMin: 35,  module: 2 },
-  m2t04: { title: "Podcast Interview Segment",      earningsNaira: nairaFromUsd(40),  durationMin: 40,  module: 2 },
-  m2t05: { title: "Performance Review Meeting",     earningsNaira: nairaFromUsd(28),  durationMin: 28,  module: 2 },
-  m2t06: { title: "Clinical Case Discussion",       earningsNaira: nairaFromUsd(35),  durationMin: 35,  module: 2 },
-  m2t07: { title: "Surgical Prep Briefing",         earningsNaira: nairaFromUsd(40),  durationMin: 40,  module: 2 },
+  m2t01: { title: "Executive Panel Q&A",            earningsNaira: nairaFromUsd(30 * PRICE_FACTOR),  durationMin: 30,  module: 2 },
+  m2t02: { title: "Training Workshop Recording",    earningsNaira: nairaFromUsd(45 * PRICE_FACTOR),  durationMin: 45,  module: 2 },
+  m2t03: { title: "Investor Pitch Presentation",    earningsNaira: nairaFromUsd(35 * PRICE_FACTOR),  durationMin: 35,  module: 2 },
+  m2t04: { title: "Podcast Interview Segment",      earningsNaira: nairaFromUsd(40 * PRICE_FACTOR),  durationMin: 40,  module: 2 },
+  m2t05: { title: "Performance Review Meeting",     earningsNaira: nairaFromUsd(28 * PRICE_FACTOR),  durationMin: 28,  module: 2 },
+  m2t06: { title: "Clinical Case Discussion",       earningsNaira: nairaFromUsd(35 * PRICE_FACTOR),  durationMin: 35,  module: 2 },
+  m2t07: { title: "Surgical Prep Briefing",         earningsNaira: nairaFromUsd(40 * PRICE_FACTOR),  durationMin: 40,  module: 2 },
   // Module 3
-  m3t01: { title: "Legal Deposition Excerpt",       earningsNaira: nairaFromUsd(55),  durationMin: 55,  module: 3 },
-  m3t02: { title: "Academic Conference Talk",        earningsNaira: nairaFromUsd(60),  durationMin: 60,  module: 3 },
-  m3t03: { title: "Documentary Interview Segment",  earningsNaira: nairaFromUsd(50),  durationMin: 50,  module: 3 },
-  m3t04: { title: "Technical Seminar Recording",    earningsNaira: nairaFromUsd(65),  durationMin: 65,  module: 3 },
-  m3t05: { title: "Psychiatric Evaluation Notes",   earningsNaira: nairaFromUsd(50),  durationMin: 50,  module: 3 },
-  m3t06: { title: "Cardiology Consultation",        earningsNaira: nairaFromUsd(55),  durationMin: 55,  module: 3 },
-  m3t07: { title: "ER Triage Documentation",        earningsNaira: nairaFromUsd(45),  durationMin: 45,  module: 3 },
+  m3t01: { title: "Legal Deposition Excerpt",       earningsNaira: nairaFromUsd(55 * PRICE_FACTOR),  durationMin: 55,  module: 3 },
+  m3t02: { title: "Academic Conference Talk",        earningsNaira: nairaFromUsd(60 * PRICE_FACTOR),  durationMin: 60,  module: 3 },
+  m3t03: { title: "Documentary Interview Segment",  earningsNaira: nairaFromUsd(50 * PRICE_FACTOR),  durationMin: 50,  module: 3 },
+  m3t04: { title: "Technical Seminar Recording",    earningsNaira: nairaFromUsd(65 * PRICE_FACTOR),  durationMin: 65,  module: 3 },
+  m3t05: { title: "Psychiatric Evaluation Notes",   earningsNaira: nairaFromUsd(50 * PRICE_FACTOR),  durationMin: 50,  module: 3 },
+  m3t06: { title: "Cardiology Consultation",        earningsNaira: nairaFromUsd(55 * PRICE_FACTOR),  durationMin: 55,  module: 3 },
+  m3t07: { title: "ER Triage Documentation",        earningsNaira: nairaFromUsd(45 * PRICE_FACTOR),  durationMin: 45,  module: 3 },
   // Module 4
-  m4t01: { title: "Full Conference Session A",      earningsNaira: nairaFromUsd(130), durationMin: 130, module: 4 },
-  m4t02: { title: "Town Hall Meeting — Full",       earningsNaira: nairaFromUsd(110), durationMin: 110, module: 4 },
-  m4t03: { title: "Full Conference Session B",      earningsNaira: nairaFromUsd(150), durationMin: 150, module: 4 },
-  m4t04: { title: "Documentary Interview — Full",   earningsNaira: nairaFromUsd(180), durationMin: 180, module: 4 },
-  m4t05: { title: "Oncology Team Meeting",          earningsNaira: nairaFromUsd(120), durationMin: 120, module: 4 },
-  m4t06: { title: "Neurology Grand Rounds",         earningsNaira: nairaFromUsd(140), durationMin: 140, module: 4 },
+  m4t01: { title: "Full Conference Session A",      earningsNaira: nairaFromUsd(130 * PRICE_FACTOR), durationMin: 130, module: 4 },
+  m4t02: { title: "Town Hall Meeting — Full",       earningsNaira: nairaFromUsd(110 * PRICE_FACTOR), durationMin: 110, module: 4 },
+  m4t03: { title: "Full Conference Session B",      earningsNaira: nairaFromUsd(150 * PRICE_FACTOR), durationMin: 150, module: 4 },
+  m4t04: { title: "Documentary Interview — Full",   earningsNaira: nairaFromUsd(180 * PRICE_FACTOR), durationMin: 180, module: 4 },
+  m4t05: { title: "Oncology Team Meeting",          earningsNaira: nairaFromUsd(120 * PRICE_FACTOR), durationMin: 120, module: 4 },
+  m4t06: { title: "Neurology Grand Rounds",         earningsNaira: nairaFromUsd(140 * PRICE_FACTOR), durationMin: 140, module: 4 },
 };
 
 const MODULE_LABELS: Record<number, string> = {
