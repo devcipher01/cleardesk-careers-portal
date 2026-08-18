@@ -119,7 +119,7 @@ function WorkspaceDashboard() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid gap-4 sm:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           <StatCard
             icon={CheckCircle2}
             label="Skills profile"
@@ -131,12 +131,6 @@ function WorkspaceDashboard() {
             label="Workspace"
             value="Active"
             tone="sky"
-          />
-          <StatCard
-            icon={Clock}
-            label="Agreement"
-            value={contractSubmitted ? "Complete" : ndaSigned ? "In progress" : "Pending"}
-            tone={contractSubmitted ? "emerald" : "amber"}
           />
         </div>
 
