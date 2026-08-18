@@ -107,103 +107,86 @@ export const submitApplication = createServerFn({ method: "POST" })
   });
 
 export const resendWorkspaceLink = createServerFn({ method: "POST" })
-    .inputValidator(z.object({ email: emailSchema }))
-    .handler(async ({ data }) => {
-      const sb = getSupabaseAdmin();
+  .inputValidator(z.object({ email: emailSchema }))
+  .handler(async ({ data }) => {
+    const sb = getSupabaseAdmin();
+    const email = data.email.trim().toLowerCase();
 
-      const { data: app } = await sb
-        .from("applications")
-        .select("id, full_name, email, role_slug, role_title, status")
-        .ilike("email", data.email.trim())
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (!app) throw new Error("No application found for that email");
+    // Use Supabase Auth as the login identity source. If the email is not present in auth.users,
+    // the user has not been created through the system and should not get a sign-in link.
+    const { data: usersData, error: listUsersError } = await sb.auth.admin.listUsers();
+    if (listUsersError) throw new Error(listUsersError.message);
 
-      const { data: skills } = await sb
-        .from("skills_profile_submissions")
-        .select("selected_for_workspace")
-        .eq("application_id", app.id)
-        .maybeSingle();
+    const authUser = usersData?.users.find((user) => user.email?.toLowerCase() === email);
+    if (!authUser) {
+      throw new Error("We could not find an application for that email. Please apply first and complete the Skills Review.");
+    }
 
-      const appStatus = app.status ?? "";
-      const eligibleForWorkspace =
-        Boolean(skills?.selected_for_workspace) ||
-        ["onboarding", "active"].includes(appStatus);
-      if (!eligibleForWorkspace) {
-        throw new Error("This email is not eligible for a workspace sign-in link yet. Please apply and complete the Skills Review first.");
-      }
+    const { data: appData, error: appError } = await sb
+      .from("applications")
+      .select("id, full_name, email, role_slug, role_title, status")
+      .ilike("email", email)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-      // Check onboarding completion to decide where the link should land
-      const { data: onboardingRow } = await sb
-        .from("onboarding")
-        .select("completed_at")
-        .eq("application_id", app.id as string)
-        .maybeSingle();
+    const appRow = appError ? null : appData;
+    const appStatus = appRow?.status ?? "";
+    const nextPath = "/workspace";
 
-      const onboardingDone = Boolean(onboardingRow?.completed_at) || appStatus === "active";
-      const nextPath = onboardingDone ? "/workspace" : "/onboarding/workspace-setup";
-
-      // Only allow sign-in for an application that already exists and is qualified.
-      // We do not create or verify a Supabase auth user from the public sign-in page.
-      const email = data.email.trim();
-      if (!app || !app.email) {
-        throw new Error("We could not find an application for that email. Please apply first and complete the Skills Review.");
-      }
-
-      const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`;
-      const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
-        type: "magiclink",
-        email,
-        options: {
-          redirectTo: callbackUrl,
-          data: {
-            applicationId: app.id,
-            candidateName: app.full_name,
-            roleTitle: app.role_title,
-          },
+    const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+    const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: {
+        redirectTo: callbackUrl,
+        data: {
+          applicationId: appRow?.id ?? null,
+          candidateName: authUser.user_metadata?.candidateName ?? appRow?.full_name ?? authUser.email,
+          roleTitle: appRow?.role_title ?? "Workspace access",
         },
-      });
-      if (linkErr || !linkData) {
-        throw new Error("Failed to generate sign-in link. Please try again.");
-      }
+      },
+    });
+    if (linkErr || !linkData) {
+      throw new Error("Failed to generate sign-in link. Please try again.");
+    }
 
-      const link = linkData.properties.action_link;
+    const link = linkData.properties.action_link;
+    const recipientEmail = appRow?.email ?? authUser.email ?? email;
+    const recipientName = appRow?.full_name ?? authUser.user_metadata?.candidateName ?? authUser.email ?? "there";
+    const candidateName = authUser.user_metadata?.candidateName ?? appRow?.full_name ?? "there";
+    const intro = `Hi ${firstName(candidateName)},`;
 
-      // Choose email copy based on where the user is in the pipeline
-      let subject: string;
-      let subjectHeadline: string;
-      let paragraphs: string[];
-      let ctaLabel: string;
-      const intro = `Hi ${firstName(app.full_name)},`;
+    let subject: string;
+    let subjectHeadline: string;
+    let paragraphs: string[];
+    let ctaLabel: string;
 
-      if (appStatus === "active") {
-        subject = "Worknesta: Your workspace sign-in link";
-        subjectHeadline = "Your workspace sign-in link";
-        paragraphs = [
-          "Here is your secure sign-in link to access your Worknesta workspace.",
-          "The link is valid for 24 hours.",
-        ];
-        ctaLabel = "Open my workspace";
-      } else if (appStatus === "onboarding") {
-        subject = "Worknesta: Continue your onboarding";
-        subjectHeadline = "Continue your onboarding";
-        paragraphs = [
-          `You have a pending onboarding for the ${app.role_title} role.`,
-          "Use the link below to pick up where you left off.",
-        ];
-        ctaLabel = "Continue onboarding";
-      } else {
-        // selected_for_workspace but not yet in onboarding/active
-        subject = "Worknesta: Skills Profile Review complete — workspace setup required";
-        subjectHeadline = "Skills Profile Review complete";
-        paragraphs = [
-          `Your Skills Profile Review for the ${app.role_title} role is complete.`,
-          "You are cleared to begin contractor onboarding.",
-          "Use the secure link below to open your contractor workspace.",
-        ];
-        ctaLabel = "Open contractor workspace";
-      }
+    if (appStatus === "active") {
+      subject = "Worknesta: Your workspace sign-in link";
+      subjectHeadline = "Your workspace sign-in link";
+      paragraphs = [
+        "Here is your secure sign-in link to access your Worknesta workspace.",
+        "The link is valid for 24 hours.",
+      ];
+      ctaLabel = "Open my workspace";
+    } else if (appStatus === "onboarding") {
+      subject = "Worknesta: Continue your onboarding";
+      subjectHeadline = "Continue your onboarding";
+      paragraphs = [
+        `You have a pending onboarding for the ${appRow?.role_title ?? "workspace"} role.`,
+        "Use the link below to pick up where you left off.",
+      ];
+      ctaLabel = "Continue onboarding";
+    } else {
+      subject = "Worknesta: Workspace sign-in link";
+      subjectHeadline = "Your workspace sign-in link";
+      paragraphs = [
+        "Use the secure link below to open your Worknesta workspace.",
+        "If you are not sure why you received this email, contact the admin team.",
+      ];
+      ctaLabel = "Open my workspace";
+    }
 
       try {
         const html = renderEmailHtml({
@@ -235,7 +218,7 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
             },
             body: JSON.stringify({
               sender: { name: brevoFromName, email: brevoFromEmail },
-              to: [{ email: app.email as string, name: app.full_name || undefined }],
+              to: [{ email: recipientEmail, name: recipientName || undefined }],
               subject,
               htmlContent: html,
               textContent: text,
@@ -249,7 +232,7 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
           }
         }
 
-        await sendOrQueueEmail({ to: app.email as string, subject, html, text });
+        await sendOrQueueEmail({ to: recipientEmail, subject, html, text });
         return { ok: true };
       } catch (e) {
         console.error("resendWorkspaceLink error:", e);
