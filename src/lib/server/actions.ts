@@ -144,11 +144,20 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
       const onboardingDone = Boolean(onboardingRow?.completed_at) || appStatus === "active";
       const nextPath = onboardingDone ? "/workspace" : "/onboarding/workspace-setup";
 
-      // Create/update Supabase Auth user and generate a magic sign-in link (24-hour window)
+      // Only allow sign-in for an already-existing, qualified applicant. Do not create
+      // a Supabase auth user from the sign-in page itself.
+      const email = data.email.trim();
+      const { data: existingAuthUser, error: getUserErr } = await sb.auth.admin.getUserByEmail(email);
+      if (getUserErr || !existingAuthUser?.user?.id) {
+        throw new Error("We could not find an application for that email. Please apply first and complete the Skills Review.");
+      }
+
+      const authUserId = existingAuthUser.user.id;
+
       const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
         type: "magiclink",
-        email: data.email.trim(),
+        email,
         options: {
           redirectTo: callbackUrl,
           data: {
@@ -161,9 +170,9 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
       if (linkErr || !linkData) {
         throw new Error("Failed to generate sign-in link. Please try again.");
       }
-      // Update user_metadata for existing users (generateLink's data option only applies to new users)
+
       await sb.auth.admin
-        .updateUserById(linkData.user.id, {
+        .updateUserById(authUserId, {
           user_metadata: {
             applicationId: app.id,
             candidateName: app.full_name,
@@ -226,6 +235,35 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
           ctaLabel,
           ctaUrl: link,
         });
+
+        // Prefer Brevo API when configured; otherwise fall back to existing mailer queue.
+        const brevoApiKey = process.env.BREVO_API_KEY;
+        const brevoFromName = process.env.MAIL_FROM_NAME || "Worknesta";
+        const brevoFromEmail = process.env.MAIL_FROM_EMAIL || "talent@worknesta.com";
+
+        if (brevoApiKey) {
+          const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+            method: "POST",
+            headers: {
+              "api-key": brevoApiKey,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              sender: { name: brevoFromName, email: brevoFromEmail },
+              to: [{ email: app.email as string, name: app.full_name || undefined }],
+              subject,
+              htmlContent: html,
+              textContent: text,
+            }),
+          });
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.warn("[resendWorkspaceLink] Brevo send failed:", errorText);
+          } else {
+            return { ok: true };
+          }
+        }
+
         await sendOrQueueEmail({ to: app.email as string, subject, html, text });
         return { ok: true };
       } catch (e) {
