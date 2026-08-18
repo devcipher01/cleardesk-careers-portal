@@ -22,10 +22,10 @@ export const Route = createFileRoute("/workspace/earnings")({
 // ─── All task metadata keyed by the actual task IDs used in localStorage ───────
 const ALL_TASKS: Record<string, { title: string; earningsNaira: number; durationMin: number; module: 1|2|3|4 }> = {
   // Module 1
-  m1t01: { title: "Client Interview — Part 1",     earningsNaira: TASK_PRICES_NAIRA.m1t01, durationMin: 8,   module: 1 },
-  m1t02: { title: "Team Standup Recording",         earningsNaira: TASK_PRICES_NAIRA.m1t02, durationMin: 15,  module: 1 },
-  m1t03: { title: "Product Feedback Session",       earningsNaira: TASK_PRICES_NAIRA.m1t03, durationMin: 22,  module: 1 },
-  m1t04: { title: "Sales Call Excerpt",             earningsNaira: TASK_PRICES_NAIRA.m1t04, durationMin: 12,  module: 1 },
+  m1t01: { title: "Client Interview — Part 1",     earningsNaira: TASK_PRICES_NAIRA.m1t01, durationMin: 186 / 60,   module: 1 },
+  m1t02: { title: "Team Standup Recording",         earningsNaira: TASK_PRICES_NAIRA.m1t02, durationMin: 193 / 60,  module: 1 },
+  m1t03: { title: "Product Feedback Session",       earningsNaira: TASK_PRICES_NAIRA.m1t03, durationMin: 185 / 60,  module: 1 },
+  m1t04: { title: "Sales Call Excerpt",             earningsNaira: TASK_PRICES_NAIRA.m1t04, durationMin: 187 / 60,  module: 1 },
   m1t05: { title: "HR Policy Briefing",             earningsNaira: TASK_PRICES_NAIRA.m1t05, durationMin: 25,  module: 1 },
   m1t06: { title: "Customer Support Call",          earningsNaira: TASK_PRICES_NAIRA.m1t06, durationMin: 16,  module: 1 },
   m1t07: { title: "Webinar Segment — Q&A Block",   earningsNaira: nairaFromUsd(28 * PRICE_FACTOR),  durationMin: 28,  module: 1 },

@@ -9,7 +9,10 @@ export const USD_TO_NGN = 1500;
 export const TASK_PAYOUT_FACTOR = 0.5;
 export const NGN_PER_USD_TASK = USD_TO_NGN * TASK_PAYOUT_FACTOR;
 
-export const PRICE_FACTOR = 0.85;
+// Keep existing base factor but apply a further 28% reduction to all task prices
+// (0.72 = 1 - 0.28). This reduces displayed task prices by 28% without
+// changing other conversion logic.
+export const PRICE_FACTOR = 0.85 * 0.72;
 
 export function nairaFromUsd(usd: number) {
   return Math.round(usd * NGN_PER_USD_TASK);
