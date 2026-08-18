@@ -144,15 +144,12 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
       const onboardingDone = Boolean(onboardingRow?.completed_at) || appStatus === "active";
       const nextPath = onboardingDone ? "/workspace" : "/onboarding/workspace-setup";
 
-      // Only allow sign-in for an already-existing, qualified applicant. Do not create
-      // a Supabase auth user from the sign-in page itself.
+      // Only allow sign-in for an application that already exists and is qualified.
+      // We do not create or verify a Supabase auth user from the public sign-in page.
       const email = data.email.trim();
-      const { data: existingAuthUser, error: getUserErr } = await sb.auth.admin.getUserByEmail(email);
-      if (getUserErr || !existingAuthUser?.user?.id) {
+      if (!app || !app.email) {
         throw new Error("We could not find an application for that email. Please apply first and complete the Skills Review.");
       }
-
-      const authUserId = existingAuthUser.user.id;
 
       const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
@@ -170,18 +167,6 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
       if (linkErr || !linkData) {
         throw new Error("Failed to generate sign-in link. Please try again.");
       }
-
-      await sb.auth.admin
-        .updateUserById(authUserId, {
-          user_metadata: {
-            applicationId: app.id,
-            candidateName: app.full_name,
-            roleTitle: app.role_title,
-          },
-        })
-        .catch((e: unknown) =>
-          console.warn("[resendWorkspaceLink] metadata update:", e instanceof Error ? e.message : e)
-        );
 
       const link = linkData.properties.action_link;
 
