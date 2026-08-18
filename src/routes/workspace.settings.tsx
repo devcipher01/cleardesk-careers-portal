@@ -135,8 +135,8 @@ function SettingsPage() {
   const [quietHours, setQuietHours] = useState(false);
   const [timezone, setTimezone] = useState("UTC");
 
-  // Payment info
-  const [paymentMethod, setPaymentMethod] = useState<"wise" | "payoneer" | "paypal" | "bank_transfer">("wise");
+  // Payment info (restrict to Payoneer and Bank Transfer in the UI)
+  const [paymentMethod, setPaymentMethod] = useState<"payoneer" | "bank_transfer">("payoneer");
   const [accountEmail, setAccountEmail] = useState("");
   const [accountName, setAccountName] = useState("");
   // Bank transfer extra fields
@@ -171,7 +171,7 @@ function SettingsPage() {
         try {
           const pi = await getPaymentInfoBySession({ data: { clientAppId: appId, accessToken } });
           if (pi) {
-            const validMethods = ["wise", "payoneer", "paypal", "bank_transfer"] as const;
+            const validMethods = ["payoneer", "bank_transfer"] as const;
             if (validMethods.includes(pi.payment_method as any)) setPaymentMethod(pi.payment_method as typeof validMethods[number]);
             setAccountEmail(pi.account_email ?? "");
             setAccountName(pi.account_name ?? "");
@@ -218,8 +218,8 @@ function SettingsPage() {
     e.preventDefault();
     if (!accountEmail.trim() || !accountName.trim()) { setPaymentError("All payment fields are required."); return; }
     if (paymentMethod === "bank_transfer") {
-      if (!bankAccountNumber.trim() || !bankName.trim() || !bankSwiftIban.trim() || !bankCountry.trim()) {
-        setPaymentError("All bank transfer fields are required.");
+      if (!bankAccountNumber.trim() || !bankName.trim()) {
+        setPaymentError("Account number and bank name are required for bank transfer.");
         return;
       }
     }
@@ -233,8 +233,6 @@ function SettingsPage() {
         extraDetails = JSON.stringify({
           accountNumber: bankAccountNumber.trim(),
           bankName: bankName.trim(),
-          swiftIban: bankSwiftIban.trim(),
-          country: bankCountry.trim(),
         });
       }
       await savePaymentInfoBySession({ data: { paymentMethod, accountEmail: accountEmail.trim(), accountName: accountName.trim(), extraDetails, clientAppId: curId, accessToken: curToken } });
@@ -459,9 +457,7 @@ function SettingsPage() {
                   <label className="block text-xs font-medium text-gray-600 mb-2">Payment method</label>
                   <div className="grid grid-cols-2 gap-2">
                     {([
-                      { value: "wise",          label: "Wise" },
                       { value: "payoneer",      label: "Payoneer" },
-                      { value: "paypal",        label: "PayPal" },
                       { value: "bank_transfer", label: "Bank Transfer" },
                     ] as const).map((m) => (
                       <button
@@ -482,7 +478,7 @@ function SettingsPage() {
 
                 <label className="block">
                   <span className="text-xs font-medium text-gray-600">
-                    {paymentMethod === "bank_transfer" ? "Contact email (for payment notifications)" : paymentMethod === "paypal" ? "PayPal account email" : paymentMethod === "wise" ? "Wise account email" : "Payoneer account email"}
+                    {paymentMethod === "bank_transfer" ? "Contact email (for payment notifications)" : "Payoneer account email"}
                   </span>
                   <input
                     type="email"
@@ -524,30 +520,11 @@ function SettingsPage() {
                         type="text"
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
-                        placeholder="e.g. First National Bank"
+                        placeholder="e.g. Access Bank"
                         className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20"
                       />
                     </label>
-                    <label className="block">
-                      <span className="text-xs font-medium text-gray-600">SWIFT / IBAN / Routing number <span className="text-rose-500">*</span></span>
-                      <input
-                        type="text"
-                        value={bankSwiftIban}
-                        onChange={(e) => setBankSwiftIban(e.target.value)}
-                        placeholder="e.g. BOFAUS3N or GB29NWBK60161331926819"
-                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20"
-                      />
-                    </label>
-                    <label className="block">
-                      <span className="text-xs font-medium text-gray-600">Country <span className="text-rose-500">*</span></span>
-                      <input
-                        type="text"
-                        value={bankCountry}
-                        onChange={(e) => setBankCountry(e.target.value)}
-                        placeholder="e.g. United States"
-                        className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20"
-                      />
-                    </label>
+                    {/* Routing number / country inputs removed per request */}
                   </div>
                 )}
 
