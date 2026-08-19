@@ -448,7 +448,7 @@ function MedicalCertModal({
         </div>
 
         <p className="text-sm text-gray-600 leading-relaxed mb-5">
-          These tasks cover real medical recordings — consultations and clinical dictation. Complete <strong>both steps</strong> below to continue.
+          These tasks cover medical recordings — consultations and clinical dictation. Complete <strong>both steps</strong> below to continue.
         </p>
 
         {/* Input type toggle */}
