@@ -1069,7 +1069,7 @@ function TasksPage() {
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Module 1–4 · Transcription Tasks</p>
               <h1 className="mt-2 text-2xl font-semibold text-gray-900">Available tasks</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                {TASKS.length} transcription tasks in Module 1, with 3 further modules releasing progressively upon completion of the prior module.
+                {TASKS.length} transcription tasks in Module 1, with 3 further modules releasing progressively upon completion of the prior module. Complete and submit all tasks within 3 days.
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
