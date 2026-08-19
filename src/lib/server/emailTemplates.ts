@@ -1,4 +1,4 @@
-import { BRAND_LOCATION, BRAND_NAME, BRAND_SUPPORT_EMAIL } from "@/lib/brand";
+import { BRAND_NAME, BRAND_SUPPORT_EMAIL } from "@/lib/brand";
 
 type EmailTemplateInput = {
   subjectHeadline: string;
@@ -11,7 +11,6 @@ type EmailTemplateInput = {
 const brand = {
   name: BRAND_NAME,
   supportEmail: BRAND_SUPPORT_EMAIL,
-  location: BRAND_LOCATION,
   navy: "#0b1f3a",
   text: "#2f3440",
   muted: "#667085",
@@ -64,7 +63,6 @@ export function renderEmailHtml(input: EmailTemplateInput) {
 
       <div style="margin-top:18px;color:${brand.muted};font-size:12px;line-height:1.5;">
         <div>${brand.name} · <a href="mailto:${brand.supportEmail}" style="color:${brand.muted};text-decoration:underline;">${brand.supportEmail}</a></div>
-        <div>${brand.location}</div>
         <div style="margin-top:10px;">
           ${brand.name} will never charge you any fees. If anyone asks you to pay on our behalf, it is a scam — please report it to us immediately.
         </div>
@@ -86,7 +84,6 @@ export function renderEmailText(input: EmailTemplateInput) {
     lines.push(`${input.ctaLabel}: ${input.ctaUrl}`, "");
   }
   lines.push(`${BRAND_NAME} · ${BRAND_SUPPORT_EMAIL}`);
-  lines.push(BRAND_LOCATION);
   lines.push(
     `${BRAND_NAME} will never charge you any fees. If anyone asks you to pay on our behalf, it is a scam — please report it to us immediately.`,
   );

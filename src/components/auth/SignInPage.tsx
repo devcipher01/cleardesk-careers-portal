@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lock, Mail, ArrowUpRight } from "lucide-react";
 import { resendWorkspaceLink } from "@/lib/server/actions";
 
@@ -9,16 +9,38 @@ export function SignInPage() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
+  const [cooldownLeft, setCooldownLeft] = useState(0);
+
+  useEffect(() => {
+    if (!cooldownUntil) return;
+
+    const interval = window.setInterval(() => {
+      const nextLeft = Math.max(0, Math.ceil((cooldownUntil - Date.now()) / 1000));
+      setCooldownLeft(nextLeft);
+
+      if (nextLeft <= 0) {
+        setCooldownUntil(null);
+        window.clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [cooldownUntil]);
 
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     setError(null);
     setMessage(null);
+    if (cooldownUntil && Date.now() < cooldownUntil) {
+      return setError(`Please wait ${Math.ceil((cooldownUntil - Date.now()) / 1000)}s before requesting another link.`);
+    }
     if (!email.trim()) return setError("Please enter your email");
     if (!email.includes("@")) return setError("Please enter a valid email address");
     setLoading(true);
     try {
       await resendWorkspaceLink({ data: { email } });
+      setCooldownUntil(Date.now() + 90_000);
       setMessage(
         "Check your email for the workspace link. If you do not see it, make sure the email is connected to a qualified application.",
       );
@@ -92,11 +114,11 @@ export function SignInPage() {
 
           <button
             type="submit"
-            disabled={loading || !email.trim()}
+            disabled={loading || !email.trim() || cooldownLeft > 0}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-lime py-2.5 text-sm font-semibold text-ink transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Mail className="h-4 w-4" />
-            {loading ? "Sending…" : "Send me the link"}
+            {cooldownLeft > 0 ? `Resend in ${cooldownLeft}s` : loading ? "Sending…" : "Send me the link"}
           </button>
         </form>
 

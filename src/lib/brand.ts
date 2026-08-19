@@ -2,4 +2,3 @@
 export const BRAND_NAME = "Worknesta";
 export const BRAND_SUPPORT_EMAIL = "admin@worknesta.com";
 export const BRAND_WEBSITE = "worknesta.com";
-export const BRAND_LOCATION = "Wilmington, Delaware, USA";
