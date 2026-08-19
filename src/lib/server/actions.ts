@@ -112,38 +112,28 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
     const sb = getSupabaseAdmin();
     const email = data.email.trim().toLowerCase();
 
-    // Use Supabase Auth as the login identity source. If the email is not present in auth.users,
-    // the user has not been created through the system and should not get a sign-in link.
-    const { data: usersData, error: listUsersError } = await sb.auth.admin.listUsers();
-    if (listUsersError) throw new Error(listUsersError.message);
-
-    const authUser = usersData?.users.find((user) => user.email?.toLowerCase() === email);
-    if (!authUser) {
-      throw new Error("We could not find an application for that email. Please apply first and complete the Skills Review.");
-    }
-
-    const { data: appData, error: appError } = await sb
+    const { data: appRow } = await sb
       .from("applications")
-      .select("id, full_name, email, role_slug, role_title, status")
+      .select("id, full_name, email, role_title")
       .ilike("email", email)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const appRow = appError ? null : appData;
-    const appStatus = appRow?.status ?? "";
-    const nextPath = "/workspace";
+    if (!appRow) {
+      throw new Error("No account found for that email.");
+    }
 
-    const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent(nextPath)}`;
+    const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent("/workspace")}`;
     const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
       type: "magiclink",
       email,
       options: {
         redirectTo: callbackUrl,
         data: {
-          applicationId: appRow?.id ?? null,
-          candidateName: authUser.user_metadata?.candidateName ?? appRow?.full_name ?? authUser.email,
-          roleTitle: appRow?.role_title ?? "Workspace access",
+          applicationId: appRow.id,
+          candidateName: appRow.full_name,
+          roleTitle: appRow.role_title,
         },
       },
     });
@@ -152,93 +142,70 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
     }
 
     const link = linkData.properties.action_link;
-    const recipientEmail = appRow?.email ?? authUser.email ?? email;
-    const recipientName = appRow?.full_name ?? authUser.user_metadata?.candidateName ?? authUser.email ?? "there";
-    const candidateName = authUser.user_metadata?.candidateName ?? appRow?.full_name ?? "there";
-    const intro = `Hi ${firstName(candidateName)},`;
+    const recipientEmail = appRow.email as string;
+    const recipientName = appRow.full_name as string;
+    const intro = `Hi ${firstName(recipientName)},`;
 
-    let subject: string;
-    let subjectHeadline: string;
-    let paragraphs: string[];
-    let ctaLabel: string;
+    const subject = "Worknesta: Your workspace sign-in link";
+    const subjectHeadline = "Your workspace sign-in link";
+    const paragraphs = [
+      "Here is your secure sign-in link to access your Worknesta workspace.",
+      "The link is valid for 24 hours.",
+    ];
+    const ctaLabel = "Open my workspace";
 
-    if (appStatus === "active") {
-      subject = "Worknesta: Your workspace sign-in link";
-      subjectHeadline = "Your workspace sign-in link";
-      paragraphs = [
-        "Here is your secure sign-in link to access your Worknesta workspace.",
-        "The link is valid for 24 hours.",
-      ];
-      ctaLabel = "Open my workspace";
-    } else if (appStatus === "onboarding") {
-      subject = "Worknesta: Continue your onboarding";
-      subjectHeadline = "Continue your onboarding";
-      paragraphs = [
-        `You have a pending onboarding for the ${appRow?.role_title ?? "workspace"} role.`,
-        "Use the link below to pick up where you left off.",
-      ];
-      ctaLabel = "Continue onboarding";
-    } else {
-      subject = "Worknesta: Workspace sign-in link";
-      subjectHeadline = "Your workspace sign-in link";
-      paragraphs = [
-        "Use the secure link below to open your Worknesta workspace.",
-        "If you are not sure why you received this email, contact the admin team.",
-      ];
-      ctaLabel = "Open my workspace";
-    }
+    try {
+      const html = renderEmailHtml({
+        subjectHeadline,
+        intro,
+        paragraphs,
+        ctaLabel,
+        ctaUrl: link,
+      });
+      const text = renderEmailText({
+        subjectHeadline,
+        intro,
+        paragraphs,
+        ctaLabel,
+        ctaUrl: link,
+      });
 
-      try {
-        const html = renderEmailHtml({
-          subjectHeadline,
-          intro,
-          paragraphs,
-          ctaLabel,
-          ctaUrl: link,
-        });
-        const text = renderEmailText({
-          subjectHeadline,
-          intro,
-          paragraphs,
-          ctaLabel,
-          ctaUrl: link,
-        });
-
-        // Prefer Brevo API when configured; otherwise fall back to existing mailer queue.
-        const brevoApiKey = process.env.BREVO_API_KEY;
-        const brevoFromName = process.env.MAIL_FROM_NAME || "Worknesta";
-        const brevoFromEmail = process.env.MAIL_FROM_EMAIL || "talent@worknesta.com";
-
-        if (brevoApiKey) {
-          const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-            method: "POST",
-            headers: {
-              "api-key": brevoApiKey,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              sender: { name: brevoFromName, email: brevoFromEmail },
-              to: [{ email: recipientEmail, name: recipientName || undefined }],
-              subject,
-              htmlContent: html,
-              textContent: text,
-            }),
-          });
-          if (!res.ok) {
-            const errorText = await res.text();
-            console.warn("[resendWorkspaceLink] Brevo send failed:", errorText);
-          } else {
-            return { ok: true };
-          }
-        }
-
-        await sendOrQueueEmail({ to: recipientEmail, subject, html, text });
-        return { ok: true };
-      } catch (e) {
-        console.error("resendWorkspaceLink error:", e);
-        throw e;
+      const brevoApiKey = process.env.BREVO_API_KEY;
+      if (!brevoApiKey) {
+        console.error("resendWorkspaceLink: BREVO_API_KEY is missing");
+        throw new Error("We couldn't send the sign-in link right now. Please try again in a moment.");
       }
-    });
+
+      const brevoFromName = process.env.MAIL_FROM_NAME || "Worknesta";
+      const brevoFromEmail = process.env.MAIL_FROM_EMAIL || "talent@worknesta.com";
+
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": brevoApiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: brevoFromName, email: brevoFromEmail },
+          to: [{ email: recipientEmail, name: recipientName || undefined }],
+          subject,
+          htmlContent: html,
+          textContent: text,
+        }),
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("resendWorkspaceLink: Brevo API error", errorText);
+        throw new Error("We couldn't send the sign-in link right now. Please try again in a moment.");
+      }
+
+      return { ok: true };
+    } catch (e) {
+      console.error("resendWorkspaceLink error:", e);
+      throw e;
+    }
+  });
 
 /** Verify admin password without touching Supabase — safe for environments where DB isn't configured. */
 export const adminCheckPassword = createServerFn({ method: "POST" })

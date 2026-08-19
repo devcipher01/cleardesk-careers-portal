@@ -24,17 +24,11 @@ export function SignInPage() {
       );
       setEmail("");
     } catch (err: any) {
-      const msg = err?.message ?? "Failed to send";
-      if (msg.includes("No application found")) {
-        setError(
-          "We could not find an application for that email. Please apply first and complete the Skills Review.",
-        );
-      } else if (msg.includes("not eligible")) {
-        setError(
-          "This email is not eligible for a workspace sign-in link yet. Apply and complete the Skills Review first.",
-        );
+      const msg = err?.message ?? "";
+      if (msg.includes("No account found")) {
+        setError("We could not find an account for that email.");
       } else {
-        setError(msg);
+        setError("Something went wrong. Please try again in a moment.");
       }
     } finally {
       setLoading(false);
