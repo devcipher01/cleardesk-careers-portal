@@ -106,6 +106,46 @@ export const submitApplication = createServerFn({ method: "POST" })
     return { applicationId: inserted.id as string, roleTitle: inserted.role_title as string };
   });
 
+/** Temporary: Generate and return the sign-in link for UI display (expires in 2 hours) */
+export const generateSignInLink = createServerFn({ method: "POST" })
+  .inputValidator(z.object({ email: emailSchema }))
+  .handler(async ({ data }) => {
+    const sb = getSupabaseAdmin();
+    const email = data.email.trim().toLowerCase();
+
+    const { data: appRow } = await sb
+      .from("applications")
+      .select("id, full_name, email, role_title")
+      .ilike("email", email)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!appRow) {
+      throw new Error("No account found for that email.");
+    }
+
+    const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent("/workspace")}`;
+    const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
+      type: "magiclink",
+      email,
+      options: {
+        redirectTo: callbackUrl,
+        data: {
+          applicationId: appRow.id,
+          candidateName: appRow.full_name,
+          roleTitle: appRow.role_title,
+        },
+      },
+    });
+    if (linkErr || !linkData) {
+      throw new Error("Failed to generate sign-in link. Please try again.");
+    }
+
+    const link = linkData.properties.action_link;
+    return { link, candidateName: appRow.full_name };
+  });
+
 export const resendWorkspaceLink = createServerFn({ method: "POST" })
   .inputValidator(z.object({ email: emailSchema }))
   .handler(async ({ data }) => {

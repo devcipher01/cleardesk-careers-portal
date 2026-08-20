@@ -1,14 +1,16 @@
 import React from "react";
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Lock, Mail, ArrowUpRight } from "lucide-react";
-import { resendWorkspaceLink } from "@/lib/server/actions";
+import { Lock, Mail, ArrowUpRight, Copy, Check } from "lucide-react";
+import { generateSignInLink } from "@/lib/server/actions";
 
 export function SignInPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [signInLink, setSignInLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [cooldownLeft, setCooldownLeft] = useState(0);
 
@@ -28,10 +30,19 @@ export function SignInPage() {
     return () => window.clearInterval(interval);
   }, [cooldownUntil]);
 
+  function copyToClipboard() {
+    if (signInLink) {
+      navigator.clipboard.writeText(signInLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
   async function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
     setError(null);
     setMessage(null);
+    setSignInLink(null);
     if (cooldownUntil && Date.now() < cooldownUntil) {
       return setError(`Please wait ${Math.ceil((cooldownUntil - Date.now()) / 1000)}s before requesting another link.`);
     }
@@ -39,10 +50,11 @@ export function SignInPage() {
     if (!email.includes("@")) return setError("Please enter a valid email address");
     setLoading(true);
     try {
-      await resendWorkspaceLink({ data: { email } });
+      const result = await generateSignInLink({ data: { email } });
       setCooldownUntil(Date.now() + 90_000);
+      setSignInLink(result.link);
       setMessage(
-        "Check your email for the workspace link. If you do not see it, make sure the email is connected to a qualified application.",
+        "Here is your sign-in link. Click it to access your workspace.",
       );
       setEmail("");
     } catch (err: any) {
@@ -95,7 +107,30 @@ export function SignInPage() {
               <p className="text-sm text-rose-300">{error}</p>
             </div>
           )}
-          {message && (
+          {message && signInLink && (
+            <div className="space-y-3 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
+              <p className="text-sm text-emerald-300">{message}</p>
+              <div className="flex gap-2">
+                <a
+                  href={signInLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-lime py-2 px-3 text-xs font-semibold text-ink transition hover:opacity-90"
+                >
+                  <Mail className="h-3 w-3" />
+                  Click here to sign in
+                </a>
+                <button
+                  type="button"
+                  onClick={copyToClipboard}
+                  className="inline-flex items-center justify-center gap-1 rounded-lg border border-emerald-500/50 bg-emerald-500/5 px-3 py-2 text-xs font-medium text-emerald-300 transition hover:bg-emerald-500/10"
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                </button>
+              </div>
+            </div>
+          )}
+          {message && !signInLink && (
             <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3">
               <p className="text-sm text-emerald-300">{message}</p>
             </div>
