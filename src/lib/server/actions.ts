@@ -1121,9 +1121,10 @@ export const getDevPipelineInbox = createServerFn({ method: "POST" }).handler(as
 export const cronProcessEmails = createServerFn({ method: "POST" })
   .inputValidator(z.object({ secret: z.string().min(1) }))
   .handler(async ({ data }) => {
+    // Cron processing disabled intentionally. Keep secret check to avoid changing endpoint shape.
     const expected = process.env.CRON_SECRET;
     if (!expected || data.secret !== expected) throw new Error("Unauthorized");
-    return processScheduledEmails();
+    return { processed: 0 };
   });
 
 function firstName(full: string) {

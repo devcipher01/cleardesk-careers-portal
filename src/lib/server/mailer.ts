@@ -84,45 +84,9 @@ export async function scheduleEmail(input: SendEmailInput, delayMs: number) {
 }
 
 export async function processScheduledEmails() {
-  if (isLocalDevMode()) return { processed: 0 };
-
-  const sb = getSupabaseAdmin();
-  const now = new Date().toISOString();
-  const { data: rows, error } = await sb
-    .from("email_outbox")
-    .select("id, to_email, subject, html, text")
-    .eq("status", "scheduled")
-    .lte("send_after", now)
-    .limit(50);
-  if (error) throw new Error(error.message);
-
-  let processed = 0;
-  for (const row of rows ?? []) {
-    try {
-      if (hasSmtp()) {
-        await deliverSmtp({
-          to: row.to_email as string,
-          subject: row.subject as string,
-          html: row.html as string,
-          text: (row.text as string) ?? undefined,
-        });
-      }
-      await sb
-        .from("email_outbox")
-        .update({ status: "sent", sent_at: new Date().toISOString() })
-        .eq("id", row.id);
-      processed += 1;
-    } catch (e) {
-      await sb
-        .from("email_outbox")
-        .update({
-          status: "error",
-          error: e instanceof Error ? e.message : "send failed",
-        })
-        .eq("id", row.id);
-    }
-  }
-  return { processed };
+  // Scheduled email processing is hard-disabled. This is intentional to stop cron jobs.
+  // To re-enable, remove this early return and restore the original processing logic.
+  return { processed: 0 };
 }
 
 export async function sendOrQueueEmailSafe(input: SendEmailInput) {
