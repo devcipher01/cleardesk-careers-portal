@@ -12,6 +12,7 @@ import {
   LogOut,
   Settings,
 } from "lucide-react";
+import { AnnouncementModal } from "@/components/workspace/AnnouncementModal";
 import { displayRoleTitle } from "@/lib/careersPipeline";
 import { BRAND_NAME } from "@/lib/brand";
 import { supabase } from "@/lib/client/supabase";
@@ -24,6 +25,8 @@ type OrgShellProps = {
   roleTitle: string;
   activeNav: OrgNavId;
   children: React.ReactNode;
+  /** False while the session is still loading so this never flashes on the sign-in gate. */
+  showAnnouncement?: boolean;
 };
 
 const NAV: { id: OrgNavId; label: string; icon: typeof LayoutDashboard; to: string }[] = [
@@ -42,7 +45,7 @@ export function OrgShellLoading({
   activeNav?: OrgNavId;
 }) {
   return (
-    <OrgShell candidateName="…" roleTitle="Loading…" activeNav={activeNav}>
+    <OrgShell candidateName="…" roleTitle="Loading…" activeNav={activeNav} showAnnouncement={false}>
       <div className="flex min-h-[40vh] items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
       </div>
@@ -85,6 +88,7 @@ export function OrgShell({
   roleTitle,
   activeNav,
   children,
+  showAnnouncement = true,
 }: OrgShellProps) {
   const navigate = useNavigate();
   const displayName = candidateName.trim() || "Contractor";
@@ -194,6 +198,8 @@ export function OrgShell({
           {userFooter}
         </div>
       </div>
+
+      {showAnnouncement ? <AnnouncementModal /> : null}
     </div>
   );
 }
