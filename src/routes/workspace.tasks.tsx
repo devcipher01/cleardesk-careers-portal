@@ -27,6 +27,7 @@ import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, verifyCertPath } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 import { formatNaira, NGN_PER_USD_TASK, TASK_PRICES_NAIRA } from "@/lib/taskPricing";
+import { TASKS_TIME_EXCEEDED } from "@/lib/taskAvailability";
 
 // ─── Auto-construct audio URL from Supabase public bucket ─────────────────────
 // Upload files to Supabase Storage bucket "task-audio" named exactly as the
@@ -171,6 +172,14 @@ function computeEffectiveStatus(task: TaskDef, progress: LocalProgress, contract
     }
   }
   return stored ?? "available";
+}
+
+function isFinishedStatus(status: TaskStatus | undefined): boolean {
+  return status === "submitted" || status === "reviewed";
+}
+
+function isModuleFullyComplete(tasks: TaskDef[], progress: LocalProgress): boolean {
+  return tasks.length > 0 && tasks.every((t) => isFinishedStatus(progress[t.id]?.status));
 }
 
 function fmtDuration(min: number) {
@@ -600,7 +609,11 @@ function TaskCard({
 
   const requiresCert = MEDICAL_CERT_TASK_IDS.has(task.id);
 
+  const finished = status === "submitted" || status === "reviewed";
+  const closed = TASKS_TIME_EXCEEDED && !finished;
+
   function handleStartClick() {
+    if (closed) return;
     if (requiresCert && !certVerified) {
       setShowCertModal(true);
     } else {
@@ -635,29 +648,29 @@ function TaskCard({
   }
 
   return (
-    <div className={`rounded-xl border p-4 transition ${cardColors[status]}`}>
+    <div className={`rounded-xl border p-4 transition ${closed ? "border-rose-100 bg-rose-50/40" : cardColors[status]}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 min-w-0">
           <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-            status === "locked" ? "bg-gray-100 text-gray-400" : "bg-gray-900 text-white"
+            closed || status === "locked" ? "bg-gray-100 text-gray-400" : "bg-gray-900 text-white"
           }`}>
             {task.num}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <p className={`text-sm font-medium ${status === "locked" ? "text-gray-400" : "text-gray-900"}`}>
+              <p className={`text-sm font-medium ${closed || status === "locked" ? "text-gray-500" : "text-gray-900"}`}>
                 {task.title}
               </p>
-              {status !== "locked" && <CategoryBadge category={task.category} />}
+              {!closed && status !== "locked" && <CategoryBadge category={task.category} />}
             </div>
-            {status !== "locked" && (
+            {!closed && status !== "locked" && (
               <p className="mt-0.5 text-xs text-gray-500 line-clamp-2">{task.description}</p>
             )}
           </div>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
-          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${badgeColors[status]}`}>
-            {badgeLabel[status]}
+          <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${closed ? "bg-rose-100 text-rose-800" : badgeColors[status]}`}>
+            {closed ? "Window closed" : badgeLabel[status]}
           </span>
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{fmtDuration(task.durationMin)}</span>
@@ -666,14 +679,21 @@ function TaskCard({
         </div>
       </div>
 
-      {status === "locked" && (
+      {closed && (
+        <div className="mt-3 flex items-center gap-2 text-xs text-rose-700/80">
+          <Timer className="h-3.5 w-3.5" />
+          Window closed — this task is no longer open
+        </div>
+      )}
+
+      {!closed && status === "locked" && (
         <div className="mt-3 flex items-center gap-2 text-xs text-gray-400">
           <Lock className="h-3.5 w-3.5" />
           Available upon completion of the previous module
         </div>
       )}
 
-      {(status === "available" || status === "in_progress") && (
+      {!closed && (status === "available" || status === "in_progress") && (
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <button
             onClick={handleStartClick}
@@ -710,7 +730,7 @@ function TaskCard({
         </div>
       )}
 
-      {open && (status === "available" || status === "in_progress") && (
+      {!closed && open && (status === "available" || status === "in_progress") && (
         <div className="mt-4 space-y-4">
           <AudioPlayer durationMin={task.durationMin} src={taskAudioUrl(task.id)} />
           <div>
@@ -730,7 +750,7 @@ function TaskCard({
         </div>
       )}
 
-      {showCertModal && (
+      {showCertModal && !closed && (
         <MedicalCertModal
           onVerified={() => {
             onCertVerified();
@@ -801,8 +821,9 @@ function ModuleHeader({
   onReserve: () => void;
 }) {
   const available    = isModuleAvailable(mod.num, progress, contractSubmitted);
-  const submittedCnt = tasks.filter((t) => { const s = progress[t.id]?.status; return s === "submitted" || s === "reviewed"; }).length;
+  const submittedCnt = tasks.filter((t) => isFinishedStatus(progress[t.id]?.status)).length;
   const isComplete   = submittedCnt === tasks.length;
+  const closed       = TASKS_TIME_EXCEEDED && !isComplete;
   const isReserved   = !!meta?.reservedAt || tasks.some((t) => {
     const s = progress[t.id]?.status;
     return s === "in_progress" || s === "submitted" || s === "reviewed";
@@ -812,16 +833,18 @@ function ModuleHeader({
   const medicalCnt   = tasks.filter((t) => t.category === "medical").length;
   const modEarnings  = tasks.reduce((s, t) => s + t.earningsNaira, 0);
 
-  // Colour scheme: complete = lime-tinted, available = dark ink, locked = light gray
-  const wrapperClass = isComplete
-    ? "rounded-2xl border border-lime/30 bg-lime/10"
-    : available
-      ? "rounded-2xl border border-gray-800 bg-gray-900"
-      : "rounded-2xl border border-gray-200 bg-gray-100";
+  const wrapperClass = closed
+    ? "rounded-2xl border border-rose-200 bg-rose-50/50"
+    : isComplete
+      ? "rounded-2xl border border-lime/30 bg-lime/10"
+      : available
+        ? "rounded-2xl border border-gray-800 bg-gray-900"
+        : "rounded-2xl border border-gray-200 bg-gray-100";
 
-  const titleClass   = available ? "text-white" : "text-gray-400";
-  const subClass     = available ? "text-gray-400" : "text-gray-400";
-  const numBgClass   = isComplete  ? "bg-lime text-ink"
+  const titleClass   = closed ? "text-gray-900" : available ? "text-white" : "text-gray-400";
+  const subClass     = closed ? "text-gray-500" : available ? "text-gray-400" : "text-gray-400";
+  const numBgClass   = closed      ? "bg-rose-100 text-rose-800"
+                     : isComplete  ? "bg-lime text-ink"
                      : available   ? "bg-white/15 text-white"
                                    : "bg-gray-200 text-gray-500";
 
@@ -842,16 +865,20 @@ function ModuleHeader({
                 <span className={`text-sm font-normal ${available ? "text-gray-400" : "text-gray-400"}`}>
                   — {mod.subtitle}
                 </span>
-                {isComplete && (
+                {closed ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2.5 py-0.5 text-[11px] font-semibold text-rose-800">
+                    <Timer className="h-3 w-3" /> Window closed
+                  </span>
+                ) : isComplete ? (
                   <span className="inline-flex items-center gap-1 rounded-full bg-lime/20 px-2.5 py-0.5 text-[11px] font-semibold text-lime">
                     <CheckCircle2 className="h-3 w-3" /> Complete
                   </span>
-                )}
+                ) : null}
               </div>
               <p className={`mt-1 text-xs ${subClass}`}>
                 {tasks.length} tasks ·{" "}
                 {generalCnt} general{medicalCnt > 0 ? ` + ${medicalCnt} medical` : ""} ·{" "}
-                 <span className={available ? "text-lime font-medium" : "text-gray-400"}>{formatNaira(modEarnings)}</span>
+                 <span className={closed || available ? "text-lime font-medium" : "text-gray-400"}>{formatNaira(modEarnings)}</span>
               </p>
             </div>
           </div>
@@ -860,22 +887,24 @@ function ModuleHeader({
           <div className="flex items-center gap-3 shrink-0">
             {/* Progress counter */}
             <div className="text-right">
-              <p className={`text-sm font-semibold ${available ? "text-white" : "text-gray-500"}`}>
-                {submittedCnt}<span className={`font-normal text-xs ${available ? "text-gray-400" : "text-gray-400"}`}>/{tasks.length}</span>
+              <p className={`text-sm font-semibold ${closed ? "text-gray-900" : available ? "text-white" : "text-gray-500"}`}>
+                {submittedCnt}<span className={`font-normal text-xs ${closed || available ? "text-gray-400" : "text-gray-400"}`}>/{tasks.length}</span>
               </p>
-              <p className={`text-[11px] ${available ? "text-gray-500" : "text-gray-400"}`}>submitted</p>
+              <p className={`text-[11px] ${closed ? "text-gray-500" : available ? "text-gray-500" : "text-gray-400"}`}>submitted</p>
             </div>
 
             {/* Expand / collapse button */}
-            {available && (
+            {(available || closed) && (
               <button
                 onClick={onToggle}
                 className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                  isOpen
-                    ? "bg-white/10 text-white hover:bg-white/20"
-                    : isComplete
-                      ? "bg-lime/20 text-lime hover:bg-lime/30"
-                      : "bg-lime text-ink hover:opacity-90"
+                  closed
+                    ? "border border-rose-200 bg-white text-rose-800 hover:bg-rose-50"
+                    : isOpen
+                      ? "bg-white/10 text-white hover:bg-white/20"
+                      : isComplete
+                        ? "bg-lime/20 text-lime hover:bg-lime/30"
+                        : "bg-lime text-ink hover:opacity-90"
                 }`}
               >
                 {isOpen ? (
@@ -886,7 +915,7 @@ function ModuleHeader({
               </button>
             )}
 
-            {!available && (
+            {!available && !closed && (
               <div className="inline-flex items-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs text-gray-400">
                 <Lock className="h-3.5 w-3.5" />
                 Not yet available
@@ -1021,6 +1050,7 @@ function TasksPage() {
   }
 
   async function handleSubmit(taskId: string, text: string) {
+    if (TASKS_TIME_EXCEEDED) return;
     const task = TASKS.find((t) => t.id === taskId);
     if (!task) return;
     const updated: LocalProgress = {
@@ -1060,6 +1090,12 @@ function TasksPage() {
   }).length;
   const underReviewCount = TASKS.filter((t) => computeEffectiveStatus(t, progress, contractSubmitted) === "submitted").length;
 
+  const module1Complete = isModuleFullyComplete(
+    TASKS.filter((t) => t.module === 1),
+    progress,
+  );
+  const windowClosed = TASKS_TIME_EXCEEDED && !module1Complete;
+
   return (
     <OrgShell candidateName={candidateName} roleTitle={roleTitle} activeNav="tasks">
       <div className="mx-auto max-w-4xl space-y-4">
@@ -1069,9 +1105,13 @@ function TasksPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Module 1–4 · Transcription Tasks</p>
-              <h1 className="mt-2 text-2xl font-semibold text-gray-900">Available tasks</h1>
+              <h1 className="mt-2 text-2xl font-semibold text-gray-900">
+                {windowClosed ? "Tasks" : "Available tasks"}
+              </h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                {TASKS.length} transcription tasks in Module 1, with 3 further modules releasing progressively upon completion of the prior module. Complete and submit all tasks within 3 days.
+                {windowClosed
+                  ? "The submission window for this module has closed. Tasks you already submitted stay on record for review and payment."
+                  : `${TASKS.length} transcription tasks in Module 1, with 3 further modules releasing progressively upon completion of the prior module. Complete and submit all tasks within 3 days.`}
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">

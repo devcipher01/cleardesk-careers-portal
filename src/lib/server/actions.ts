@@ -8,6 +8,7 @@ import { sendOrQueueEmail, processScheduledEmails } from "./mailer";
 import { getJobBySlug } from "@/lib/jobs";
 import { COUNTRIES } from "@/lib/countries";
 import { NGN_PER_USD_TASK } from "@/lib/taskPricing";
+import { TASKS_TIME_EXCEEDED } from "@/lib/taskAvailability";
 import { adminNotifyEmail, publicBaseUrl } from "./devMode";
 import {
   pipelineDevInbox,
@@ -1246,6 +1247,7 @@ export const submitTranscriptionTask = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
+    if (TASKS_TIME_EXCEEDED) throw new Error("Task submission window has closed");
 
     const sb = getSupabaseAdmin();
     const now = new Date().toISOString();
