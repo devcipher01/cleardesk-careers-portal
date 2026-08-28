@@ -86,7 +86,7 @@ function SupportPage() {
     },
     {
       q: "How do I add my payment details?",
-      a: "Go to Settings and add your preferred payment method — Wise, Payoneer, PayPal, or bank transfer.",
+      a: "Go to Settings and add your preferred payment method.",
     },
     {
       q: "I need more time on a task. What do I do?",
