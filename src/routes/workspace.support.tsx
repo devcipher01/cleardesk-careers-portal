@@ -74,7 +74,7 @@ function SupportPage() {
   const FAQ = [
     {
       q: "When do I get paid?",
-      a: "Earnings are released after module completion and review. Most modules are reviewed within 48 hours.",
+      a: "Earnings are released after module completion and review. Most tasks are reviewed within 48 hours.",
     },
     {
       q: "What is the accuracy standard?",
