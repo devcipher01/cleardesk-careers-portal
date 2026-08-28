@@ -1213,7 +1213,7 @@ export const getTaskProgressBySession = createServerFn({ method: "POST" })
     try {
       const { data } = await sb
         .from("task_progress")
-        .select("task_id, status, transcription_text, submitted_at, reviewed_at, earnings_usd")
+        .select("task_id, status, transcription_text, submitted_at, reviewed_at, earnings_usd, accuracy_score")
         .eq("application_id", applicationId);
       return {
         authenticated: true as const,
@@ -1225,6 +1225,7 @@ export const getTaskProgressBySession = createServerFn({ method: "POST" })
           submitted_at: string | null;
           reviewed_at: string | null;
           earnings_usd: number | null;
+          accuracy_score: number | null;
         }[],
       };
     } catch {

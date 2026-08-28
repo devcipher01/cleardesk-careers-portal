@@ -48,7 +48,7 @@ export const Route = createFileRoute("/workspace/tasks")({
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type TaskCategory = "general" | "medical";
 type TaskStatus = "locked" | "available" | "in_progress" | "submitted" | "reviewed";
-type LocalProgress = Record<string, { status: TaskStatus; text?: string; submittedAt?: string }>;
+type LocalProgress = Record<string, { status: TaskStatus; text?: string; submittedAt?: string; dbAccuracyScore?: number }>;
 
 interface TaskDef {
   id: string;
@@ -585,12 +585,13 @@ function MedicalCertModal({
 
 // ─── Task card ─────────────────────────────────────────────────────────────────
 function TaskCard({
-  task, status, text, certVerified, onSubmit, onCertVerified,
+  task, status, text, certVerified, onSubmit, onCertVerified, dbAccuracyScore,
 }: {
   task: TaskDef; status: TaskStatus; text?: string;
   certVerified: boolean;
   onSubmit: (id: string, text: string) => void;
   onCertVerified: () => void;
+  dbAccuracyScore?: number;
 }) {
   const [open, setOpen] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
@@ -703,7 +704,7 @@ function TaskCard({
           )}
           {status === "reviewed" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-0.5 text-[11px] font-semibold text-lime">
-              {accuracyScore(text, task.durationMin)}% accuracy
+              {Math.round(dbAccuracyScore ?? accuracyScore(text, task.durationMin))}% accuracy
             </span>
           )}
         </div>
@@ -932,6 +933,7 @@ function TasksPage() {
                 status: t.status as TaskStatus,
                 text: t.transcription_text ?? undefined,
                 submittedAt: t.submitted_at ?? undefined,
+                dbAccuracyScore: t.accuracy_score ?? undefined,
               };
             }
           }
@@ -1132,6 +1134,7 @@ function TasksPage() {
                       certVerified={certVerified}
                       onSubmit={handleSubmit}
                       onCertVerified={handleCertVerified}
+                      dbAccuracyScore={progress[task.id]?.dbAccuracyScore}
                     />
                   ))}
                 </div>
