@@ -143,7 +143,7 @@ function TermsPage() {
         />
 
         <article className="mx-auto mt-10 max-w-3xl">
-          <p className="text-sm text-ink/50">Last updated: August 28, 2026</p>
+          <p className="text-sm text-ink/50">Last updated: May 12, 2026</p>
 
           <div className="mt-8 space-y-8 md:space-y-10">
             {SECTIONS.map((section, i) => (
