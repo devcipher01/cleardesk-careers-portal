@@ -11,6 +11,7 @@ export function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [signInLink, setSignInLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [cooldownUntil, setCooldownUntil] = useState<number | null>(null);
   const [cooldownLeft, setCooldownLeft] = useState(0);
 
@@ -48,6 +49,7 @@ export function SignInPage() {
     }
     if (!email.trim()) return setError("Please enter your email");
     if (!email.includes("@")) return setError("Please enter a valid email address");
+    if (!agreed) return setError("Please agree to the Terms and Conditions.");
     setLoading(true);
     try {
       const result = await generateSignInLink({ data: { email } });
@@ -147,9 +149,34 @@ export function SignInPage() {
             </div>
           )}
 
+          <div className="flex items-start gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-3">
+            <input
+              id="agree-terms"
+              type="checkbox"
+              checked={agreed}
+              onChange={(e) => setAgreed(e.target.checked)}
+              disabled={loading}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/30 bg-white/10 accent-lime"
+            />
+            <p className="text-sm leading-5 text-slate-300">
+              <label htmlFor="agree-terms" className="cursor-pointer">
+                I agree to the{" "}
+              </label>
+              <Link
+                to="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-lime underline underline-offset-2 hover:opacity-90"
+              >
+                Terms and Conditions
+              </Link>
+              .
+            </p>
+          </div>
+
           <button
             type="submit"
-            disabled={loading || !email.trim() || cooldownLeft > 0}
+            disabled={loading || !email.trim() || cooldownLeft > 0 || !agreed}
             className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-lime py-2.5 text-sm font-semibold text-ink transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Mail className="h-4 w-4" />

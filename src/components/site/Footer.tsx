@@ -44,7 +44,7 @@ export function Footer() {
           <h4 className="text-xs font-semibold uppercase tracking-[0.18em] text-ink/50">Legal</h4>
           <ul className="mt-4 space-y-2 text-sm text-ink/80">
             <li><Link to="/privacy" className="hover:text-ink">Privacy Policy</Link></li>
-            <li><Link to="/terms" className="hover:text-ink">Terms of Service</Link></li>
+            <li><Link to="/terms" className="hover:text-ink">Terms and Conditions</Link></li>
             <li><a href="mailto:admin@worknesta.com" className="hover:text-ink">admin@worknesta.com</a></li>
           </ul>
         </div>
