@@ -48,7 +48,7 @@ type DocInfo = {
 const DOC_TYPE_LABELS: Record<string, { label: string; description: string; icon: React.ReactNode; required: boolean }> = {
   medical_cert: {
     label: "Medical transcription certificate",
-    description: "Upload your certificate file (optional). To unlock medical tasks instantly, use the CertPath URL verification below — that's the required step.",
+    description: "Upload your certificate file (optional). To unlock medical tasks instantly, use the certificate URL or code verification below — that's the required step.",
     icon: <Activity className="h-4 w-4 text-rose-500" />,
     required: false,
   },
@@ -154,7 +154,7 @@ function SettingsPage() {
   const [docError, setDocError] = useState("");
   const [docSuccess, setDocSuccess] = useState("");
 
-  // CertPath verification
+  // Certificate URL / code verification
   const [certInputType, setCertInputType] = useState<"url" | "code">("url");
   const [certInput, setCertInput] = useState("");
   const [certVerifyState, setCertVerifyState] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -369,16 +369,16 @@ function SettingsPage() {
                       uploading={uploadingDocType === docType}
                       onUpload={handleUploadDoc}
                     />
-                    {/* CertPath instant verification — medical cert only */}
+                    {/* Instant verification — medical cert only */}
                     {docType === "medical_cert" && !docMap["medical_cert"]?.verified_at && (
                       <div className="rounded-xl border border-lavender/50 bg-lavender/10 p-4">
                         <div className="flex items-center gap-2 mb-3">
                           <ShieldCheck className="h-4 w-4 text-ink/60" />
-                          <p className="text-xs font-semibold text-gray-800">Instant verification via CertPath</p>
+                          <p className="text-xs font-semibold text-gray-800">Instant certificate verification</p>
                           <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-rose-600">Required</span>
                         </div>
                         <p className="mb-3 text-xs text-gray-500 leading-relaxed">
-                          Already certified on CertPath? Paste your certificate URL or code below to verify instantly — no manual review needed.
+                          Already certified? Paste your certificate URL or code below to verify instantly — no manual review needed.
                         </p>
 
                         {/* Toggle */}
@@ -400,7 +400,7 @@ function SettingsPage() {
                             type="text"
                             value={certInput}
                             onChange={(e) => { setCertInput(e.target.value); if (certVerifyState !== "idle") { setCertVerifyState("idle"); setCertVerifyMsg(""); } }}
-                            placeholder={certInputType === "url" ? "https://certifypath.online/certificate/…?code=CERTPATH-…" : "CERTPATH-A1B2-C3D4"}
+                            placeholder={certInputType === "url" ? "https://" : "Certificate code"}
                             disabled={certVerifyState === "loading" || certVerifyState === "success"}
                             className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20 disabled:opacity-60"
                           />
@@ -428,13 +428,13 @@ function SettingsPage() {
                         )}
 
                         <a
-                          href="https://certifypath.online/courses/medical-transcriptionist#course-content"
+                          href="https://alison.com/course/diploma-in-medical-transcription"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="mt-2 inline-flex items-center gap-1 text-xs text-sky-600 hover:underline"
                         >
                           <ExternalLink className="h-3 w-3" />
-                          Get your medical transcription certificate on CertPath
+                          Get your medical transcription certificate on Alison
                         </a>
                       </div>
                     )}
