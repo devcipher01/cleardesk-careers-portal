@@ -80,7 +80,9 @@ function JobDetailPage() {
               {job.title}
             </h1>
 
-            <p className="mt-4 font-serif text-xl italic text-ink/80 md:text-2xl">{job.pay}</p>
+            {job.pay && (
+              <p className="mt-4 font-serif text-xl italic text-ink/80 md:text-2xl">{job.pay}</p>
+            )}
 
             <p className="mt-3 inline-flex items-center gap-1 text-sm text-ink/55">
               <MapPin className="h-3.5 w-3.5" />

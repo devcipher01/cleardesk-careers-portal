@@ -221,7 +221,9 @@ function HomePage() {
                       )}
                       <span className="truncate text-base font-medium text-ink md:text-lg">{j.title}</span>
                     </div>
-                    <p className="mt-1 truncate text-sm text-ink/55">{j.types.join(" · ")} · {j.pay}</p>
+                    <p className="mt-1 truncate text-sm text-ink/55">
+                      {j.pay ? `${j.types.join(" · ")} · ${j.pay}` : j.types.join(" · ")}
+                    </p>
                   </div>
                   <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${isFilled ? "bg-ink/15 text-ink/40" : "bg-ink text-ink-foreground transition group-hover:bg-lime group-hover:text-lime-foreground"}`}>
                     <ArrowUpRight className="h-4 w-4" />

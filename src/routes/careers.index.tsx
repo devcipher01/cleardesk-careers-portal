@@ -122,7 +122,9 @@ function CareersIndexPage() {
                     </span>
                   </div>
 
-                  <p className="mt-4 font-serif text-lg italic text-ink/80">{job.pay}</p>
+                  {job.pay && (
+                    <p className="mt-4 font-serif text-lg italic text-ink/80">{job.pay}</p>
+                  )}
                   <p className="mt-3 text-sm text-ink/60">{job.description}</p>
 
                   <ul className="mt-5 space-y-1.5 text-sm">

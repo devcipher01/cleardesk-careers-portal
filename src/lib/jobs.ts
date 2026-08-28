@@ -11,7 +11,7 @@ export interface Job {
   slug: string;
   title: string;
   types: string[];
-  pay: string;
+  pay?: string;
   /** Short line on listing cards */
   description: string;
   /** Optional marketing line shown on the role detail page */
@@ -33,7 +33,6 @@ export const JOBS: Job[] = [
     slug: "ai-content-transcription-validator",
     title: "Remote Transcription Specialist",
     types: ["Full-Time", "Part-Time", "Remote"],
-  pay: "Project-based Naira rates",
     description:
       "Review and correct AI-generated text, audio transcriptions, and data sheets for accuracy.",
     pitch:
@@ -73,7 +72,6 @@ export const JOBS: Job[] = [
     slug: "medical-transcriptionist",
     title: "Medical Transcriptionist",
     types: ["Full-Time", "Remote"],
-  pay: "Project-based Naira rates",
     description:
       "Transcribing medical dictations and clinical notes with strict accuracy and confidentiality.",
     requirements: [
@@ -82,6 +80,6 @@ export const JOBS: Job[] = [
       "HIPAA awareness",
     ],
     status: "open",
-    certUrl: "https://certifypath.online/courses/medical-transcriptionist#course-content",
+    certUrl: "https://alison.com/course/diploma-in-medical-transcription",
   },
 ];
