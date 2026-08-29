@@ -186,7 +186,7 @@ function EarningsPage() {
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-            <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">Reviewed &amp; approved</p>
+            <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">Reviewed</p>
             <p className="mt-1 text-2xl font-bold text-gray-900">{formatNaira(reviewedEarned)}</p>
             <p className="mt-1 text-xs text-gray-400">{reviewed.length} task{reviewed.length !== 1 ? "s" : ""} reviewed</p>
           </div>
@@ -207,7 +207,7 @@ function EarningsPage() {
             <h2 className="text-sm font-semibold text-gray-900">Payment schedule</h2>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Earnings are released after module completion and review. Most modules are reviewed within 48 hours. Payments are sent via your chosen method — Wise, Payoneer, PayPal, or bank transfer.
+            Earnings are released after module completion and review. Most modules are reviewed within 48 hours. Payments are sent via your chosen method.
           </p>
           <p className="text-xs text-gray-400">
             Make sure your payment info is up to date in{" "}
