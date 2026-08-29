@@ -1138,32 +1138,29 @@ function firstName(full: string) {
 // ─── Session-based workspace server functions ─────────────────────────────────
 
 // ─── Session resolution ────────────────────────────────────────────────────────
-// UUID regex — used to validate client-supplied fallback IDs.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
- * Cookie-first applicationId resolver.
- * Falls back to the client-supplied `clientAppId` (from localStorage) when the
- * Primary: verify Supabase JWT via auth.getUser() and extract applicationId from user metadata.
- * Fallback: accept client-supplied UUID (still protected by DB existence/status check in each caller).
+ * Resolve applicationId from a verified Supabase access token only.
+ * clientAppId from the browser is ignored — a UUID in localStorage is not proof of login.
  */
-async function resolveAppId(clientAppId?: string | null, accessToken?: string | null): Promise<string | null> {
-  if (accessToken) {
-    try {
-      const { data: { user } } = await getSupabaseAdmin().auth.getUser(accessToken);
-      if (user) {
-        const metaAppId = user.user_metadata?.applicationId as string | undefined;
-        if (metaAppId && UUID_RE.test(metaAppId)) return metaAppId;
-      }
-    } catch { /* fall through */ }
+async function resolveAppId(accessToken?: string | null): Promise<string | null> {
+  if (!accessToken) return null;
+  try {
+    const { data: { user }, error } = await getSupabaseAdmin().auth.getUser(accessToken);
+    if (error || !user) return null;
+    const metaAppId = user.user_metadata?.applicationId as string | undefined;
+    if (metaAppId && UUID_RE.test(metaAppId)) return metaAppId;
+  } catch {
+    return null;
   }
-  return clientAppId && UUID_RE.test(clientAppId) ? clientAppId : null;
+  return null;
 }
 
 export const getWorkspaceBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
+    const applicationId = await resolveAppId(data?.accessToken);
     if (!applicationId) return { authenticated: false as const };
 
     const sb = getSupabaseAdmin();
@@ -1207,7 +1204,7 @@ export const getWorkspaceBySession = createServerFn({ method: "POST" })
 export const getTaskProgressBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
+    const applicationId = await resolveAppId(data?.accessToken);
     if (!applicationId) return { authenticated: false as const, tasks: [] };
 
     const sb = getSupabaseAdmin();
@@ -1245,7 +1242,7 @@ export const submitTranscriptionTask = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
+    const applicationId = await resolveAppId(data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
     if (TASKS_TIME_EXCEEDED) throw new Error("Task submission window has closed");
 
@@ -1270,7 +1267,7 @@ export const submitTranscriptionTask = createServerFn({ method: "POST" })
 export const getPaymentInfoBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
+    const applicationId = await resolveAppId(data?.accessToken);
     if (!applicationId) return null;
 
     const sb = getSupabaseAdmin();
@@ -1298,7 +1295,7 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
+    const applicationId = await resolveAppId(data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
 
     const sb = getSupabaseAdmin();
@@ -1320,7 +1317,7 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
 export const onboardingGetBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
+    const applicationId = await resolveAppId(data?.accessToken);
     if (!applicationId) return { valid: false as const };
 
     const sb = getSupabaseAdmin();
@@ -1343,7 +1340,7 @@ export const onboardingGetBySession = createServerFn({ method: "POST" })
 export const onboardingCompleteBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ ready: z.boolean(), clientAppId: z.string().optional(), accessToken: z.string().optional() }))
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
+    const applicationId = await resolveAppId(data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
     if (!data.ready) throw new Error("Must confirm readiness");
 
@@ -1422,7 +1419,7 @@ export const uploadDocumentBySession = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
+    const applicationId = await resolveAppId(data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
 
     const sb = getSupabaseAdmin();
@@ -1472,7 +1469,7 @@ export const uploadDocumentBySession = createServerFn({ method: "POST" })
 export const getDocumentsBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data?.clientAppId, data?.accessToken);
+    const applicationId = await resolveAppId(data?.accessToken);
     if (!applicationId) return { authenticated: false as const, queryError: false, docs: [] };
 
     const sb = getSupabaseAdmin();
@@ -1513,7 +1510,7 @@ export const verifyCertPath = createServerFn({ method: "POST" })
     }),
   )
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
+    const applicationId = await resolveAppId(data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
 
     const base = (process.env.CERTPATH_API_BASE ?? "https://certifypath.online").replace(/\/$/, "");
@@ -1759,7 +1756,7 @@ export const adminVerifyDocument = createServerFn({ method: "POST" })
 export const sendSupportMessageBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ message: z.string().min(5).max(2000), clientAppId: z.string().optional(), accessToken: z.string().optional() }))
   .handler(async ({ data }) => {
-    const applicationId = await resolveAppId(data.clientAppId, data.accessToken);
+    const applicationId = await resolveAppId(data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
 
     const sb = getSupabaseAdmin();
