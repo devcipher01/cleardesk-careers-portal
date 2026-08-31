@@ -5,6 +5,7 @@ import { ArrowUpRight, HelpCircle, Loader2, Mail, MessageSquare, Send } from "lu
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession, sendSupportMessageBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
+import { ALISON_MT_CERT_URL, COURSERA_MT_CERT_URL } from "@/lib/certLinks";
 
 export const Route = createFileRoute("/workspace/support")({
   head: () => ({ meta: [{ title: "Help Center — Worknesta Workspace" }] }),
@@ -71,14 +72,44 @@ function SupportPage() {
     }
   }
 
-  const FAQ = [
+  const FAQ: { q: string; a: React.ReactNode }[] = [
     {
       q: "When do I get paid?",
       a: "Earnings are released after module completion and review. Most tasks are reviewed within 48 hours.",
     },
     {
+      q: "Why is payment based on the entire module and not individual tasks?",
+      a: "Payout is released per module because tasks are reviewed as part of a complete project. This helps maintain quality and consistency across the work submitted.",
+    },
+    {
       q: "What is the accuracy standard?",
       a: "We expect 97%+ accuracy on all submitted work. Your first submissions are reviewed closely to ensure quality.",
+    },
+    {
+      q: "How do I get a medical transcription certificate?",
+      a: (
+        <>
+          Get certified on{" "}
+          <a
+            href={ALISON_MT_CERT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-ink underline underline-offset-2 hover:opacity-80"
+          >
+            Alison
+          </a>{" "}
+          or{" "}
+          <a
+            href={COURSERA_MT_CERT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-ink underline underline-offset-2 hover:opacity-80"
+          >
+            Coursera
+          </a>
+          . Then submit it in Settings.
+        </>
+      ),
     },
     {
       q: "What if I can't hear part of the audio?",

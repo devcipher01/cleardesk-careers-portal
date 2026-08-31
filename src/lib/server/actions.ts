@@ -1271,16 +1271,28 @@ export const getPaymentInfoBySession = createServerFn({ method: "POST" })
     if (!applicationId) return null;
 
     const sb = getSupabaseAdmin();
-    try {
-      const { data } = await sb
-        .from("payment_info")
-        .select("payment_method, account_email, account_name, extra_details")
-        .eq("application_id", applicationId)
-        .maybeSingle();
-      return data as { payment_method: string | null; account_email: string | null; account_name: string | null; extra_details: string | null } | null;
-    } catch {
-      return null;
-    }
+    const { data: row, error } = await sb
+      .from("payment_info")
+      .select("payment_method, account_email, account_name, extra_details")
+      .eq("application_id", applicationId)
+      .maybeSingle();
+    if (error) throw new Error(`Failed to load payment info: ${error.message}`);
+    if (!row) return null;
+
+    const extraRaw = row.extra_details as unknown;
+    const extraDetails =
+      extraRaw == null
+        ? null
+        : typeof extraRaw === "string"
+          ? extraRaw
+          : JSON.stringify(extraRaw);
+
+    return {
+      payment_method: row.payment_method as string | null,
+      account_email: row.account_email as string | null,
+      account_name: row.account_name as string | null,
+      extra_details: extraDetails,
+    };
   });
 
 export const savePaymentInfoBySession = createServerFn({ method: "POST" })
@@ -1300,7 +1312,7 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
 
     const sb = getSupabaseAdmin();
     const now = new Date().toISOString();
-    await sb.from("payment_info").upsert(
+    const { error } = await sb.from("payment_info").upsert(
       {
         application_id: applicationId,
         payment_method: data.paymentMethod,
@@ -1311,6 +1323,7 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
       },
       { onConflict: "application_id" },
     );
+    if (error) throw new Error(`Failed to save payment info: ${error.message}`);
     return { ok: true };
   });
 

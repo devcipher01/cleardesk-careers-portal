@@ -177,9 +177,13 @@ function SettingsPage() {
             setAccountName(pi.account_name ?? "");
             if (pi.extra_details) {
               try {
-                const extra = JSON.parse(pi.extra_details) as Record<string, string>;
-                setBankAccountNumber(extra.accountNumber ?? "");
-                setBankName(extra.bankName ?? "");
+                const extra = (
+                  typeof pi.extra_details === "string"
+                    ? JSON.parse(pi.extra_details)
+                    : pi.extra_details
+                ) as Record<string, string>;
+                setBankAccountNumber(extra.accountNumber ?? extra.account_number ?? "");
+                setBankName(extra.bankName ?? extra.bank_name ?? "");
                 setBankSwiftIban(extra.swiftIban ?? "");
                 setBankCountry(extra.country ?? "");
               } catch { /* ignore malformed extra_details */ }
