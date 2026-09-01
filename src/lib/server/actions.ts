@@ -1464,7 +1464,7 @@ export const uploadDocumentBySession = createServerFn({ method: "POST" })
     }
 
     const now = new Date().toISOString();
-    await sb.from("contractor_documents").upsert(
+    const { error: rowErr } = await sb.from("contractor_documents").upsert(
       {
         application_id: applicationId,
         doc_type: data.docType,
@@ -1476,6 +1476,7 @@ export const uploadDocumentBySession = createServerFn({ method: "POST" })
       },
       { onConflict: "application_id,doc_type" },
     );
+    if (rowErr) throw new Error(`Failed to save document: ${rowErr.message}`);
     return { ok: true, stored: fileStored, storagePath: actualStoragePath };
   });
 
@@ -1555,7 +1556,7 @@ export const verifyCertPath = createServerFn({ method: "POST" })
     if (valid) {
       const sb = getSupabaseAdmin();
       const now = new Date().toISOString();
-      await sb.from("contractor_documents").upsert(
+      const { error } = await sb.from("contractor_documents").upsert(
         {
           application_id: applicationId,
           doc_type: "medical_cert",
@@ -1570,6 +1571,7 @@ export const verifyCertPath = createServerFn({ method: "POST" })
         },
         { onConflict: "application_id,doc_type" },
       );
+      if (error) throw new Error(`Failed to save certificate: ${error.message}`);
     }
 
     return { valid, certName: certName ?? undefined };
