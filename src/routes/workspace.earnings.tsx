@@ -28,10 +28,6 @@ const ALL_TASKS: Record<string, { title: string; earningsNaira: number; duration
   m1t04: { title: "Sales Call Excerpt",             earningsNaira: TASK_PRICES_NAIRA.m1t04, durationMin: 187 / 60,  module: 1 },
   m1t05: { title: "HR Policy Briefing",             earningsNaira: TASK_PRICES_NAIRA.m1t05, durationMin: 25,  module: 1 },
   m1t06: { title: "Customer Support Call",          earningsNaira: TASK_PRICES_NAIRA.m1t06, durationMin: 16,  module: 1 },
-  m1t07: { title: "Webinar Segment — Q&A Block",   earningsNaira: nairaFromUsd(28 * PRICE_FACTOR),  durationMin: 28,  module: 1 },
-  m1t08: { title: "Medical Consultation Notes",     earningsNaira: nairaFromUsd(20 * PRICE_FACTOR),  durationMin: 20,  module: 1 },
-  m1t09: { title: "Patient Intake Interview",       earningsNaira: nairaFromUsd(28 * PRICE_FACTOR),  durationMin: 28,  module: 1 },
-  m1t10: { title: "Radiology Report Dictation",     earningsNaira: nairaFromUsd(15 * PRICE_FACTOR),  durationMin: 15,  module: 1 },
   // Module 2
   m2t01: { title: "Executive Panel Q&A",            earningsNaira: nairaFromUsd(30 * PRICE_FACTOR),  durationMin: 30,  module: 2 },
   m2t02: { title: "Training Workshop Recording",    earningsNaira: nairaFromUsd(45 * PRICE_FACTOR),  durationMin: 45,  module: 2 },
@@ -64,7 +60,7 @@ const MODULE_LABELS: Record<number, string> = {
   4: "Module 4 — Long-Form Mastery",
 };
 
-const MODULE_TASK_COUNTS: Record<number, number> = { 1: 10, 2: 7, 3: 7, 4: 6 };
+const MODULE_TASK_COUNTS: Record<number, number> = { 1: 6, 2: 7, 3: 7, 4: 6 };
 
 function storageKey(appId: string) { return `wn_task_progress_${appId}`; }
 function loadProgress(appId: string): Record<string, { status: string; submittedAt?: string }> {
@@ -174,7 +170,7 @@ function EarningsPage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Earnings overview</p>
           <h1 className="mt-2 text-2xl font-semibold text-gray-900 md:text-3xl">Your earnings</h1>
-          <p className="mt-1 text-sm text-gray-500">Earnings released after module completion and review · Most modules reviewed within 48 hours</p>
+          <p className="mt-1 text-sm text-gray-500">Earnings released after module completion and review · Most tasks reviewed within 48 hours</p>
         </div>
 
         {/* Summary cards */}
@@ -207,7 +203,7 @@ function EarningsPage() {
             <h2 className="text-sm font-semibold text-gray-900">Payment schedule</h2>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Earnings are released after module completion and review. Most modules are reviewed within 48 hours. Payments are sent via your chosen method.
+            Earnings are released after module completion and review. Most tasks are reviewed within 48 hours. Payments are sent via your chosen method.
           </p>
           <p className="text-xs text-gray-400">
             Make sure your payment info is up to date in{" "}

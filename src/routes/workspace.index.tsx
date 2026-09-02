@@ -194,7 +194,7 @@ function WorkspaceDashboard() {
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <h3 className="text-sm font-semibold text-gray-900">Payroll</h3>
             <p className="mt-2 text-sm text-gray-500">
-              Earnings are released after module completion and review. Most modules are reviewed within 48 hours. Add your payment details in{" "}
+              Earnings are released after module completion and review. Most tasks are reviewed within 48 hours. Add your payment details in{" "}
               <Link to="/workspace/settings" className="underline hover:text-gray-700">
                 Settings
               </Link>
