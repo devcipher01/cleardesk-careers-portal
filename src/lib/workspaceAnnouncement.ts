@@ -3,8 +3,9 @@ import { ALISON_MT_CERT_URL, COURSERA_MT_CERT_URL } from "@/lib/certLinks";
 /**
  * Workspace notices, shown one at a time (first undismissed).
  * Each item needs unique dismiss/session keys — do not reuse wn_* storage.
- * Add a second object here when the next notice copy is ready.
  */
+export type WorkspaceAnnouncementAudience = "all" | "module1_tasks_1_to_4_only";
+
 export type WorkspaceAnnouncement = {
   id: string;
   dismissKey: string;
@@ -15,7 +16,36 @@ export type WorkspaceAnnouncement = {
   highlight?: string;
   showSupportLink?: boolean;
   showSettingsLink?: boolean;
+  /** Default: everyone. `module1_tasks_1_to_4_only` = did 1–4, never submitted 5 or 6. */
+  audience?: WorkspaceAnnouncementAudience;
+  icon?: "alert" | "megaphone";
 };
+
+const MODULE1_GENERAL = ["m1t01", "m1t02", "m1t03", "m1t04"] as const;
+const MODULE1_MEDICAL = ["m1t05", "m1t06"] as const;
+
+function isFinishedStatus(status: string | undefined) {
+  return status === "submitted" || status === "reviewed";
+}
+
+/** True if this person submitted/reviewed any of tasks 1–4 and neither 5 nor 6. */
+export function isModule1Tasks1To4Only(
+  tasks: { task_id: string; status: string }[],
+): boolean {
+  const byId = new Map(tasks.map((t) => [t.task_id, t.status]));
+  const didGeneral = MODULE1_GENERAL.some((id) => isFinishedStatus(byId.get(id)));
+  const didMedical = MODULE1_MEDICAL.some((id) => isFinishedStatus(byId.get(id)));
+  return didGeneral && !didMedical;
+}
+
+export function announcementMatchesAudience(
+  notice: WorkspaceAnnouncement,
+  tasks: { task_id: string; status: string }[],
+): boolean {
+  if (!notice.audience || notice.audience === "all") return true;
+  if (notice.audience === "module1_tasks_1_to_4_only") return isModule1Tasks1To4Only(tasks);
+  return true;
+}
 
 export const WORKSPACE_ANNOUNCEMENTS: WorkspaceAnnouncement[] = [
   {
@@ -44,5 +74,18 @@ export const WORKSPACE_ANNOUNCEMENTS: WorkspaceAnnouncement[] = [
       "To avoid payout delays, please confirm your account number and bank name are correct in your profile settings. If your details are already saved, no action is needed.",
     ],
     showSettingsLink: true,
+  },
+  {
+    id: "payout-module-not-task-v1",
+    dismissKey: "wn_announcement_payout_module_not_task_v1",
+    sessionKey: "wn_announcement_session_payout_module_not_task_v1",
+    title: "Payout clarification",
+    paragraphs: [
+      "Payout is credited per completed module, not per individual task. Once a module is fully completed and reviewed, the payout is processed.",
+      "Where a submission deadline is missed, unfinished tasks in that module are closed. Those tasks may show Window closed and may be assigned to another transcriber. Closed tasks cannot be submitted.",
+      "Payout is not released for a module that was not fully completed before the deadline.",
+    ],
+    audience: "module1_tasks_1_to_4_only",
+    icon: "megaphone",
   },
 ];

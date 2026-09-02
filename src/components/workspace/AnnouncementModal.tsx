@@ -2,10 +2,13 @@ import React, { useEffect, useId, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, ShieldAlert } from "lucide-react";
+import { ArrowUpRight, Megaphone, ShieldAlert } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { getTaskProgressBySession } from "@/lib/server/actions";
+import { getSessionData } from "@/lib/client/supabase";
 import {
   WORKSPACE_ANNOUNCEMENTS,
+  announcementMatchesAudience,
   type WorkspaceAnnouncement,
 } from "@/lib/workspaceAnnouncement";
 
@@ -27,10 +30,40 @@ function storageSet(kind: "local" | "session", key: string) {
   }
 }
 
-function nextVisibleAnnouncement(): WorkspaceAnnouncement | null {
+function localProgressTasks(appId: string | undefined): { task_id: string; status: string }[] {
+  if (!appId || typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(`wn_task_progress_${appId}`);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Record<string, { status?: string }>;
+    return Object.entries(parsed).map(([task_id, v]) => ({ task_id, status: v.status ?? "" }));
+  } catch {
+    return [];
+  }
+}
+
+function mergeTaskStatuses(
+  ...lists: { task_id: string; status: string }[][]
+): { task_id: string; status: string }[] {
+  const byId = new Map<string, string>();
+  for (const list of lists) {
+    for (const t of list) {
+      const prev = byId.get(t.task_id);
+      if (t.status === "reviewed" || prev === "reviewed") byId.set(t.task_id, "reviewed");
+      else if (t.status === "submitted" || prev === "submitted") byId.set(t.task_id, "submitted");
+      else if (!prev) byId.set(t.task_id, t.status);
+    }
+  }
+  return Array.from(byId, ([task_id, status]) => ({ task_id, status }));
+}
+
+function nextVisibleAnnouncement(
+  tasks: { task_id: string; status: string }[],
+): WorkspaceAnnouncement | null {
   for (const notice of WORKSPACE_ANNOUNCEMENTS) {
     if (storageGet("local", notice.dismissKey)) continue;
     if (storageGet("session", notice.sessionKey)) continue;
+    if (!announcementMatchesAudience(notice, tasks)) continue;
     return notice;
   }
   return null;
@@ -54,6 +87,8 @@ function AnnouncementModalInner() {
   const [mounted, setMounted] = useState(false);
   const [notice, setNotice] = useState<WorkspaceAnnouncement | null>(null);
   const [dontShowAgain, setDontShowAgain] = useState(false);
+  const [tasks, setTasks] = useState<{ task_id: string; status: string }[]>([]);
+  const [progressReady, setProgressReady] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -61,22 +96,48 @@ function AnnouncementModalInner() {
 
   useEffect(() => {
     if (!mounted) return;
-    const first = nextVisibleAnnouncement();
-    if (!first) return;
+    let cancelled = false;
+    void (async () => {
+      const { appId, accessToken } = await getSessionData();
+      let dbTasks: { task_id: string; status: string }[] = [];
+      try {
+        const result = await getTaskProgressBySession({ data: { clientAppId: appId, accessToken } });
+        if (result.authenticated) dbTasks = result.tasks.map((t) => ({ task_id: t.task_id, status: t.status }));
+      } catch {
+        /* targeted notices stay hidden if progress cannot load */
+      }
+      if (cancelled) return;
+      setTasks(mergeTaskStatuses(dbTasks, localProgressTasks(appId)));
+      setProgressReady(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [mounted]);
+
+  useEffect(() => {
+    if (!mounted || !progressReady) return;
+    const first = nextVisibleAnnouncement(tasks);
+    if (!first) {
+      setNotice(null);
+      return;
+    }
     const timer = window.setTimeout(() => setNotice(first), 400);
     return () => window.clearTimeout(timer);
-  }, [mounted]);
+  }, [mounted, progressReady, tasks]);
 
   function dismiss() {
     if (!notice) return;
     storageSet("session", notice.sessionKey);
     if (dontShowAgain) storageSet("local", notice.dismissKey);
     setDontShowAgain(false);
-    const following = nextVisibleAnnouncement();
+    const following = nextVisibleAnnouncement(tasks);
     setNotice(following);
   }
 
   if (!mounted) return null;
+
+  const Icon = notice?.icon === "megaphone" ? Megaphone : ShieldAlert;
 
   return createPortal(
     <AnimatePresence>
@@ -104,7 +165,7 @@ function AnnouncementModalInner() {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-2 pt-6 sm:px-7">
               <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-lime text-ink shadow-sm">
-                <ShieldAlert className="h-5 w-5" />
+                <Icon className="h-5 w-5" />
               </div>
 
               <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-ink/45">
