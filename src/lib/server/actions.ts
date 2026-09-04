@@ -9,6 +9,7 @@ import { getJobBySlug } from "@/lib/jobs";
 import { COUNTRIES } from "@/lib/countries";
 import { NGN_PER_USD_TASK } from "@/lib/taskPricing";
 import { TASKS_TIME_EXCEEDED } from "@/lib/taskAvailability";
+import { SETTINGS_GET_CERT_LINK_KEY } from "@/lib/certLinks";
 import { adminNotifyEmail, publicBaseUrl } from "./devMode";
 import {
   pipelineDevInbox,
@@ -1327,6 +1328,38 @@ export const savePaymentInfoBySession = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+const TRACKED_LINK_KEYS = [SETTINGS_GET_CERT_LINK_KEY] as const;
+
+export const trackLinkClick = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      linkKey: z.enum(TRACKED_LINK_KEYS),
+      accessToken: z.string().optional(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const applicationId = await resolveAppId(data.accessToken);
+    if (!applicationId) return { ok: false as const };
+
+    const sb = getSupabaseAdmin();
+    const since = new Date(Date.now() - 5000).toISOString();
+    const { data: recent } = await sb
+      .from("link_clicks")
+      .select("id")
+      .eq("link_key", data.linkKey)
+      .eq("application_id", applicationId)
+      .gte("created_at", since)
+      .limit(1);
+    if (recent?.length) return { ok: true as const, recorded: false as const };
+
+    const { error } = await sb.from("link_clicks").insert({
+      link_key: data.linkKey,
+      application_id: applicationId,
+    });
+    if (error) throw new Error(`Failed to record click: ${error.message}`);
+    return { ok: true as const, recorded: true as const };
+  });
+
 export const onboardingGetBySession = createServerFn({ method: "POST" })
   .inputValidator(z.object({ clientAppId: z.string().optional(), accessToken: z.string().optional() }).optional())
   .handler(async ({ data }) => {
@@ -1724,13 +1757,20 @@ export const adminGetStats = createServerFn({ method: "POST" })
     mustAdmin(data.password);
     const sb = getSupabaseAdmin();
 
-    const [{ count: totalContractors }, { count: totalSubmitted }, { count: underReview }, { count: totalReviewed }, earningsResult] =
+    const emptyCertClicks = {
+      settingsGetCertClicks: 0,
+      settingsGetCertUnique: 0,
+      settingsGetCertLastAt: null as string | null,
+    };
+
+    const [{ count: totalContractors }, { count: totalSubmitted }, { count: underReview }, { count: totalReviewed }, earningsResult, certClicksResult] =
       await Promise.all([
         sb.from("applications").select("id", { count: "exact", head: true }).in("status", ["active", "onboarding"]),
         sb.from("task_progress").select("id", { count: "exact", head: true }),
         sb.from("task_progress").select("id", { count: "exact", head: true }).eq("status", "submitted"),
         sb.from("task_progress").select("id", { count: "exact", head: true }).eq("status", "reviewed"),
         sb.from("task_progress").select("earnings_usd").eq("status", "reviewed"),
+        sb.from("link_clicks").select("application_id, created_at").eq("link_key", SETTINGS_GET_CERT_LINK_KEY),
       ]);
 
     const totalEarningsUsd = ((earningsResult.data ?? []) as { earnings_usd: number | null }[]).reduce(
@@ -1738,12 +1778,35 @@ export const adminGetStats = createServerFn({ method: "POST" })
       0,
     );
 
+    let certClicks = emptyCertClicks;
+    if (certClicksResult.error) {
+      const msg = certClicksResult.error.message ?? "";
+      const missingTable =
+        certClicksResult.error.code === "42P01" ||
+        msg.includes("link_clicks") ||
+        msg.includes("schema cache");
+      if (!missingTable) throw new Error(certClicksResult.error.message);
+    } else {
+      const rows = (certClicksResult.data ?? []) as { application_id: string; created_at: string }[];
+      const unique = new Set(rows.map((r) => r.application_id));
+      let lastAt: string | null = null;
+      for (const r of rows) {
+        if (!lastAt || r.created_at > lastAt) lastAt = r.created_at;
+      }
+      certClicks = {
+        settingsGetCertClicks: rows.length,
+        settingsGetCertUnique: unique.size,
+        settingsGetCertLastAt: lastAt,
+      };
+    }
+
     return {
       totalContractors: totalContractors ?? 0,
       totalSubmitted: totalSubmitted ?? 0,
       underReview: underReview ?? 0,
       totalReviewed: totalReviewed ?? 0,
       totalEarningsNaira: Math.round(totalEarningsUsd * NGN_PER_USD_TASK),
+      ...certClicks,
     };
   });
 

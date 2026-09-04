@@ -24,8 +24,10 @@ import {
   getDocumentsBySession,
   uploadDocumentBySession,
   verifyCertPath,
+  trackLinkClick,
 } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
+import { ALISON_MT_CERT_URL, SETTINGS_GET_CERT_LINK_KEY } from "@/lib/certLinks";
 
 export const Route = createFileRoute("/workspace/settings")({
   head: () => ({ meta: [{ title: "Settings — Worknesta Workspace" }] }),
@@ -432,10 +434,22 @@ function SettingsPage() {
                         )}
 
                         <a
-                          href="https://alison.com/course/diploma-in-medical-transcription"
+                          href={ALISON_MT_CERT_URL}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="mt-2 inline-flex items-center gap-1 text-xs text-sky-600 hover:underline"
+                          onClick={() => {
+                            void (async () => {
+                              try {
+                                const { accessToken: token } = await getSessionData();
+                                await trackLinkClick({
+                                  data: { linkKey: SETTINGS_GET_CERT_LINK_KEY, accessToken: token },
+                                });
+                              } catch {
+                                /* never block the outbound cert link */
+                              }
+                            })();
+                          }}
                         >
                           <ExternalLink className="h-3 w-3" />
                           Get your medical transcription certificate on Alison

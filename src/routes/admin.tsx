@@ -26,6 +26,7 @@ import {
   Clock,
   Eye,
   FileText,
+  GraduationCap,
   Lock,
   Menu,
   RefreshCw,
@@ -69,6 +70,9 @@ interface Stats {
   underReview: number;
   totalReviewed: number;
   totalEarningsNaira: number;
+  settingsGetCertClicks: number;
+  settingsGetCertUnique: number;
+  settingsGetCertLastAt: string | null;
 }
 
 interface ContractorRow {
@@ -119,6 +123,43 @@ const TX_TIME_FILTERS: [TxTimeFilter, string][] = [
   ["4h", "Last 4 hrs"],
   ["2h", "Last 2 hrs"],
 ];
+
+function GetCertClicksCard({ stats }: { stats: Stats }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-ink/10 bg-card md:rounded-3xl">
+      <div className="border-b border-ink/10 bg-cream px-4 py-3 md:px-5">
+        <p className="text-xs font-semibold uppercase tracking-wider text-ink/60">Link tracking</p>
+      </div>
+      <div className="p-4 md:p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-50 text-sky-600">
+            <GraduationCap className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-ink">Settings · Get certificate</p>
+            <p className="text-xs text-ink/50">Alison medical transcription link</p>
+          </div>
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2 md:gap-3">
+          <div className="rounded-xl border border-ink/10 bg-cream p-3">
+            <p className="text-[11px] text-ink/50">Clicks</p>
+            <p className="text-xl font-semibold text-ink">{stats.settingsGetCertClicks}</p>
+          </div>
+          <div className="rounded-xl border border-ink/10 bg-cream p-3">
+            <p className="text-[11px] text-ink/50">Unique people</p>
+            <p className="text-xl font-semibold text-ink">{stats.settingsGetCertUnique}</p>
+          </div>
+          <div className="rounded-xl border border-ink/10 bg-cream p-3">
+            <p className="text-[11px] text-ink/50">Last click</p>
+            <p className="text-sm font-semibold text-ink">
+              {stats.settingsGetCertLastAt ? relativeTime(stats.settingsGetCertLastAt) : "—"}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function sinceIso(filter: TxTimeFilter): string | undefined {
   if (filter === "all") return undefined;
@@ -782,6 +823,7 @@ function AdminPage() {
                 </div>
               </div>
             )}
+            {stats && <GetCertClicksCard stats={stats} />}
             <div className="rounded-2xl border border-ink/10 bg-card overflow-hidden">
               <div className="px-4 py-3 border-b border-ink/10">
                 <p className="text-xs font-semibold uppercase tracking-wider text-ink/40">Per Contractor</p>
@@ -1108,6 +1150,7 @@ function AdminPage() {
           {/* Desktop stats / contractor breakdown */}
           {tab === "stats" && (
             <div className="mt-6 space-y-6">
+              {stats && <GetCertClicksCard stats={stats} />}
               <div className="overflow-hidden rounded-3xl border border-ink/10 bg-card">
                 <div className="border-b border-ink/10 bg-cream px-5 py-3">
                   <p className="text-xs font-semibold uppercase tracking-wider text-ink/60">Per-Contractor Breakdown</p>
