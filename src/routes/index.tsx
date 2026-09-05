@@ -15,9 +15,6 @@ import {
 } from "lucide-react";
 import { Section, SectionHeader } from "@/components/site/Section";
 import { JOBS } from "@/lib/jobs";
-import contractorMaria from "@/assets/contractor-maria.jpg";
-import contractorDavid from "@/assets/contractor-david.jpg";
-import contractorAna from "@/assets/contractor-ana.jpg";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -47,11 +44,11 @@ const benefits = [
 ];
 
 const testimonials = [
-  { name: "Maria S.", country: "United States", role: "Transcription Specialist", image: contractorMaria,
+  { name: "Maria S.", role: "Transcription Specialist",
     quote: "Worknesta gave me the chance to work from home with real projects and steady weekly earnings. The onboarding modules were clear and the support is genuine." },
-  { name: "David O.", country: "United Kingdom", role: "Transcription Specialist", image: contractorDavid,
+  { name: "David O.", role: "Transcription Specialist",
     quote: "I applied without any prior remote experience. Within a week I had completed the workspace setup and was working on real client transcription projects." },
-  { name: "Ana P.", country: "Canada", role: "Transcription Contractor", image: contractorAna,
+  { name: "Ana P.", role: "Transcription Contractor",
     quote: "The flexibility is unmatched. I complete my modules when I choose and receive my earnings every Friday — no surprises, no fees." },
 ];
 
@@ -310,19 +307,9 @@ function HomePage() {
                 transition={{ duration: 0.4, delay: i * 0.08 }}
                 className="rounded-3xl border border-ink/10 bg-card p-6"
               >
-                <div className="flex items-center gap-3">
-                  <img
-                    src={t.image}
-                    alt={`Portrait of ${t.name}`}
-                    loading="lazy"
-                    width={48}
-                    height={48}
-                    className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-cream"
-                  />
-                  <div className="text-sm">
-                    <div className="font-medium text-ink">{t.name}</div>
-                    <div className="text-ink/55">{t.role} · {t.country}</div>
-                  </div>
+                <div className="text-sm">
+                  <div className="font-medium text-ink">{t.name}</div>
+                  <div className="text-ink/55">{t.role}</div>
                 </div>
                 <blockquote className="mt-5 text-[15px] leading-relaxed text-ink/80">
                   "{t.quote}"
