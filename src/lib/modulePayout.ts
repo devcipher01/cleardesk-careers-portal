@@ -64,11 +64,11 @@ export function evaluateModulePayout(
     pendingCount: pending.length,
   };
 
-  if (pending.length > 0) {
-    return { ...base, kind: "pending_review", payableNaira: 0 };
-  }
   if (!complete) {
     return { ...base, kind: "incomplete", payableNaira: 0 };
+  }
+  if (pending.length > 0) {
+    return { ...base, kind: "pending_review", payableNaira: 0 };
   }
   if (!USE_STORED_MODULE_ACCURACY_PAYOUT) {
     return { ...base, kind: "below_accuracy", payableNaira: 0 };

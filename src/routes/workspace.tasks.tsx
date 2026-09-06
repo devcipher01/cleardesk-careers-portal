@@ -197,8 +197,8 @@ function isModuleWindowExpired(
 }
 
 /**
- * Drop from Tasks available when every task is reviewed, or expired (not submitted).
- * Submitted-but-unreviewed work stays on this page until review finishes.
+ * Drop from Tasks available once the module is fully submitted, or the
+ * submission period has ended. Remaining work lives in Earnings history.
  * Placeholder modules (no tasks yet) stay in the queue.
  */
 function isModuleClearedFromAvailable(
@@ -207,13 +207,7 @@ function isModuleClearedFromAvailable(
   meta: ModuleMeta | undefined,
 ): boolean {
   if (tasks.length === 0) return false;
-  const expired = isModuleWindowExpired(tasks, progress, meta);
-  return tasks.every((t) => {
-    const s = progress[t.id]?.status;
-    if (s === "reviewed") return true;
-    if (expired && s !== "submitted") return true;
-    return false;
-  });
+  return isModuleFullyComplete(tasks, progress) || isModuleWindowExpired(tasks, progress, meta);
 }
 
 function fmtDuration(min: number) {

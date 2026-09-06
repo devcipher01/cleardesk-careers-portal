@@ -187,7 +187,7 @@ function EarningsPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Earnings overview</p>
           <h1 className="mt-2 text-2xl font-semibold text-gray-900 md:text-3xl">Your earnings</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Payable after a module is fully completed, reviewed, and averages {MODULE_PAYOUT_MIN_ACCURACY}%+ accuracy. Expired or incomplete modules are not paid.
+            Payable after a module is fully completed, reviewed, and meets the {MODULE_PAYOUT_MIN_ACCURACY}% accuracy standard.
           </p>
         </div>
 
@@ -265,8 +265,10 @@ function EarningsPage() {
                     return d > latest ? d : latest;
                   }, new Date(0));
                   payoutStr = nextPayoutAfter(latestReview).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-                } else if (payout.kind === "below_accuracy" || payout.kind === "incomplete") {
-                  payoutStr = "Not eligible";
+                } else if (payout.kind === "below_accuracy") {
+                  payoutStr = "Below 97%";
+                } else if (payout.kind === "incomplete") {
+                  payoutStr = "Incomplete";
                 }
 
                 return (
@@ -317,32 +319,34 @@ function EarningsPage() {
                     </div>
 
                     {payout.kind === "pending_review" && (
-                      <div className="mt-2 rounded-lg bg-sky-50 border border-sky-100 px-3 py-2 flex items-center gap-2">
-                        <Clock className="h-3.5 w-3.5 text-sky-500 shrink-0" />
-                        <p className="text-xs text-sky-700">
-                          <span className="font-semibold">{payout.pendingCount} task{payout.pendingCount !== 1 ? "s" : ""}</span> under review — {formatNaira(payout.pendingNaira)} held pending review. Not counted as earned until the module qualifies.
+                      <div className="mt-3 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-sky-800">Module summary</p>
+                        <p className="mt-1 text-xs leading-5 text-sky-800">
+                          Review in progress. Earnings are confirmed after review.
                         </p>
                       </div>
                     )}
                     {payout.kind === "payable" && (
-                      <div className="mt-2 rounded-lg bg-emerald-50 border border-emerald-100 px-3 py-2 flex items-center gap-2">
-                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
-                        <p className="text-xs text-emerald-700">
-                          Module complete — <span className="font-semibold">{formatNaira(payout.payableNaira)}</span> queued for payout on {payoutStr}
+                      <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-emerald-800">Module summary</p>
+                        <p className="mt-1 text-xs leading-5 text-emerald-800">
+                          Eligible for payout on {payoutStr}.
                         </p>
                       </div>
                     )}
                     {payout.kind === "below_accuracy" && (
-                      <div className="mt-2 rounded-lg bg-rose-50 border border-rose-100 px-3 py-2">
-                        <p className="text-xs text-rose-800">
-                          Below the {MODULE_PAYOUT_MIN_ACCURACY}% accuracy standard — this module is not eligible for payout. Tasks stay in history.
+                      <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-800">Module summary</p>
+                        <p className="mt-1 text-xs leading-5 text-rose-800">
+                          Accuracy below {MODULE_PAYOUT_MIN_ACCURACY}%. Not eligible for payout.
                         </p>
                       </div>
                     )}
                     {payout.kind === "incomplete" && (
-                      <div className="mt-2 rounded-lg bg-rose-50 border border-rose-100 px-3 py-2">
-                        <p className="text-xs text-rose-800">
-                          Module was not fully completed before the deadline — not eligible for payout. Submitted tasks stay in history.
+                      <div className="mt-3 rounded-lg border border-rose-100 bg-rose-50 px-3 py-2.5">
+                        <p className="text-[11px] font-semibold uppercase tracking-wide text-rose-800">Module summary</p>
+                        <p className="mt-1 text-xs leading-5 text-rose-800">
+                          Module incomplete ({tasks.length} of {MODULE_TASK_COUNTS[mod]} tasks submitted). Not eligible for payout.
                         </p>
                       </div>
                     )}
