@@ -75,17 +75,4 @@ export const WORKSPACE_ANNOUNCEMENTS: WorkspaceAnnouncement[] = [
     ],
     showSettingsLink: true,
   },
-  {
-    id: "payout-module-not-task-v1",
-    dismissKey: "wn_announcement_payout_module_not_task_v1",
-    sessionKey: "wn_announcement_session_payout_module_not_task_v1",
-    title: "Payout clarification",
-    paragraphs: [
-      "Payout is credited per completed module, not per individual task. Once a module is fully completed and reviewed, the payout is processed.",
-      "Where a submission deadline is missed, unfinished tasks in that module are closed. Those tasks may show Window closed and may be assigned to another transcriber. Closed tasks cannot be submitted.",
-      "Payout is not released for a module that was not fully completed before the deadline.",
-    ],
-    audience: "module1_tasks_1_to_4_only",
-    icon: "megaphone",
-  },
 ];

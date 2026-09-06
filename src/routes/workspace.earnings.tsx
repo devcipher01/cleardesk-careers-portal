@@ -160,7 +160,6 @@ function EarningsPage() {
     });
 
   const reviewed = submitted.filter((t) => t.status === "reviewed");
-  const pendingReview = submitted.filter((t) => t.status === "submitted");
 
   const moduleNums = [1, 2, 3, 4] as const;
   const byModule = moduleNums
@@ -173,9 +172,15 @@ function EarningsPage() {
 
   const totalEarned = byModule.reduce((s, g) => s + g.payout.payableNaira, 0);
   const reviewedEarned = totalEarned;
-  const pendingEarned = byModule.reduce((s, g) => s + g.payout.pendingNaira, 0);
+  const pendingEarned = byModule.reduce(
+    (s, g) => (g.payout.kind === "pending_review" ? s + g.payout.pendingNaira : s),
+    0,
+  );
   const reviewedTaskCount = reviewed.length;
-  const pendingTaskCount = pendingReview.length;
+  const pendingTaskCount = byModule.reduce(
+    (s, g) => (g.payout.kind === "pending_review" ? s + g.payout.pendingCount : s),
+    0,
+  );
 
   const payDates = nextPaymentDates();
 

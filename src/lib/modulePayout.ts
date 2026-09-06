@@ -65,7 +65,7 @@ export function evaluateModulePayout(
   };
 
   if (!complete) {
-    return { ...base, kind: "incomplete", payableNaira: 0 };
+    return { ...base, kind: "incomplete", payableNaira: 0, pendingNaira: 0 };
   }
   if (pending.length > 0) {
     return { ...base, kind: "pending_review", payableNaira: 0 };
