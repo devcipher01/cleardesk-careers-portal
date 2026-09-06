@@ -28,6 +28,8 @@ import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession,
 import { getSessionData } from "@/lib/client/supabase";
 import { formatNaira, NGN_PER_USD_TASK, TASK_PRICES_NAIRA } from "@/lib/taskPricing";
 import { TASKS_TIME_EXCEEDED } from "@/lib/taskAvailability";
+import { effectiveAccuracyPercent } from "@/lib/taskAccuracy";
+import { evaluateModulePayout, MODULE_TASK_COUNTS } from "@/lib/modulePayout";
 
 // ─── Auto-construct audio URL from Supabase public bucket ─────────────────────
 // Upload files to Supabase Storage bucket "task-audio" named exactly as the
@@ -180,6 +182,38 @@ function isFinishedStatus(status: TaskStatus | undefined): boolean {
 
 function isModuleFullyComplete(tasks: TaskDef[], progress: LocalProgress): boolean {
   return tasks.length > 0 && tasks.every((t) => isFinishedStatus(progress[t.id]?.status));
+}
+
+/** Window is past only when the module was not fully submitted in time. */
+function isModuleWindowExpired(
+  tasks: TaskDef[],
+  progress: LocalProgress,
+  meta: ModuleMeta | undefined,
+): boolean {
+  if (isModuleFullyComplete(tasks, progress)) return false;
+  if (TASKS_TIME_EXCEEDED) return true;
+  if (meta?.deadlineIso && new Date(meta.deadlineIso).getTime() <= Date.now()) return true;
+  return false;
+}
+
+/**
+ * Drop from Tasks available when every task is reviewed, or expired (not submitted).
+ * Submitted-but-unreviewed work stays on this page until review finishes.
+ * Placeholder modules (no tasks yet) stay in the queue.
+ */
+function isModuleClearedFromAvailable(
+  tasks: TaskDef[],
+  progress: LocalProgress,
+  meta: ModuleMeta | undefined,
+): boolean {
+  if (tasks.length === 0) return false;
+  const expired = isModuleWindowExpired(tasks, progress, meta);
+  return tasks.every((t) => {
+    const s = progress[t.id]?.status;
+    if (s === "reviewed") return true;
+    if (expired && s !== "submitted") return true;
+    return false;
+  });
 }
 
 function fmtDuration(min: number) {
@@ -343,18 +377,6 @@ function AudioPlayer({ durationMin, src }: { durationMin: number; src?: string }
       <p className="text-[11px] text-gray-400 italic">Use ← 10 s / → 10 s buttons to navigate. Speed control on the right.</p>
     </div>
   );
-}
-
-/** Accuracy score based on word count vs expected words from audio duration.
- *  Falls back to deterministic hash if text is unavailable. Capped at 99%. */
-function accuracyScore(text: string | undefined, durationMin: number): number {
-  if (text && text.trim().length > 0) {
-    const wordCount = text.trim().split(/\s+/).filter(Boolean).length;
-    const expectedWords = durationMin * 130; // ~130 WPM natural speech
-    return Math.min(99, Math.round((wordCount / expectedWords) * 100));
-  }
-  // Fallback: deterministic from durationMin so same task always shows same score
-  return 85 + (durationMin % 15);
 }
 
 // ─── Category badge ────────────────────────────────────────────────────────────
@@ -724,7 +746,7 @@ function TaskCard({
           )}
           {status === "reviewed" && (
             <span className="inline-flex items-center gap-1 rounded-full bg-lime/15 px-2.5 py-0.5 text-[11px] font-semibold text-lime">
-              {Math.round(dbAccuracyScore ?? accuracyScore(text, task.durationMin))}% accuracy
+              {effectiveAccuracyPercent(dbAccuracyScore, text, task.durationMin)}% accuracy
             </span>
           )}
         </div>
@@ -767,18 +789,18 @@ function TaskCard({
 // ─── Placeholder module card ───────────────────────────────────────────────────
 // Modules 2–4 are not yet active. They display upcoming topic areas but are
 // never expandable or startable, regardless of Module 1 completion status.
-function PlaceholderModuleCard({ mod }: { mod: ModuleDef }) {
+function PlaceholderModuleCard({ mod, displayNum }: { mod: ModuleDef; displayNum: number }) {
   return (
     <div className="rounded-2xl border border-gray-200 bg-gray-100">
       <div className="p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-4 min-w-0 flex-1">
             <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-200 text-sm font-bold text-gray-500">
-              {mod.num}
+              {displayNum}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-3">
-                <h2 className="text-base font-semibold text-gray-400">{mod.label}</h2>
+                <h2 className="text-base font-semibold text-gray-400">Module {displayNum}</h2>
                 <span className="text-sm font-normal text-gray-400">— {mod.subtitle}</span>
                 <span className="inline-flex items-center rounded-full border border-gray-300 bg-white px-2.5 py-0.5 text-[11px] font-medium text-gray-400">
                   Upcoming
@@ -809,9 +831,10 @@ function PlaceholderModuleCard({ mod }: { mod: ModuleDef }) {
 // Visually distinct from task cards: dark ink background when available, making
 // it a clear section divider with prominent expand/collapse control.
 function ModuleHeader({
-  mod, tasks, progress, contractSubmitted, meta, isOpen, onToggle, onReserve,
+  mod, displayNum, tasks, progress, contractSubmitted, meta, isOpen, onToggle, onReserve,
 }: {
   mod: ModuleDef;
+  displayNum: number;
   tasks: TaskDef[];
   progress: LocalProgress;
   contractSubmitted: boolean;
@@ -855,12 +878,12 @@ function ModuleHeader({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-4 min-w-0">
             <div className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${numBgClass}`}>
-              {mod.num}
+              {displayNum}
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className={`text-base font-semibold ${titleClass}`}>
-                  {mod.label}
+                  Module {displayNum}
                 </h2>
                 <span className={`text-sm font-normal ${available ? "text-gray-400" : "text-gray-400"}`}>
                   — {mod.subtitle}
@@ -984,6 +1007,12 @@ function TasksPage() {
 
         setProgress(prog);
         setModuleMeta(meta);
+        const firstOpen = MODULES.find((mod) => {
+          const tasks = TASKS.filter((t) => t.module === mod.num);
+          if (mod.placeholder || isModuleClearedFromAvailable(tasks, prog, meta[String(mod.num)])) return false;
+          return isModuleAvailable(mod.num, prog, s.contractSubmitted);
+        });
+        setOpenModules(new Set(firstOpen ? [firstOpen.num] : []));
 
         // Load cert status — localStorage first for instant feedback, then DB as source of truth.
         // Only a *verified* record (verified_at non-null) counts — an uploaded-but-unreviewed
@@ -1080,21 +1109,45 @@ function TasksPage() {
     } catch { /* silent — localStorage already updated */ }
   }
 
-  const totalEarned = TASKS.reduce((sum, t) => {
-    const s = computeEffectiveStatus(t, progress, contractSubmitted);
-    return s === "submitted" || s === "reviewed" ? sum + t.earningsNaira : sum;
+  const totalEarned = MODULES.reduce((sum, mod) => {
+    const submittedTasks = TASKS.filter((t) => t.module === mod.num)
+      .map((t) => {
+        const s = computeEffectiveStatus(t, progress, contractSubmitted);
+        if (s !== "submitted" && s !== "reviewed") return null;
+        return {
+          earningsNaira: t.earningsNaira,
+          status: s,
+          text: progress[t.id]?.text,
+          dbAccuracyScore: progress[t.id]?.dbAccuracyScore,
+          durationMin: t.durationMin,
+        };
+      })
+      .filter((t): t is NonNullable<typeof t> => t != null);
+    return sum + evaluateModulePayout(MODULE_TASK_COUNTS[mod.num] ?? submittedTasks.length, submittedTasks).payableNaira;
   }, 0);
-  const submittedCount = TASKS.filter((t) => {
+
+  const queue = MODULES
+    .map((mod) => {
+      const tasks = TASKS.filter((t) => t.module === mod.num);
+      const meta = moduleMeta[String(mod.num)];
+      return { mod, tasks, meta };
+    })
+    .filter(({ tasks, meta }) => !isModuleClearedFromAvailable(tasks, progress, meta))
+    .map((item, i) => ({ ...item, displayNum: i + 1 }));
+
+  const activeQueue = queue.filter(({ mod }) => !mod.placeholder);
+  const activeTasks = activeQueue.flatMap(({ tasks }) => tasks);
+  const activeSubmittedCount = activeTasks.filter((t) => {
     const s = computeEffectiveStatus(t, progress, contractSubmitted);
     return s === "submitted" || s === "reviewed";
   }).length;
-  const underReviewCount = TASKS.filter((t) => computeEffectiveStatus(t, progress, contractSubmitted) === "submitted").length;
-
-  const module1Complete = isModuleFullyComplete(
-    TASKS.filter((t) => t.module === 1),
-    progress,
+  const activeUnderReviewCount = activeTasks.filter(
+    (t) => computeEffectiveStatus(t, progress, contractSubmitted) === "submitted",
+  ).length;
+  const visibleExpired = activeQueue.some(({ tasks, meta }) =>
+    isModuleWindowExpired(tasks, progress, meta),
   );
-  const windowClosed = TASKS_TIME_EXCEEDED && !module1Complete;
+  const activeModule = activeQueue[0];
 
   return (
     <OrgShell candidateName={candidateName} roleTitle={roleTitle} activeNav="tasks">
@@ -1104,14 +1157,16 @@ function TasksPage() {
         <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Module 1–4 · Transcription Tasks</p>
-              <h1 className="mt-2 text-2xl font-semibold text-gray-900">
-                {windowClosed ? "Tasks" : "Available tasks"}
-              </h1>
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                Module 1–{Math.max(queue.length, 1)} · Transcription Tasks
+              </p>
+              <h1 className="mt-2 text-2xl font-semibold text-gray-900">Available tasks</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                {windowClosed
-                  ? "The submission window for this module has closed. Tasks you already submitted stay on record for review and payment."
-                  : `${TASKS.length} transcription tasks in Module 1, with 3 further modules releasing progressively upon completion of the prior module. Complete and submit all tasks within 3 days.`}
+                {visibleExpired
+                  ? "The submission window for this module has closed. Tasks you already submitted stay on record for review and payment. Finished modules remain in Earnings history."
+                  : activeModule
+                    ? `${activeModule.tasks.length} transcription tasks in Module ${activeModule.displayNum}, with further modules releasing progressively upon completion of the prior module. Complete and submit all tasks within 3 days.`
+                    : "Finished modules stay in Earnings history. Further modules appear here as they open."}
               </p>
             </div>
             <div className="flex flex-col items-end gap-2">
@@ -1119,9 +1174,13 @@ function TasksPage() {
                 <p className="text-xs text-gray-500">Earned so far</p>
                 <p className="text-xl font-bold text-lime">{formatNaira(totalEarned)}</p>
               </div>
-              <p className="text-xs text-gray-400">{submittedCount}/{TASKS.length} submitted</p>
-              {underReviewCount > 0 && (
-                <p className="text-xs text-sky-600 font-medium">{underReviewCount} under review</p>
+              {activeTasks.length > 0 ? (
+                <p className="text-xs text-gray-400">{activeSubmittedCount}/{activeTasks.length} submitted</p>
+              ) : (
+                <p className="text-xs text-gray-400">Past work is in Earnings</p>
+              )}
+              {activeUnderReviewCount > 0 && (
+                <p className="text-xs text-sky-600 font-medium">{activeUnderReviewCount} under review</p>
               )}
             </div>
           </div>
@@ -1136,24 +1195,22 @@ function TasksPage() {
         </div>
 
         {/* Modules */}
-        {MODULES.map((mod) => {
-          // Modules 2–4 are placeholder — show topics preview only, never expandable
+        {queue.map(({ mod, tasks: modTasks, meta, displayNum }) => {
           if (mod.placeholder) {
             return (
               <section key={mod.num}>
-                <PlaceholderModuleCard mod={mod} />
+                <PlaceholderModuleCard mod={mod} displayNum={displayNum} />
               </section>
             );
           }
 
-          const modTasks = TASKS.filter((t) => t.module === mod.num);
-          const meta     = moduleMeta[String(mod.num)];
-          const isOpen   = openModules.has(mod.num);
+          const isOpen = openModules.has(mod.num);
 
           return (
             <section key={mod.num} className="space-y-2">
               <ModuleHeader
                 mod={mod}
+                displayNum={displayNum}
                 tasks={modTasks}
                 progress={progress}
                 contractSubmitted={contractSubmitted}
