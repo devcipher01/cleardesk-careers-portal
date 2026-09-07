@@ -37,6 +37,13 @@ export function publicBaseUrl() {
   return "https://worknesta.com";
 }
 
+export function publicBaseUrlForMarket(market?: string | null) {
+  if (market === "ph") {
+    return (process.env.PUBLIC_PH_BASE_URL || "https://ph.worknesta.com").replace(/\/$/, "");
+  }
+  return publicBaseUrl().replace(/\/$/, "");
+}
+
 /** Comma-separated list of emails that should receive immediate test emails. */
 export function testEmailsList(): string[] {
   const raw = process.env.TEST_EMAILS || "";

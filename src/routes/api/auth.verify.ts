@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getSupabaseAdmin } from "@/lib/server/supabaseAdmin";
-import { publicBaseUrl } from "@/lib/server/devMode";
+import { publicBaseUrlForMarket } from "@/lib/server/devMode";
 
 export const Route = createFileRoute("/api/auth/verify")({
   server: {
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/api/auth/verify")({
           // Look up application email + name for Supabase Auth user creation
           const { data: app, error: appErr } = await sb
             .from("applications")
-            .select("email, full_name, role_title, status")
+            .select("email, full_name, role_title, status, market")
             .eq("id", applicationId)
             .single();
           if (appErr || !app) {
@@ -51,7 +51,7 @@ export const Route = createFileRoute("/api/auth/verify")({
           const destination = await resolveDestination(sb, applicationId, rawNext);
 
           // Create/update Supabase Auth user and generate a magic sign-in link
-          const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent(destination)}`;
+          const callbackUrl = `${publicBaseUrlForMarket(app.market as string)}/auth/callback?next=${encodeURIComponent(destination)}`;
           const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
             type: "magiclink",
             email: app.email as string,

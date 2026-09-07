@@ -15,33 +15,30 @@ import {
 } from "lucide-react";
 import { Section, SectionHeader } from "@/components/site/Section";
 import { JOBS } from "@/lib/jobs";
+import { MARKET_COPY, marketFromContext } from "@/lib/market";
+import { useMarket } from "@/lib/useMarket";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Worknesta — Freelance Transcription Projects" },
-      {
-        name: "description",
-        content:
-          "Work from anywhere. Worknesta connects independent contractors with transcription projects from enterprise clients. Apply today.",
-      },
-      { property: "og:title", content: "Worknesta — Freelance Transcription Projects" },
-      {
-        property: "og:description",
-        content:
-          "Build a freelance transcription career. 800+ contractors across Africa earn weekly on Worknesta.",
-      },
-    ],
-  }),
+  head: ({ match }) => {
+    const copy = MARKET_COPY[marketFromContext(match.context)];
+    return {
+      meta: [
+        { title: "Worknesta — Freelance Transcription Projects" },
+        {
+          name: "description",
+          content:
+            "Work from anywhere. Worknesta connects independent contractors with transcription projects from enterprise clients. Apply today.",
+        },
+        { property: "og:title", content: "Worknesta — Freelance Transcription Projects" },
+        {
+          property: "og:description",
+          content: copy.homeOg,
+        },
+      ],
+    };
+  },
   component: HomePage,
 });
-
-const benefits = [
-  { icon: Clock, color: "bg-lavender", title: "Flexible schedule", body: "Take on projects full-time, part-time, or at your own pace — you choose." },
-  { icon: Wallet, color: "bg-mint", title: "Earnings paid weekly", body: "Reliable Friday payouts via Wise, Payoneer, or bank transfer." },
-  { icon: GraduationCap, color: "bg-butter", title: "No experience needed", body: "Most entry-level projects only require attention to detail and clear English." },
-  { icon: Globe2, color: "bg-rose", title: "Focused contractor network", body: "Join contractors across Africa." },
-];
 
 const testimonials = [
   { name: "Maria S.", role: "Transcription Specialist",
@@ -61,6 +58,13 @@ const journeySteps = [
 
 function HomePage() {
   const navigate = useNavigate();
+  const copy = MARKET_COPY[useMarket()];
+  const benefits = [
+    { icon: Clock, color: "bg-lavender", title: "Flexible schedule", body: "Take on projects full-time, part-time, or at your own pace — you choose." },
+    { icon: Wallet, color: "bg-mint", title: "Earnings paid weekly", body: "Reliable Friday payouts via Wise, Payoneer, or bank transfer." },
+    { icon: GraduationCap, color: "bg-butter", title: "No experience needed", body: "Most entry-level projects only require attention to detail and clear English." },
+    { icon: Globe2, color: "bg-rose", title: "Focused contractor network", body: copy.networkBenefit },
+  ];
 
   useEffect(() => {
     void (async () => {
@@ -91,7 +95,7 @@ function HomePage() {
             >
               <span className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-cream px-3 py-1 text-xs font-medium text-ink/70">
                 <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-                Now accepting contractors · Africa
+                {copy.acceptingLine}
               </span>
               <h1 className="mt-6 text-balance text-5xl font-medium leading-[1.02] text-ink md:text-7xl">
                 Work from anywhere.
@@ -101,8 +105,7 @@ function HomePage() {
                 transcription career.
               </h1>
               <p className="mt-6 max-w-xl text-base text-ink/65 md:text-lg">
-                We connect detail-oriented independent contractors with transcription projects
-                from enterprise clients across Africa.
+                {copy.heroLead}
               </p>
               <p className="mt-3 max-w-xl text-sm text-ink/55 md:text-base">
                 Worknesta is a freelance platform — contractors earn weekly by completing
@@ -159,7 +162,7 @@ function HomePage() {
             eyebrow="Why Worknesta"
             title="Real projects,"
             italicWord="real respect."
-            description="No gatekeepers, no fees, no fluff. A modern freelance platform built for independent contractors across Africa."
+            description={copy.whyDescription}
           />
           <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {benefits.map((b, i) => (

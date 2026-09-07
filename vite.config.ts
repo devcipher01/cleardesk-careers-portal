@@ -32,6 +32,6 @@ export default defineConfig({
     host: true,
     port: 5000,
     strictPort: true,
-    allowedHosts: ["localhost", ".replit.dev", ".repl.co"],
+    allowedHosts: ["localhost", ".replit.dev", ".repl.co", "worknesta.com", "www.worknesta.com", "ph.worknesta.com"],
   },
 });

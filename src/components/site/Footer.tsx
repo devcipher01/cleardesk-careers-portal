@@ -1,7 +1,13 @@
 import { Link } from "@tanstack/react-router";
 import { Linkedin } from "lucide-react";
+import { MARKET_COPY } from "@/lib/market";
+import { otherMarketHref, persistMarketPreference, useMarket } from "@/lib/useMarket";
 
 export function Footer() {
+  const market = useMarket();
+  const copy = MARKET_COPY[market];
+  const other = market === "ph" ? "ng" : "ph";
+
   return (
     <footer className="mt-20 border-t border-ink/10">
       <div className="container-page grid gap-10 py-14 md:grid-cols-4">
@@ -37,6 +43,15 @@ export function Footer() {
             <li><Link to="/careers" className="hover:text-ink">Open Projects</Link></li>
             <li><Link to="/how-it-works" className="hover:text-ink">How It Works</Link></li>
             <li><Link to="/contact" className="hover:text-ink">Contact</Link></li>
+            <li>
+              <a
+                href={otherMarketHref(market, "/")}
+                className="hover:text-ink"
+                onClick={() => persistMarketPreference(other)}
+              >
+                {copy.otherSiteLabel}
+              </a>
+            </li>
           </ul>
         </div>
 

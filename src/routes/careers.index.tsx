@@ -3,30 +3,34 @@ import { ArrowUpRight, MapPin, CheckCircle2, GraduationCap, Lock } from "lucide-
 import { motion } from "framer-motion";
 import { Section } from "@/components/site/Section";
 import { JOBS } from "@/lib/jobs";
+import { MARKET_COPY, marketFromContext } from "@/lib/market";
+import { useMarket } from "@/lib/useMarket";
 
 export const Route = createFileRoute("/careers/")({
-  head: () => ({
-    meta: [
-      { title: "Open Transcription Projects — Worknesta" },
-      {
-        name: "description",
-        content:
-          "Browse open transcription projects for independent contractors across Africa. Weekly earnings, fully remote.",
-      },
-      { property: "og:title", content: "Open Transcription Projects at Worknesta" },
-      {
-        property: "og:description",
-        content:
-          "Transcription projects for independent contractors. Fully remote across Africa. Weekly earnings.",
-      },
-    ],
-  }),
+  head: ({ match }) => {
+    const copy = MARKET_COPY[marketFromContext(match.context)];
+    return {
+      meta: [
+        { title: "Open Transcription Projects — Worknesta" },
+        {
+          name: "description",
+          content: copy.careersMeta,
+        },
+        { property: "og:title", content: "Open Transcription Projects at Worknesta" },
+        {
+          property: "og:description",
+          content: copy.careersOg,
+        },
+      ],
+    };
+  },
   component: CareersIndexPage,
 });
 
 const swatches = ["bg-lime", "bg-peach", "bg-lavender", "bg-mint", "bg-butter", "bg-rose"];
 
 function CareersIndexPage() {
+  const copy = MARKET_COPY[useMarket()];
   const openCount = JOBS.filter((j) => j.status === "open").length;
 
   return (
@@ -39,15 +43,14 @@ function CareersIndexPage() {
           <div className="relative mx-auto max-w-3xl text-center">
             <span className="inline-flex items-center gap-2 rounded-full border border-ink/10 bg-cream px-3 py-1 text-xs font-medium text-ink/70">
               <span className="h-1.5 w-1.5 rounded-full bg-lime" />
-              {openCount} open {openCount === 1 ? "project" : "projects"} · Africa
+              {openCount} open {openCount === 1 ? "project" : "projects"} · {copy.careersBadge}
             </span>
             <h1 className="mt-6 text-balance text-4xl font-medium leading-[1.05] text-ink md:text-6xl">
               Open transcription{" "}
               <span className="font-serif italic">projects.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-ink/65 md:text-lg">
-              Projects are open to independent contractors in Africa. Worknesta is headquartered in
-              Wilmington, Delaware, USA.
+              {copy.careersIntro}
             </p>
           </div>
 
@@ -118,7 +121,7 @@ function CareersIndexPage() {
                       </span>
                     ))}
                     <span className="inline-flex items-center gap-1 text-ink/50">
-                      <MapPin className="h-3 w-3" /> 🌎 Remote · Africa
+                      <MapPin className="h-3 w-3" /> 🌎 {copy.careersRemote}
                     </span>
                   </div>
 
@@ -198,7 +201,7 @@ function CareersIndexPage() {
           </div>
 
           <p className="mt-12 text-center font-script text-xl text-ink/60">
-            ✦ no application fees · 100% remote · Africa contractors
+            {copy.careersFooter}
           </p>
         </div>
       </Section>

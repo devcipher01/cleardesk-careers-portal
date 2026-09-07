@@ -1,9 +1,11 @@
 import React from "react";
-import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouterState } from "@tanstack/react-router";
+import { Outlet, Link, createRootRoute, HeadContent, Scripts, useRouterState, redirect, isRedirect } from "@tanstack/react-router";
 import { Navbar } from "@/components/site/Navbar";
 import { Footer } from "@/components/site/Footer";
 import { HiringBadge } from "@/components/site/HiringBadge";
 import { CookieBanner } from "@/components/site/CookieBanner";
+import { resolveMarketGate } from "@/lib/server/resolveMarket";
+import type { MarketId } from "@/lib/market";
 
 import appCss from "../styles.css?url";
 
@@ -30,6 +32,25 @@ function NotFoundComponent() {
 }
 
 export const Route = createRootRoute({
+  beforeLoad: async ({ location }) => {
+    try {
+      const searchStr = (location as { searchStr?: string }).searchStr ?? "";
+      const gate = await resolveMarketGate({
+        data: {
+          pathname: location.pathname,
+          search: searchStr,
+        },
+      });
+      if (gate.redirectTo) {
+        throw redirect({ href: gate.redirectTo });
+      }
+      return { market: gate.market as MarketId };
+    } catch (err) {
+      if (isRedirect(err)) throw err;
+      console.warn("market gate failed:", err);
+      return { market: "ng" as MarketId };
+    }
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

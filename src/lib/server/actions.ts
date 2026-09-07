@@ -10,7 +10,7 @@ import { COUNTRIES } from "@/lib/countries";
 import { NGN_PER_USD_TASK } from "@/lib/taskPricing";
 import { TASKS_TIME_EXCEEDED } from "@/lib/taskAvailability";
 import { SETTINGS_GET_CERT_LINK_KEY } from "@/lib/certLinks";
-import { adminNotifyEmail, publicBaseUrl } from "./devMode";
+import { adminNotifyEmail, publicBaseUrlForMarket } from "./devMode";
 import {
   pipelineDevInbox,
   pipelineGetSkillsProfileState,
@@ -103,6 +103,7 @@ export const submitApplication = createServerFn({ method: "POST" })
       full_name: inserted.full_name as string,
       email: inserted.email as string,
       role_title: inserted.role_title as string,
+      market: (inserted as { market?: string }).market,
     });
 
     return { applicationId: inserted.id as string, roleTitle: inserted.role_title as string };
@@ -117,7 +118,7 @@ export const generateSignInLink = createServerFn({ method: "POST" })
 
     const { data: appRow } = await sb
       .from("applications")
-      .select("id, full_name, email, role_title")
+      .select("id, full_name, email, role_title, market")
       .ilike("email", email)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -127,7 +128,7 @@ export const generateSignInLink = createServerFn({ method: "POST" })
       throw new Error("No account found for that email.");
     }
 
-    const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent("/workspace")}`;
+    const callbackUrl = `${publicBaseUrlForMarket(appRow.market)}/auth/callback?next=${encodeURIComponent("/workspace")}`;
     const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
       type: "magiclink",
       email,
@@ -156,7 +157,7 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
 
     const { data: appRow } = await sb
       .from("applications")
-      .select("id, full_name, email, role_title")
+      .select("id, full_name, email, role_title, market")
       .ilike("email", email)
       .order("created_at", { ascending: false })
       .limit(1)
@@ -166,7 +167,7 @@ export const resendWorkspaceLink = createServerFn({ method: "POST" })
       throw new Error("No account found for that email.");
     }
 
-    const callbackUrl = `${publicBaseUrl()}/auth/callback?next=${encodeURIComponent("/workspace")}`;
+    const callbackUrl = `${publicBaseUrlForMarket(appRow.market)}/auth/callback?next=${encodeURIComponent("/workspace")}`;
     const { data: linkData, error: linkErr } = await sb.auth.admin.generateLink({
       type: "magiclink",
       email,
@@ -265,7 +266,7 @@ export const adminListApplications = createServerFn({ method: "POST" })
     let q = sb
       .from("applications")
       .select(
-        "id, created_at, status, full_name, email, role_title, role_slug, phone, country, timezone, has_computer, internet, typing_speed, availability, hours_per_week, why_remote, experience, worked_remote, remote_description, source, resume_filename, resume_mime, resume_size_bytes",
+        "id, created_at, status, full_name, email, role_title, role_slug, phone, country, market, timezone, has_computer, internet, typing_speed, availability, hours_per_week, why_remote, experience, worked_remote, remote_description, source, resume_filename, resume_mime, resume_size_bytes",
       )
       .order("created_at", { ascending: false });
     if (data.status && data.status !== "all") q = q.eq("status", data.status);
@@ -324,7 +325,7 @@ export const adminSendInterviewLink = createServerFn({ method: "POST" })
 
     const { data: app, error: fetchErr } = await sb
       .from("applications")
-      .select("id, full_name, email, role_slug, role_title")
+      .select("id, full_name, email, role_slug, role_title, market")
       .eq("id", data.applicationId)
       .single();
     if (fetchErr) throw new Error(fetchErr.message);
@@ -351,7 +352,7 @@ export const adminSendInterviewLink = createServerFn({ method: "POST" })
       .eq("id", app.id);
     if (statusErr) throw new Error(statusErr.message);
 
-    const link = `${publicBaseUrl()}/interview?token=${encodeURIComponent(tok.token)}`;
+    const link = `${publicBaseUrlForMarket(app.market)}/interview?token=${encodeURIComponent(tok.token)}`;
 
     const subject = "You're shortlisted — complete your interview · Worknesta";
     const html = renderEmailHtml({
@@ -391,7 +392,7 @@ export const adminSendAssessmentLink = createServerFn({ method: "POST" })
 
     const { data: app, error: fetchErr } = await sb
       .from("applications")
-      .select("id, full_name, email, role_slug, role_title")
+      .select("id, full_name, email, role_slug, role_title, market")
       .eq("id", data.applicationId)
       .single();
     if (fetchErr) throw new Error(fetchErr.message);
@@ -418,7 +419,7 @@ export const adminSendAssessmentLink = createServerFn({ method: "POST" })
       .eq("id", app.id);
     if (statusErr) throw new Error(statusErr.message);
 
-    const link = `${publicBaseUrl()}/assessment?token=${encodeURIComponent(tok.token)}`;
+    const link = `${publicBaseUrlForMarket(app.market)}/assessment?token=${encodeURIComponent(tok.token)}`;
     const subject = "Final step — your skill assessment · Worknesta";
     const html = renderEmailHtml({
       subjectHeadline: "Final step — your skill assessment",
@@ -464,7 +465,7 @@ export const adminSendOffer = createServerFn({ method: "POST" })
 
     const { data: app, error: fetchErr } = await sb
       .from("applications")
-      .select("id, full_name, email, role_slug, role_title, timezone, hours_per_week")
+      .select("id, full_name, email, role_slug, role_title, timezone, hours_per_week, market")
       .eq("id", data.applicationId)
       .single();
     if (fetchErr) throw new Error(fetchErr.message);
@@ -497,7 +498,7 @@ export const adminSendOffer = createServerFn({ method: "POST" })
     const { error: statusErr } = await sb.from("applications").update({ status: "offer_sent" }).eq("id", app.id);
     if (statusErr) throw new Error(statusErr.message);
 
-    const link = `${publicBaseUrl()}/offer?token=${encodeURIComponent(tokRow.token)}`;
+    const link = `${publicBaseUrlForMarket(app.market)}/offer?token=${encodeURIComponent(tokRow.token)}`;
     const subject = "Your offer from Worknesta 🎉";
     const html = renderEmailHtml({
       subjectHeadline: "Your offer from Worknesta",
@@ -764,7 +765,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
 
     const { data: app, error: appErr } = await sb
       .from("applications")
-      .select("full_name, email, role_title, role_slug")
+      .select("full_name, email, role_title, role_slug, market")
       .eq("id", tok.application_id)
       .single();
     if (appErr) throw new Error(appErr.message);
@@ -817,7 +818,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
       token_id: onboardTok.id,
     });
 
-    const onboardingLink = `${publicBaseUrl()}/api/auth/verify?t=${encodeURIComponent(onboardTok.token)}&next=${encodeURIComponent("/onboarding")}`;
+    const onboardingLink = `${publicBaseUrlForMarket(app.market)}/api/auth/verify?t=${encodeURIComponent(onboardTok.token)}&next=${encodeURIComponent("/onboarding")}`;
 
     const candidateSubject = "Welcome to Worknesta! Here is how to get started 🎉";
     const candidateHtml = renderEmailHtml({
@@ -1167,7 +1168,7 @@ export const getWorkspaceBySession = createServerFn({ method: "POST" })
     const sb = getSupabaseAdmin();
     const { data: app, error: appErr } = await sb
       .from("applications")
-      .select("id, full_name, email, role_title, role_slug, status")
+      .select("id, full_name, email, role_title, role_slug, status, market")
       .eq("id", applicationId)
       .maybeSingle();
     if (appErr || !app) return { authenticated: false as const };
@@ -1199,6 +1200,7 @@ export const getWorkspaceBySession = createServerFn({ method: "POST" })
       scorePercent: skills?.score_percent ?? null as number | null,
       ndaSigned: Boolean(ws?.nda_signed_at),
       contractSubmitted: Boolean(ws?.contract_submitted_at),
+      market: app.market === "ph" ? "ph" as const : "ng" as const,
     };
   });
 

@@ -11,9 +11,10 @@ import {
   isLocalDevMode,
   pipelineAcceptanceEmailDelayMs,
   pipelineCandidateEmailDelayMs,
-  publicBaseUrl,
+  publicBaseUrlForMarket,
   isImmediateTestEmail,
 } from "./devMode";
+import { marketFromCountryName } from "@/lib/market";
 import { generateToken, expiresInHours } from "./tokens";
 import { localDevStore } from "./localDevStore";
 import { renderEmailHtml, renderEmailText } from "./emailTemplates";
@@ -70,12 +71,14 @@ export async function pipelineInsertApplication(data: ApplicationInsertInput) {
       resume_filename: data.resumeFilename,
       resume_mime: data.resumeMime,
       resume_size_bytes: data.resumeSizeBytes,
+      market: marketFromCountryName(data.country),
     });
     return {
       id: inserted.id,
       full_name: inserted.full_name,
       email: inserted.email,
       role_title: inserted.role_title,
+      market: marketFromCountryName(data.country),
     };
   }
 
@@ -104,8 +107,9 @@ export async function pipelineInsertApplication(data: ApplicationInsertInput) {
       resume_filename: data.resumeFilename,
       resume_mime: data.resumeMime,
       resume_size_bytes: data.resumeSizeBytes,
+      market: marketFromCountryName(data.country),
     })
-    .select("id, full_name, email, role_title")
+    .select("id, full_name, email, role_title, market")
     .single();
   if (error) throw new Error(error.message);
   return inserted;
@@ -116,8 +120,9 @@ export async function pipelineSendApplicationEmails(app: {
   full_name: string;
   email: string;
   role_title: string;
+  market?: string | null;
 }) {
-  const assessmentUrl = `${publicBaseUrl()}/careers/assessment?applicationId=${encodeURIComponent(app.id)}`;
+  const assessmentUrl = `${publicBaseUrlForMarket(app.market)}/careers/assessment?applicationId=${encodeURIComponent(app.id)}`;
   const adminEmail = adminNotifyEmail();
   const adminSubject = `New application: ${app.full_name} — ${app.role_title}`;
   const adminHtml = renderEmailHtml({
@@ -250,7 +255,6 @@ async function notifyAdminSkillsProfile(opts: {
 
 export async function pipelineSubmitSkillsProfile(applicationId: string, answers: Record<string, string>) {
   const submittedAt = new Date().toISOString();
-  const workspaceSetupUrl = `${publicBaseUrl()}/onboarding/workspace-setup?applicationId=${encodeURIComponent(applicationId)}`;
   const candidateDelayMs = pipelineCandidateEmailDelayMs();
 
   if (isLocalDevMode()) {
@@ -262,6 +266,7 @@ export async function pipelineSubmitSkillsProfile(applicationId: string, answers
     const questions = getSkillsQuizForRole(roleSlug);
     const scorePercent = scoreSkillsProfile(answers, questions);
     const selected = true;
+    const workspaceSetupUrl = `${publicBaseUrlForMarket((app as { market?: string }).market)}/onboarding/workspace-setup?applicationId=${encodeURIComponent(applicationId)}`;
 
     localDevStore.insertSkillsProfile({
       application_id: applicationId,
@@ -300,7 +305,7 @@ export async function pipelineSubmitSkillsProfile(applicationId: string, answers
   const sb = getSupabaseAdmin();
   const { data: app, error: appErr } = await sb
     .from("applications")
-    .select("id, full_name, email, role_title, role_slug")
+    .select("id, full_name, email, role_title, role_slug, market")
     .eq("id", applicationId)
     .single();
   if (appErr || !app) throw new Error("Application not found");
@@ -328,6 +333,8 @@ export async function pipelineSubmitSkillsProfile(applicationId: string, answers
 
   await sb.from("applications").update({ status: "assessment_complete" }).eq("id", applicationId);
 
+  const workspaceSetupUrl = `${publicBaseUrlForMarket(app.market)}/onboarding/workspace-setup?applicationId=${encodeURIComponent(applicationId)}`;
+
   // For production (non-local), create an onboarding token and onboarding row so the
   // email contains a single reliable onboarding link: `/onboarding?token=...`.
   if (!isLocalDevMode()) {
@@ -350,7 +357,7 @@ export async function pipelineSubmitSkillsProfile(applicationId: string, answers
       if (tokRow && !tokErr) {
         const { error: onboardErr } = await sb.from("onboarding").insert({ application_id: applicationId, token_id: tokRow.id });
         if (onboardErr) console.warn("Failed to insert onboarding row:", onboardErr.message);
-        onboardingLink = `${publicBaseUrl()}/api/auth/verify?t=${encodeURIComponent(tokRow.token)}&next=/onboarding`;
+        onboardingLink = `${publicBaseUrlForMarket(app.market)}/api/auth/verify?t=${encodeURIComponent(tokRow.token)}&next=/onboarding`;
       } else {
         console.warn("Failed to create onboarding token:", tokErr?.message ?? tokErr);
       }

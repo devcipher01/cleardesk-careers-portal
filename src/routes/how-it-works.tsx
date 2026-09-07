@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { Section, SectionHeader } from "@/components/site/Section";
+import { MARKET_COPY } from "@/lib/market";
+import { useMarket } from "@/lib/useMarket";
 
 export const Route = createFileRoute("/how-it-works")({
   head: () => ({
@@ -41,42 +43,46 @@ const steps = [
   { icon: Wallet, color: "bg-rose", title: "First earnings", body: "Get paid weekly via Wise, Payoneer, or bank transfer." },
 ];
 
-const faqs = [
-  {
-    q: "Is this really fully remote?",
-    a: "Yes — 100%. Worknesta has no physical office requirement. All transcription projects are completed online from wherever you are.",
-  },
-  {
-    q: "What equipment do I need?",
-    a: "You will need a laptop or desktop computer, a stable internet connection, and a quiet workspace. A good pair of headphones is strongly recommended for transcription projects. We recommend free tools like oTranscribe or Express Scribe — we'll guide you during workspace setup.",
-  },
-  {
-    q: "What countries do you accept contractors from?",
-    a: "We currently work with contractors from Africa. Ideal candidates are based in African countries with availability in WAT, CAT, EAT, or GMT timezones.",
-  },
-  {
-    q: "How and when do I receive my earnings?",
-    a: "All contractors are paid weekly every Friday via Wise, Payoneer, or direct bank transfer depending on your country. Earnings rates are listed on each project card.",
-  },
-  {
-    q: "Is there any application or registration fee?",
-    a: "Absolutely not. Worknesta will never charge you to apply, register, or onboard. Any website or person claiming to charge fees on our behalf is fraudulent. Our onboarding is always 100% free.",
-  },
-  {
-    q: "How long does the full onboarding process take?",
-    a: "From application to workspace access typically takes 5–10 business days depending on volume. The steps are: application review (2–3 days), skills screening (on your time), skill task (24–48 hours), then project agreement.",
-  },
-  {
-    q: "Is prior experience required?",
-    a: "Not for entry-level projects like our Remote Transcription Specialist module. We look for attention to detail, reliable internet, and a good typing speed. Specialist projects like Medical Transcriptionist do require relevant experience.",
-  },
-  {
-    q: "What hours will I work?",
-    a: "It depends on the project and your agreement. Most projects offer flexible scheduling within an agreed weekly module commitment. Some client accounts have preferred timezone windows which will be communicated during workspace setup.",
-  },
-];
+function faqsFor(countriesFaq: string) {
+  return [
+    {
+      q: "Is this really fully remote?",
+      a: "Yes — 100%. Worknesta has no physical office requirement. All transcription projects are completed online from wherever you are.",
+    },
+    {
+      q: "What equipment do I need?",
+      a: "You will need a laptop or desktop computer, a stable internet connection, and a quiet workspace. A good pair of headphones is strongly recommended for transcription projects. We recommend free tools like oTranscribe or Express Scribe — we'll guide you during workspace setup.",
+    },
+    {
+      q: "What countries do you accept contractors from?",
+      a: countriesFaq,
+    },
+    {
+      q: "How and when do I receive my earnings?",
+      a: "All contractors are paid weekly every Friday via Wise, Payoneer, or direct bank transfer depending on your country. Earnings rates are listed on each project card.",
+    },
+    {
+      q: "Is there any application or registration fee?",
+      a: "Absolutely not. Worknesta will never charge you to apply, register, or onboard. Any website or person claiming to charge fees on our behalf is fraudulent. Our onboarding is always 100% free.",
+    },
+    {
+      q: "How long does the full onboarding process take?",
+      a: "From application to workspace access typically takes 5–10 business days depending on volume. The steps are: application review (2–3 days), skills screening (on your time), skill task (24–48 hours), then project agreement.",
+    },
+    {
+      q: "Is prior experience required?",
+      a: "Not for entry-level projects like our Remote Transcription Specialist module. We look for attention to detail, reliable internet, and a good typing speed. Specialist projects like Medical Transcriptionist do require relevant experience.",
+    },
+    {
+      q: "What hours will I work?",
+      a: "It depends on the project and your agreement. Most projects offer flexible scheduling within an agreed weekly module commitment. Some client accounts have preferred timezone windows which will be communicated during workspace setup.",
+    },
+  ];
+}
 
 function HowItWorksPage() {
+  const copy = MARKET_COPY[useMarket()];
+  const faqs = faqsFor(copy.countriesFaq);
   return (
     <>
       <section className="container-page pt-6 md:pt-10">
@@ -90,7 +96,7 @@ function HowItWorksPage() {
               <span className="font-serif italic">first earnings.</span>
             </h1>
             <p className="mx-auto mt-5 max-w-xl text-ink/65 md:text-lg">
-              A clear, fast, fair process — built for independent contractors across Africa.
+              {copy.howItWorksIntro}
             </p>
           </div>
         </div>

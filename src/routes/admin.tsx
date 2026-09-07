@@ -1240,6 +1240,7 @@ function DetailsModal({ row, onClose }: { row: any | null; onClose: () => void }
               <Detail label="Applied" value={new Date(row.created_at).toLocaleString()} />
               <Detail label="Phone" value={row.phone} />
               <Detail label="Country" value={row.country} />
+              <Detail label="Market" value={row.market === "ph" ? "Philippines" : "Nigeria / Africa"} />
               <Detail label="Timezone" value={row.timezone} />
               <Detail label="Has computer" value={row.has_computer ? "Yes" : "No"} />
               <Detail label="Internet" value={row.internet} />

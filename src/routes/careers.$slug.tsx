@@ -2,6 +2,8 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUpRight, CheckCircle2, GraduationCap, Lock, MapPin } from "lucide-react";
 import { Section } from "@/components/site/Section";
 import { getJobBySlug } from "@/lib/jobs";
+import { MARKET_COPY } from "@/lib/market";
+import { useMarket } from "@/lib/useMarket";
 
 const RESERVED_SLUGS = new Set(["apply", "assessment"]);
 
@@ -35,6 +37,7 @@ export const Route = createFileRoute("/careers/$slug")({
 
 function JobDetailPage() {
   const { job } = Route.useLoaderData();
+  const copy = MARKET_COPY[useMarket()];
   const isFilled = job.status === "filled";
   const details = job.details;
 
@@ -86,7 +89,7 @@ function JobDetailPage() {
 
             <p className="mt-3 inline-flex items-center gap-1 text-sm text-ink/55">
               <MapPin className="h-3.5 w-3.5" />
-              Remote · Africa
+              {copy.careersRemote}
             </p>
 
             {job.pitch && (
