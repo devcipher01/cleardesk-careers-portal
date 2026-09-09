@@ -40,10 +40,9 @@ const steps = [
   { icon: ClipboardCheck, color: "bg-lavender", title: "Skill assessment", body: "Complete a short 30-minute transcription task to demonstrate your accuracy." },
   { icon: Mail, color: "bg-mint", title: "Project agreement", body: "Receive your official contractor agreement via email." },
   { icon: Rocket, color: "bg-butter", title: "Workspace setup", body: "Get access to your workspace, project modules, and onboarding materials." },
-  { icon: Wallet, color: "bg-rose", title: "First earnings", body: "Get paid weekly via Wise, Payoneer, or bank transfer." },
 ];
 
-function faqsFor(countriesFaq: string) {
+function faqsFor(countriesFaq: string, payoutFaq: string) {
   return [
     {
       q: "Is this really fully remote?",
@@ -59,7 +58,7 @@ function faqsFor(countriesFaq: string) {
     },
     {
       q: "How and when do I receive my earnings?",
-      a: "All contractors are paid weekly every Friday via Wise, Payoneer, or direct bank transfer depending on your country. Earnings rates are listed on each project card.",
+      a: payoutFaq,
     },
     {
       q: "Is there any application or registration fee?",
@@ -82,7 +81,11 @@ function faqsFor(countriesFaq: string) {
 
 function HowItWorksPage() {
   const copy = MARKET_COPY[useMarket()];
-  const faqs = faqsFor(copy.countriesFaq);
+  const faqs = faqsFor(copy.countriesFaq, copy.payoutFaq);
+  const stepsWithPayout = [
+    ...steps,
+    { icon: Wallet, color: "bg-rose", title: "First earnings", body: copy.payoutStep },
+  ];
   return (
     <>
       <section className="container-page pt-6 md:pt-10">
@@ -106,7 +109,7 @@ function HowItWorksPage() {
         <div className="container-page">
           <div className="mx-auto max-w-2xl">
             <ol className="relative space-y-6 border-l-2 border-dashed border-ink/15 pl-8">
-              {steps.map((s, i) => (
+              {stepsWithPayout.map((s, i) => (
                 <motion.li
                   key={s.title}
                   initial={{ opacity: 0, x: -16 }}

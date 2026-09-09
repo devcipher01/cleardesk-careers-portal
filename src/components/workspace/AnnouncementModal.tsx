@@ -4,11 +4,13 @@ import { Link } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Megaphone, ShieldAlert } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { getTaskProgressBySession } from "@/lib/server/actions";
+import { getTaskProgressBySession, getWorkspaceBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
+import { accountMarket, type MarketId } from "@/lib/market";
 import {
   WORKSPACE_ANNOUNCEMENTS,
   announcementMatchesAudience,
+  announcementMatchesMarket,
   type WorkspaceAnnouncement,
 } from "@/lib/workspaceAnnouncement";
 
@@ -59,11 +61,13 @@ function mergeTaskStatuses(
 
 function nextVisibleAnnouncement(
   tasks: { task_id: string; status: string }[],
+  market: MarketId,
 ): WorkspaceAnnouncement | null {
   for (const notice of WORKSPACE_ANNOUNCEMENTS) {
+    if (!announcementMatchesMarket(notice, market)) continue;
     if (storageGet("local", notice.dismissKey)) continue;
     if (storageGet("session", notice.sessionKey)) continue;
-    if (!announcementMatchesAudience(notice, tasks)) continue;
+    if (!announcementMatchesAudience(notice, tasks, market)) continue;
     return notice;
   }
   return null;
@@ -88,6 +92,7 @@ function AnnouncementModalInner() {
   const [notice, setNotice] = useState<WorkspaceAnnouncement | null>(null);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const [tasks, setTasks] = useState<{ task_id: string; status: string }[]>([]);
+  const [market, setMarket] = useState<MarketId | null>(null);
   const [progressReady, setProgressReady] = useState(false);
 
   useEffect(() => {
@@ -99,6 +104,26 @@ function AnnouncementModalInner() {
     let cancelled = false;
     void (async () => {
       const { appId, accessToken } = await getSessionData();
+      let resolvedMarket: MarketId | null = null;
+      try {
+        const session = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
+        if (session.authenticated) resolvedMarket = accountMarket(session.market);
+      } catch {
+        resolvedMarket = null;
+      }
+      if (cancelled) return;
+      setMarket(resolvedMarket);
+      if (!resolvedMarket) {
+        setTasks([]);
+        setProgressReady(true);
+        return;
+      }
+      const forMarket = WORKSPACE_ANNOUNCEMENTS.filter((n) => announcementMatchesMarket(n, resolvedMarket));
+      if (forMarket.length === 0) {
+        setTasks([]);
+        setProgressReady(true);
+        return;
+      }
       let dbTasks: { task_id: string; status: string }[] = [];
       try {
         const result = await getTaskProgressBySession({ data: { clientAppId: appId, accessToken } });
@@ -116,22 +141,22 @@ function AnnouncementModalInner() {
   }, [mounted]);
 
   useEffect(() => {
-    if (!mounted || !progressReady) return;
-    const first = nextVisibleAnnouncement(tasks);
+    if (!mounted || !progressReady || !market) return;
+    const first = nextVisibleAnnouncement(tasks, market);
     if (!first) {
       setNotice(null);
       return;
     }
     const timer = window.setTimeout(() => setNotice(first), 400);
     return () => window.clearTimeout(timer);
-  }, [mounted, progressReady, tasks]);
+  }, [mounted, progressReady, tasks, market]);
 
   function dismiss() {
-    if (!notice) return;
+    if (!notice || !market) return;
     storageSet("session", notice.sessionKey);
     if (dontShowAgain) storageSet("local", notice.dismissKey);
     setDontShowAgain(false);
-    const following = nextVisibleAnnouncement(tasks);
+    const following = nextVisibleAnnouncement(tasks, market);
     setNotice(following);
   }
 
@@ -180,6 +205,17 @@ function AnnouncementModalInner() {
                   {p}
                 </p>
               ))}
+
+              {notice.facts && notice.facts.length > 0 && (
+                <dl className="mt-4 grid grid-cols-2 gap-2">
+                  {notice.facts.map((fact) => (
+                    <div key={fact.label} className="rounded-2xl border border-ink/10 bg-white px-3.5 py-3">
+                      <dt className="text-[11px] font-semibold uppercase tracking-wider text-ink/45">{fact.label}</dt>
+                      <dd className="mt-1 text-sm font-semibold text-ink">{fact.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
 
               {notice.links && notice.links.length > 0 && (
                 <div className="mt-4 grid grid-cols-2 gap-2">

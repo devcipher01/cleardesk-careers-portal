@@ -194,7 +194,7 @@ function AdminPage() {
   const [appFilter, setAppFilter] = useState<AppFilter>("all");
   const [appRows, setAppRows] = useState<any[]>([]);
   const [details, setDetails] = useState<any | null>(null);
-  const [offerForm, setOfferForm] = useState<{ appId: string; payRate: string; startDate: string; duration: string } | null>(null);
+  const [offerForm, setOfferForm] = useState<{ appId: string; payRate: string; startDate: string; duration: string; market?: string } | null>(null);
 
   // Transcriptions tab state
   const [txStatusFilter, setTxStatusFilter] = useState<TxStatusFilter>("submitted");
@@ -780,7 +780,7 @@ function AdminPage() {
                     </button>
                   )}
                   {r.status === "assessment_complete" && (
-                    <button onClick={() => setOfferForm({ appId: r.id, payRate: "", startDate: "", duration: "" })}
+                    <button onClick={() => setOfferForm({ appId: r.id, payRate: "", startDate: "", duration: "", market: r.market })}
                       className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Offer
                     </button>
@@ -1021,7 +1021,7 @@ function AdminPage() {
                         </button>
                       )}
                       {r.status === "assessment_complete" && (
-                        <button onClick={() => setOfferForm({ appId: r.id, payRate: "", startDate: "", duration: "" })}
+                        <button onClick={() => setOfferForm({ appId: r.id, payRate: "", startDate: "", duration: "", market: r.market })}
                           className="inline-flex items-center gap-1.5 rounded-full bg-ink px-3 py-1.5 text-xs font-medium text-ink-foreground hover:bg-lime hover:text-lime-foreground">
                           <CheckCircle2 className="h-3.5 w-3.5" /> Send Offer
                         </button>
@@ -1265,9 +1265,9 @@ function DetailsModal({ row, onClose }: { row: any | null; onClose: () => void }
 function OfferModal({
   state, onClose, onSend, sending,
 }: {
-  state: { appId: string; payRate: string; startDate: string; duration: string } | null;
+  state: { appId: string; payRate: string; startDate: string; duration: string; market?: string } | null;
   onClose: () => void;
-  onSend: (s: { appId: string; payRate: string; startDate: string; duration: string }) => void;
+  onSend: (s: { appId: string; payRate: string; startDate: string; duration: string; market?: string }) => void;
   sending: boolean;
 }) {
   const open = Boolean(state);
@@ -1285,7 +1285,9 @@ function OfferModal({
             <p className="mt-1 text-sm text-ink/60">Fill these fields and send the offer link.</p>
             <div className="mt-5 space-y-4">
               <label className="block">
-                <span className="mb-1.5 block text-sm font-medium text-ink">Contract payment (NGN)</span>
+                <span className="mb-1.5 block text-sm font-medium text-ink">
+                  Contract payment ({local.market === "ph" ? "PHP" : "NGN"})
+                </span>
                 <input value={local.payRate} onChange={(e) => setLocal((s) => s ? { ...s, payRate: e.target.value } : s)} className="ipt" placeholder="e.g. 7500" />
               </label>
               <label className="block">

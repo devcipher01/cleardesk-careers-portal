@@ -3,9 +3,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowUpRight, HelpCircle, Loader2, Mail, MessageSquare, Send } from "lucide-react";
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
+import { LiveAssistButton, LiveAssistPanel } from "@/components/workspace/LiveAssist";
 import { getWorkspaceBySession, sendSupportMessageBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 import { ALISON_MT_CERT_URL, COURSERA_MT_CERT_URL } from "@/lib/certLinks";
+import { accountMarket } from "@/lib/market";
 
 export const Route = createFileRoute("/workspace/support")({
   head: () => ({ meta: [{ title: "Help Center — Worknesta Workspace" }] }),
@@ -15,7 +17,7 @@ export const Route = createFileRoute("/workspace/support")({
 type SessionState =
   | { status: "loading" }
   | { status: "unauthenticated" }
-  | { status: "ready"; candidateName: string; roleTitle: string };
+  | { status: "ready"; candidateName: string; roleTitle: string; market: "ng" | "ph" };
 
 function SupportPage() {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
@@ -23,6 +25,7 @@ function SupportPage() {
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [assistOpen, setAssistOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -30,7 +33,7 @@ function SupportPage() {
         const { appId, accessToken } = await getSessionData();
         const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
         if (!s.authenticated) { setSession({ status: "unauthenticated" }); return; }
-        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle });
+        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, market: accountMarket(s.market) });
       } catch {
         setSession({ status: "unauthenticated" });
       }
@@ -51,7 +54,8 @@ function SupportPage() {
     );
   }
 
-  const { candidateName, roleTitle } = session;
+  const { candidateName, roleTitle, market } = session;
+  const showLiveAssist = market === "ph";
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -75,7 +79,9 @@ function SupportPage() {
   const FAQ: { q: string; a: React.ReactNode }[] = [
     {
       q: "When do I get paid?",
-      a: "Earnings are released after module completion and review. Most tasks are reviewed within 48 hours.",
+      a: market === "ph"
+        ? "Eligible earnings are paid weekly on Fridays via Payoneer or bank transfer after the module is complete and reviewed. Most tasks are reviewed within 48 hours."
+        : "Earnings are released after module completion and review. Most tasks are reviewed within 48 hours.",
     },
     {
       q: "Why is payment based on the entire module and not individual tasks?",
@@ -130,9 +136,12 @@ function SupportPage() {
       <div className="mx-auto max-w-3xl space-y-6">
 
         {/* Header */}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Support</p>
-          <h1 className="mt-2 text-2xl font-semibold text-gray-900">Help center</h1>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Support</p>
+            <h1 className="mt-2 text-2xl font-semibold text-gray-900">Help center</h1>
+          </div>
+          {showLiveAssist ? <LiveAssistButton onClick={() => setAssistOpen(true)} /> : null}
         </div>
 
         {/* FAQ */}
@@ -152,7 +161,7 @@ function SupportPage() {
         </div>
 
         {/* Contact */}
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <div id="workspace-contact-form" className="rounded-2xl border border-gray-200 bg-white p-6">
           <div className="flex items-center gap-2 mb-4">
             <MessageSquare className="h-4 w-4 text-gray-400" />
             <h2 className="text-sm font-semibold text-gray-900">Contact the talent team</h2>
@@ -197,6 +206,19 @@ function SupportPage() {
           )}
         </div>
       </div>
+
+      {showLiveAssist ? (
+      <LiveAssistPanel
+        open={assistOpen}
+        onClose={() => setAssistOpen(false)}
+        onAskHuman={() => {
+          setAssistOpen(false);
+          requestAnimationFrame(() => {
+            document.getElementById("workspace-contact-form")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        }}
+      />
+      ) : null}
     </OrgShell>
   );
 }

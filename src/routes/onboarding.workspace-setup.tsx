@@ -4,6 +4,7 @@ import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 import { useEffect, useState } from "react";
+import { accountMarket } from "@/lib/market";
 
 export const Route = createFileRoute("/onboarding/workspace-setup")({
   head: () => ({
@@ -15,7 +16,7 @@ export const Route = createFileRoute("/onboarding/workspace-setup")({
 type SessionState =
   | { status: "loading" }
   | { status: "guest" }
-  | { status: "ready"; candidateName: string; roleTitle: string };
+  | { status: "ready"; candidateName: string; roleTitle: string; market: "ng" | "ph" };
 
 function WorkspaceSetupPage() {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
@@ -27,7 +28,7 @@ function WorkspaceSetupPage() {
         if (!appId) { setSession({ status: "guest" }); return; }
         const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
         if (s.authenticated) {
-          setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle });
+          setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, market: accountMarket(s.market) });
         } else {
           setSession({ status: "guest" });
         }
@@ -41,6 +42,7 @@ function WorkspaceSetupPage() {
 
   const candidateName = session.status === "ready" ? session.candidateName : "";
   const roleTitle = session.status === "ready" ? session.roleTitle : "Transcription Specialist";
+  const market = session.status === "ready" ? session.market : "ng";
 
   return (
     <OrgShell candidateName={candidateName} roleTitle={roleTitle} activeNav="setup">
@@ -71,12 +73,16 @@ function WorkspaceSetupPage() {
               {
                 icon: <Clock className="h-5 w-5 text-lime" />,
                 title: "Work at your own pace",
-                body: "Tasks are organised into 4 modules. Complete Module 1 first, then each subsequent module unlocks. You choose when to work within the deadline window.",
+                body: market === "ph"
+                  ? "Work is organised in Module 1. You choose when to work within the deadline window."
+                  : "Tasks are organised into 4 modules. Complete Module 1 first, then each subsequent module unlocks. You choose when to work within the deadline window.",
               },
               {
                 icon: <CheckCircle2 className="h-5 w-5 text-lime" />,
                 title: "Submit & get paid",
-                body: "Once you submit a transcription it goes to review. Approved submissions count toward your pay cycle on the 1st and 15th.",
+                body: market === "ph"
+                  ? "Once you submit a transcription it goes to review. Approved submissions count toward your weekly Friday payout via Payoneer or bank transfer."
+                  : "Once you submit a transcription it goes to review. Approved submissions count toward your pay cycle on the 1st and 15th.",
               },
               {
                 icon: <ShieldCheck className="h-5 w-5 text-lime" />,

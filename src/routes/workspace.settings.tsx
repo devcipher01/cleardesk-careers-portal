@@ -28,6 +28,7 @@ import {
 } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 import { ALISON_MT_CERT_URL, SETTINGS_GET_CERT_LINK_KEY } from "@/lib/certLinks";
+import { accountMarket } from "@/lib/market";
 
 export const Route = createFileRoute("/workspace/settings")({
   head: () => ({ meta: [{ title: "Settings — Worknesta Workspace" }] }),
@@ -37,7 +38,7 @@ export const Route = createFileRoute("/workspace/settings")({
 type SessionState =
   | { status: "loading" }
   | { status: "unauthenticated" }
-  | { status: "ready"; candidateName: string; roleTitle: string; email: string; applicationId: string; appId: string | null; accessToken: string | null };
+  | { status: "ready"; candidateName: string; roleTitle: string; email: string; applicationId: string; appId: string | null; accessToken: string | null; market: "ng" | "ph" };
 
 type DocInfo = {
   doc_type: string;
@@ -168,7 +169,7 @@ function SettingsPage() {
         const { appId, accessToken } = await getSessionData();
         const s = await getWorkspaceBySession({ data: { clientAppId: appId, accessToken } });
         if (!s.authenticated) { setSession({ status: "unauthenticated" }); return; }
-        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, email: s.email, applicationId: s.applicationId, appId: appId ?? null, accessToken: accessToken ?? null });
+        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, email: s.email, applicationId: s.applicationId, appId: appId ?? null, accessToken: accessToken ?? null, market: accountMarket(s.market) });
 
         try {
           const pi = await getPaymentInfoBySession({ data: { clientAppId: appId, accessToken } });
@@ -217,7 +218,7 @@ function SettingsPage() {
     );
   }
 
-  const { candidateName, roleTitle, email, appId, accessToken } = session;
+  const { candidateName, roleTitle, email, appId, accessToken, market } = session;
   const docMap = Object.fromEntries(docs.map((d) => [d.doc_type, d]));
 
   async function handleSavePayment(e: React.FormEvent) {
@@ -538,7 +539,7 @@ function SettingsPage() {
                         type="text"
                         value={bankName}
                         onChange={(e) => setBankName(e.target.value)}
-                        placeholder="e.g. Access Bank"
+                        placeholder={market === "ph" ? "e.g. BDO Unibank" : "e.g. Access Bank"}
                         className="mt-1.5 w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20"
                       />
                     </label>
@@ -600,6 +601,7 @@ function SettingsPage() {
                     <option value="Europe/Berlin">Europe/Berlin</option>
                     <option value="Asia/Kolkata">Asia/Kolkata</option>
                     <option value="Australia/Sydney">Australia/Sydney</option>
+                    <option value="Asia/Manila">Asia/Manila</option>
                   </select>
                 </div>
               </div>
@@ -616,7 +618,7 @@ function SettingsPage() {
                 <h2 className="text-sm font-semibold text-gray-900">Pay schedule</h2>
               </div>
               <div className="space-y-2">
-                {["1st of each month", "15th of each month"].map((d) => (
+                {(market === "ph" ? ["Every Friday"] : ["1st of each month", "15th of each month"]).map((d) => (
                   <div key={d} className="flex items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5 text-sm text-gray-700">
                     <CalendarDays className="h-3.5 w-3.5 text-lime shrink-0" />
                     {d}

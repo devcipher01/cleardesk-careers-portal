@@ -26,8 +26,9 @@ import {
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getWorkspaceBySession, getTaskProgressBySession, getDocumentsBySession, verifyCertPath } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
-import { formatNaira, NGN_PER_USD_TASK, TASK_PRICES_NAIRA } from "@/lib/taskPricing";
-import { TASKS_TIME_EXCEEDED } from "@/lib/taskAvailability";
+import { formatMoney, NGN_PER_USD_TASK, TASK_PRICES_NAIRA } from "@/lib/taskPricing";
+import { isTasksWindowClosed } from "@/lib/taskAvailability";
+import { accountMarket } from "@/lib/market";
 import { effectiveAccuracyPercent } from "@/lib/taskAccuracy";
 import { evaluateModulePayout, MODULE_TASK_COUNTS } from "@/lib/modulePayout";
 
@@ -189,9 +190,10 @@ function isModuleWindowExpired(
   tasks: TaskDef[],
   progress: LocalProgress,
   meta: ModuleMeta | undefined,
+  windowClosed: boolean,
 ): boolean {
   if (isModuleFullyComplete(tasks, progress)) return false;
-  if (TASKS_TIME_EXCEEDED) return true;
+  if (windowClosed) return true;
   if (meta?.deadlineIso && new Date(meta.deadlineIso).getTime() <= Date.now()) return true;
   return false;
 }
@@ -205,9 +207,10 @@ function isModuleClearedFromAvailable(
   tasks: TaskDef[],
   progress: LocalProgress,
   meta: ModuleMeta | undefined,
+  windowClosed: boolean,
 ): boolean {
   if (tasks.length === 0) return false;
-  return isModuleFullyComplete(tasks, progress) || isModuleWindowExpired(tasks, progress, meta);
+  return isModuleFullyComplete(tasks, progress) || isModuleWindowExpired(tasks, progress, meta, windowClosed);
 }
 
 function fmtDuration(min: number) {
@@ -610,13 +613,15 @@ function MedicalCertModal({
 
 // ─── Task card ─────────────────────────────────────────────────────────────────
 function TaskCard({
-  task, status, text, certVerified, onSubmit, onCertVerified, dbAccuracyScore,
+  task, status, text, certVerified, onSubmit, onCertVerified, dbAccuracyScore, windowClosed, money,
 }: {
   task: TaskDef; status: TaskStatus; text?: string;
   certVerified: boolean;
   onSubmit: (id: string, text: string) => void;
   onCertVerified: () => void;
   dbAccuracyScore?: number;
+  windowClosed: boolean;
+  money: (naira: number) => string;
 }) {
   const [open, setOpen] = useState(false);
   const [showCertModal, setShowCertModal] = useState(false);
@@ -626,7 +631,7 @@ function TaskCard({
   const requiresCert = MEDICAL_CERT_TASK_IDS.has(task.id);
 
   const finished = status === "submitted" || status === "reviewed";
-  const closed = TASKS_TIME_EXCEEDED && !finished;
+  const closed = windowClosed && !finished;
 
   function handleStartClick() {
     if (closed) return;
@@ -690,7 +695,7 @@ function TaskCard({
           </span>
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{fmtDuration(task.durationMin)}</span>
-            <span className="font-semibold text-lime">{formatNaira(task.earningsNaira)}</span>
+            <span className="font-semibold text-lime">{money(task.earningsNaira)}</span>
           </div>
         </div>
       </div>
@@ -756,7 +761,7 @@ function TaskCard({
               className="w-full rounded-xl border border-gray-200 bg-white p-3 text-sm text-gray-900 placeholder-gray-400 focus:border-lime/50 focus:outline-none focus:ring-2 focus:ring-lime/20 resize-y" />
           </div>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-xs text-gray-400">{draft.trim().length} characters · {formatNaira(task.earningsNaira)} earned on submit</p>
+            <p className="text-xs text-gray-400">{draft.trim().length} characters · {money(task.earningsNaira)} earned on submit</p>
             <button onClick={() => void handleSubmit()} disabled={!draft.trim() || submitting}
               className="inline-flex items-center gap-2 rounded-lg bg-lime px-4 py-2 text-sm font-semibold text-ink disabled:opacity-50 disabled:cursor-not-allowed hover:opacity-90 transition">
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
@@ -825,7 +830,7 @@ function PlaceholderModuleCard({ mod, displayNum }: { mod: ModuleDef; displayNum
 // Visually distinct from task cards: dark ink background when available, making
 // it a clear section divider with prominent expand/collapse control.
 function ModuleHeader({
-  mod, displayNum, tasks, progress, contractSubmitted, meta, isOpen, onToggle, onReserve,
+  mod, displayNum, tasks, progress, contractSubmitted, meta, isOpen, onToggle, onReserve, windowClosed, money,
 }: {
   mod: ModuleDef;
   displayNum: number;
@@ -836,11 +841,13 @@ function ModuleHeader({
   isOpen: boolean;
   onToggle: () => void;
   onReserve: () => void;
+  windowClosed: boolean;
+  money: (naira: number) => string;
 }) {
   const available    = isModuleAvailable(mod.num, progress, contractSubmitted);
   const submittedCnt = tasks.filter((t) => isFinishedStatus(progress[t.id]?.status)).length;
   const isComplete   = submittedCnt === tasks.length;
-  const closed       = TASKS_TIME_EXCEEDED && !isComplete;
+  const closed       = windowClosed && !isComplete;
   const isReserved   = !!meta?.reservedAt || tasks.some((t) => {
     const s = progress[t.id]?.status;
     return s === "in_progress" || s === "submitted" || s === "reviewed";
@@ -895,7 +902,7 @@ function ModuleHeader({
               <p className={`mt-1 text-xs ${subClass}`}>
                 {tasks.length} tasks ·{" "}
                 {generalCnt} general{medicalCnt > 0 ? ` + ${medicalCnt} medical` : ""} ·{" "}
-                 <span className={closed || available ? "text-lime font-medium" : "text-gray-400"}>{formatNaira(modEarnings)}</span>
+                 <span className={closed || available ? "text-lime font-medium" : "text-gray-400"}>{money(modEarnings)}</span>
               </p>
             </div>
           </div>
@@ -950,7 +957,7 @@ function ModuleHeader({
 type SessionState =
   | { status: "loading" }
   | { status: "unauthenticated" }
-  | { status: "ready"; candidateName: string; roleTitle: string; contractSubmitted: boolean; applicationId: string };
+  | { status: "ready"; candidateName: string; roleTitle: string; contractSubmitted: boolean; applicationId: string; market: "ng" | "ph" };
 
 function TasksPage() {
   const [session, setSession]         = useState<SessionState>({ status: "loading" });
@@ -969,7 +976,7 @@ function TasksPage() {
         ]);
         if (!s.authenticated) { setSession({ status: "unauthenticated" }); return; }
         const appId = s.applicationId;
-        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, contractSubmitted: s.contractSubmitted, applicationId: appId });
+        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, contractSubmitted: s.contractSubmitted, applicationId: appId, market: accountMarket(s.market) });
 
         const prog = loadProgress(appId);
         if (dbResult.authenticated && dbResult.tasks.length > 0) {
@@ -988,7 +995,9 @@ function TasksPage() {
 
         const meta = loadModuleMeta(appId);
         let changed = false;
-        for (const mod of MODULES) {
+        const catalog = accountMarket(s.market) === "ph" ? MODULES.filter((m) => m.num === 1) : MODULES;
+        const windowClosed = isTasksWindowClosed(s.market);
+        for (const mod of catalog) {
           const key = String(mod.num);
           if (!meta[key] && isModuleAvailable(mod.num, prog, s.contractSubmitted)) {
             const dl = new Date();
@@ -1001,9 +1010,9 @@ function TasksPage() {
 
         setProgress(prog);
         setModuleMeta(meta);
-        const firstOpen = MODULES.find((mod) => {
+        const firstOpen = catalog.find((mod) => {
           const tasks = TASKS.filter((t) => t.module === mod.num);
-          if (mod.placeholder || isModuleClearedFromAvailable(tasks, prog, meta[String(mod.num)])) return false;
+          if (mod.placeholder || isModuleClearedFromAvailable(tasks, prog, meta[String(mod.num)], windowClosed)) return false;
           return isModuleAvailable(mod.num, prog, s.contractSubmitted);
         });
         setOpenModules(new Set(firstOpen ? [firstOpen.num] : []));
@@ -1049,7 +1058,10 @@ function TasksPage() {
     );
   }
 
-  const { candidateName, roleTitle, contractSubmitted, applicationId } = session;
+  const { candidateName, roleTitle, contractSubmitted, applicationId, market } = session;
+  const windowClosed = isTasksWindowClosed(market);
+  const money = (naira: number) => formatMoney(naira, market);
+  const catalog = market === "ph" ? MODULES.filter((m) => m.num === 1) : MODULES;
 
   function toggleModule(num: number) {
     setOpenModules((prev) => {
@@ -1073,7 +1085,7 @@ function TasksPage() {
   }
 
   async function handleSubmit(taskId: string, text: string) {
-    if (TASKS_TIME_EXCEEDED) return;
+    if (windowClosed) return;
     const task = TASKS.find((t) => t.id === taskId);
     if (!task) return;
     const updated: LocalProgress = {
@@ -1084,7 +1096,7 @@ function TasksPage() {
     saveProgress(applicationId, updated);
 
     const nextModNum = task.module + 1;
-    const nextMod    = MODULES.find((m) => m.num === nextModNum);
+    const nextMod    = catalog.find((m) => m.num === nextModNum);
     const nextKey    = String(nextModNum);
     if (nextMod && !moduleMeta[nextKey] && isModuleAvailable(nextModNum, updated, contractSubmitted)) {
       const dl = new Date();
@@ -1103,7 +1115,7 @@ function TasksPage() {
     } catch { /* silent — localStorage already updated */ }
   }
 
-  const totalEarned = MODULES.reduce((sum, mod) => {
+  const totalEarned = catalog.reduce((sum, mod) => {
     const submittedTasks = TASKS.filter((t) => t.module === mod.num)
       .map((t) => {
         const s = computeEffectiveStatus(t, progress, contractSubmitted);
@@ -1120,13 +1132,13 @@ function TasksPage() {
     return sum + evaluateModulePayout(MODULE_TASK_COUNTS[mod.num] ?? submittedTasks.length, submittedTasks).payableNaira;
   }, 0);
 
-  const queue = MODULES
+  const queue = catalog
     .map((mod) => {
       const tasks = TASKS.filter((t) => t.module === mod.num);
       const meta = moduleMeta[String(mod.num)];
       return { mod, tasks, meta };
     })
-    .filter(({ tasks, meta }) => !isModuleClearedFromAvailable(tasks, progress, meta))
+    .filter(({ tasks, meta }) => !isModuleClearedFromAvailable(tasks, progress, meta, windowClosed))
     .map((item, i) => ({ ...item, displayNum: i + 1 }));
 
   const activeQueue = queue.filter(({ mod }) => !mod.placeholder);
@@ -1139,7 +1151,7 @@ function TasksPage() {
     (t) => computeEffectiveStatus(t, progress, contractSubmitted) === "submitted",
   ).length;
   const visibleExpired = activeQueue.some(({ tasks, meta }) =>
-    isModuleWindowExpired(tasks, progress, meta),
+    isModuleWindowExpired(tasks, progress, meta, windowClosed),
   );
   const activeModule = activeQueue[0];
 
@@ -1166,7 +1178,7 @@ function TasksPage() {
             <div className="flex flex-col items-end gap-2">
               <div className="rounded-xl border border-lime/30 bg-lime/10 px-4 py-2 text-center">
                 <p className="text-xs text-gray-500">Earned so far</p>
-                <p className="text-xl font-bold text-lime">{formatNaira(totalEarned)}</p>
+                <p className="text-xl font-bold text-lime">{money(totalEarned)}</p>
               </div>
               {activeTasks.length > 0 ? (
                 <p className="text-xs text-gray-400">{activeSubmittedCount}/{activeTasks.length} submitted</p>
@@ -1212,6 +1224,8 @@ function TasksPage() {
                 isOpen={isOpen}
                 onToggle={() => toggleModule(mod.num)}
                 onReserve={() => handleReserve(mod.num)}
+                windowClosed={windowClosed}
+                money={money}
               />
 
               {isModuleAvailable(mod.num, progress, contractSubmitted) && isOpen && (
@@ -1226,6 +1240,8 @@ function TasksPage() {
                       onSubmit={handleSubmit}
                       onCertVerified={handleCertVerified}
                       dbAccuracyScore={progress[task.id]?.dbAccuracyScore}
+                      windowClosed={windowClosed}
+                      money={money}
                     />
                   ))}
                 </div>
@@ -1235,7 +1251,9 @@ function TasksPage() {
         })}
 
         <div className="rounded-xl border border-gray-100 bg-gray-50 px-5 py-3 text-xs text-gray-400">
-          Task progress is saved in this browser. Payment is processed on the 1st and 15th of each month after your transcriptions are reviewed.
+          {market === "ph"
+            ? "Task progress is saved in this browser. Payment is processed every Friday after your transcriptions are reviewed."
+            : "Task progress is saved in this browser. Payment is processed on the 1st and 15th of each month after your transcriptions are reviewed."}
         </div>
       </div>
     </OrgShell>

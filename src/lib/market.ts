@@ -42,6 +42,9 @@ export type MarketCopy = {
   countriesFaq: string;
   countries: { flag: string; name: string }[];
   otherSiteLabel: string;
+  payoutLine: string;
+  payoutStep: string;
+  payoutFaq: string;
 };
 
 export function marketFromContext(context: unknown): MarketId {
@@ -96,6 +99,10 @@ export const MARKET_COPY: Record<MarketId, MarketCopy> = {
       { flag: "🇷🇼", name: "Rwanda" },
     ],
     otherSiteLabel: "Philippines site",
+    payoutLine: "Reliable Friday payouts via Wise, Payoneer, or bank transfer.",
+    payoutStep: "Get paid weekly via Wise, Payoneer, or bank transfer.",
+    payoutFaq:
+      "All contractors are paid weekly every Friday via Wise, Payoneer, or direct bank transfer depending on your country. Earnings rates are listed on each project card.",
   },
   ph: {
     regionLabel: "Philippines",
@@ -137,6 +144,10 @@ export const MARKET_COPY: Record<MarketId, MarketCopy> = {
       { flag: "🇵🇭", name: "Baguio" },
     ],
     otherSiteLabel: "Nigeria site",
+    payoutLine: "Reliable Friday payouts via Payoneer or bank transfer.",
+    payoutStep: "Get paid weekly via Payoneer or bank transfer.",
+    payoutFaq:
+      "Contractors on this site are paid weekly every Friday via Payoneer or direct bank transfer. Earnings rates are listed on each project card.",
   },
 };
 
@@ -170,4 +181,8 @@ export function shouldSkipMarketRedirect(pathname: string): boolean {
 
 export function marketFromCountryName(countryName: string): MarketId {
   return countryName.trim().toLowerCase() === "philippines" ? "ph" : "ng";
+}
+
+export function accountMarket(value: unknown): MarketId {
+  return value === "ph" ? "ph" : "ng";
 }

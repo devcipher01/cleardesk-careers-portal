@@ -11,6 +11,7 @@ import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { Navbar } from "@/components/site/Navbar";
 import { getWorkspaceBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
+import { accountMarket } from "@/lib/market";
 
 export const Route = createFileRoute("/workspace/")({
   head: () => ({
@@ -33,6 +34,7 @@ type SessionState =
       contractSubmitted: boolean;
       ndaSigned: boolean;
       applicationId: string;
+      market: "ng" | "ph";
     };
 
 function WorkspaceDashboard() {
@@ -55,6 +57,7 @@ function WorkspaceDashboard() {
           contractSubmitted: s.contractSubmitted,
           ndaSigned: s.ndaSigned,
           applicationId: s.applicationId,
+          market: accountMarket(s.market),
         });
       } catch {
         setSession({ status: "unauthenticated" });
@@ -99,7 +102,7 @@ function WorkspaceDashboard() {
     );
   }
 
-  const { candidateName, roleTitle, scorePercent, contractSubmitted, ndaSigned } = session;
+  const { candidateName, roleTitle, scorePercent, contractSubmitted, ndaSigned, market } = session;
   const firstName = candidateName.split(" ")[0] ?? "there";
 
   return (
@@ -194,7 +197,9 @@ function WorkspaceDashboard() {
           <div className="rounded-2xl border border-gray-200 bg-white p-5">
             <h3 className="text-sm font-semibold text-gray-900">Payroll</h3>
             <p className="mt-2 text-sm text-gray-500">
-              Earnings are released after module completion and review. Most tasks are reviewed within 48 hours. Add your payment details in{" "}
+              {market === "ph"
+                ? "Eligible earnings are paid weekly on Fridays via Payoneer or bank transfer after module completion and review. Most tasks are reviewed within 48 hours. Add your payment details in "
+                : "Earnings are released after module completion and review. Most tasks are reviewed within 48 hours. Add your payment details in "}
               <Link to="/workspace/settings" className="underline hover:text-gray-700">
                 Settings
               </Link>

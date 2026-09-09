@@ -5,6 +5,8 @@ import { AlertTriangle, CheckCircle2, ArrowUpRight, Loader2 } from "lucide-react
 import { onboardingComplete, onboardingGet, onboardingCompleteBySession, onboardingGetBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
 import { OrgShell } from "@/components/workspace/OrgShell";
+import { accountMarket } from "@/lib/market";
+import { formatMoney, payoutRails } from "@/lib/taskPricing";
 
 interface Search {
   token?: string;
@@ -40,6 +42,7 @@ function OnboardingPage() {
   const [completed, setCompleted] = useState(false);
   const [error, setError] = useState("");
   const [authMode, setAuthMode] = useState<AuthMode>("none");
+  const [market, setMarket] = useState<"ng" | "ph">("ng");
 
   useEffect(() => {
     void (async () => {
@@ -58,6 +61,7 @@ function OnboardingPage() {
           setRoleSlug(res.roleSlug);
           setRoleTitle(res.roleTitle);
           setAuthMode("session");
+          setMarket(accountMarket(res.market));
           setLoading(false);
           return;
         }
@@ -77,6 +81,7 @@ function OnboardingPage() {
             setRoleSlug(res.roleSlug);
             setRoleTitle(res.roleTitle);
             setAuthMode("token");
+            setMarket(accountMarket(res.market));
             setLoading(false);
             return;
           }
@@ -99,7 +104,7 @@ function OnboardingPage() {
     [roleSlug],
   );
 
-  const tools = buildTools({ isTranscription, isDataEntry });
+  const tools = buildTools({ isTranscription, isDataEntry, market });
   const allDone = tools.every((t) => Boolean(doneTools[t.id]));
 
   const next = () => setStep((s) => (s < 4 ? ((s + 1) as Step) : s));
@@ -413,9 +418,11 @@ function firstName(full: string) {
 function buildTools({
   isTranscription,
   isDataEntry,
+  market,
 }: {
   isTranscription: boolean;
   isDataEntry: boolean;
+  market: "ng" | "ph";
 }) {
   const base = [
     {
@@ -463,7 +470,10 @@ function buildTools({
     {
       id: "stipend",
       name: "Equipment stipend note",
-      desc: "After completing your first 30 days you will receive a ₦18,750 equipment stipend via Wise or Payoneer.",
+      desc:
+        market === "ph"
+          ? `After completing your first 30 days you will receive a ${formatMoney(18750, "ph")} equipment stipend via ${payoutRails("ph")}.`
+          : "After completing your first 30 days you will receive a ₦18,750 equipment stipend via Wise or Payoneer.",
     },
   ];
   const dataEntry = [

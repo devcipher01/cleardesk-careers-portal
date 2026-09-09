@@ -58,10 +58,11 @@ const journeySteps = [
 
 function HomePage() {
   const navigate = useNavigate();
-  const copy = MARKET_COPY[useMarket()];
+  const market = useMarket();
+  const copy = MARKET_COPY[market];
   const benefits = [
     { icon: Clock, color: "bg-lavender", title: "Flexible schedule", body: "Take on projects full-time, part-time, or at your own pace — you choose." },
-    { icon: Wallet, color: "bg-mint", title: "Earnings paid weekly", body: "Reliable Friday payouts via Wise, Payoneer, or bank transfer." },
+    { icon: Wallet, color: "bg-mint", title: "Earnings paid weekly", body: copy.payoutLine },
     { icon: GraduationCap, color: "bg-butter", title: "No experience needed", body: "Most entry-level projects only require attention to detail and clear English." },
     { icon: Globe2, color: "bg-rose", title: "Focused contractor network", body: copy.networkBenefit },
   ];
@@ -271,7 +272,9 @@ function HomePage() {
               },
               {
                 title: "Steady, predictable earnings",
-                body: "Weekly payouts every Friday via Wise, Payoneer, or bank transfer. No surprise fees, no missed cycles.",
+                body: market === "ph"
+                  ? "Weekly payouts every Friday via Payoneer or bank transfer. No surprise fees, no missed cycles."
+                  : "Weekly payouts every Friday via Wise, Payoneer, or bank transfer. No surprise fees, no missed cycles.",
                 color: "bg-lavender",
               },
               {

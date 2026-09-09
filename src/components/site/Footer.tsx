@@ -43,15 +43,17 @@ export function Footer() {
             <li><Link to="/careers" className="hover:text-ink">Open Projects</Link></li>
             <li><Link to="/how-it-works" className="hover:text-ink">How It Works</Link></li>
             <li><Link to="/contact" className="hover:text-ink">Contact</Link></li>
-            <li>
-              <a
-                href={otherMarketHref(market, "/")}
-                className="hover:text-ink"
-                onClick={() => persistMarketPreference(other)}
-              >
-                {copy.otherSiteLabel}
-              </a>
-            </li>
+            {market === "ng" ? (
+              <li>
+                <a
+                  href={otherMarketHref(market, "/")}
+                  className="hover:text-ink"
+                  onClick={() => persistMarketPreference(other)}
+                >
+                  {copy.otherSiteLabel}
+                </a>
+              </li>
+            ) : null}
           </ul>
         </div>
 

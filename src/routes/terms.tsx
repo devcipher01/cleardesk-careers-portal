@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Section, SectionHeader } from "@/components/site/Section";
 import { BRAND_NAME, BRAND_SUPPORT_EMAIL } from "@/lib/brand";
+import { useMarket } from "@/lib/useMarket";
 
 export const Route = createFileRoute("/terms")({
   head: () => ({
@@ -133,7 +134,23 @@ const SECTIONS: { title: string; body: string[] }[] = [
   },
 ];
 
+const PAYOUT_CALENDAR_NG =
+  "When review is complete, the task status in your workspace may change (for example, from submitted to reviewed). Where we record an accuracy score, it may appear on the task. Earnings associated with approved work are then handled according to our payout calendar, usually on or around the 1st and 15th of the month, after review and subject to correct payment details.";
+const PAYOUT_CALENDAR_PH =
+  "When review is complete, the task status in your workspace may change (for example, from submitted to reviewed). Where we record an accuracy score, it may appear on the task. Earnings associated with approved work are then handled according to our payout calendar, usually every Friday, after review and subject to correct payment details.";
+
 function TermsPage() {
+  const market = useMarket();
+  const sections = SECTIONS.map((section) =>
+    section.title !== "Review Process"
+      ? section
+      : {
+          ...section,
+          body: section.body.map((p) =>
+            p === PAYOUT_CALENDAR_NG && market === "ph" ? PAYOUT_CALENDAR_PH : p,
+          ),
+        },
+  );
   return (
     <Section>
       <div className="container-page px-4">
@@ -147,7 +164,7 @@ function TermsPage() {
           <p className="text-sm text-ink/50">Last updated: May 12, 2026</p>
 
           <div className="mt-8 space-y-8 md:space-y-10">
-            {SECTIONS.map((section, i) => (
+            {sections.map((section, i) => (
               <section key={section.title} className="border-t border-ink/10 pt-6 md:pt-8">
                 <h2 className="text-base font-semibold tracking-tight text-ink md:text-lg">
                   <span className="mr-2 text-ink/35">{i + 1}.</span>

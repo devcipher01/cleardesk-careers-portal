@@ -10,7 +10,8 @@ import {
 import { OrgShell, OrgShellLoading } from "@/components/workspace/OrgShell";
 import { getTaskProgressBySession, getWorkspaceBySession } from "@/lib/server/actions";
 import { getSessionData } from "@/lib/client/supabase";
-import { formatNaira, nairaFromUsd, TASK_PRICES_NAIRA, PRICE_FACTOR } from "@/lib/taskPricing";
+import { formatMoney, nairaFromUsd, TASK_PRICES_NAIRA, PRICE_FACTOR } from "@/lib/taskPricing";
+import { accountMarket } from "@/lib/market";
 import { MODULE_PAYOUT_MIN_ACCURACY } from "@/lib/taskAccuracy";
 import { evaluateModulePayout, MODULE_TASK_COUNTS } from "@/lib/modulePayout";
 
@@ -78,8 +79,24 @@ function nextPayoutAfter(d: Date): Date {
   return new Date(year, month + 1, 1);
 }
 
-function nextPaymentDates(): { date: string; label: string }[] {
+function nextFridayOnOrAfter(d: Date): Date {
+  const next = new Date(d);
+  const add = (5 - next.getDay() + 7) % 7;
+  next.setDate(next.getDate() + add);
+  return next;
+}
+
+function nextPaymentDates(market: "ng" | "ph"): { date: string; label: string }[] {
   const today = new Date();
+  if (market === "ph") {
+    const first = nextFridayOnOrAfter(today);
+    const second = new Date(first);
+    second.setDate(first.getDate() + 7);
+    return [
+      { date: first.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }), label: "Next payout" },
+      { date: second.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }), label: "Following payout" },
+    ];
+  }
   const first = nextPayoutAfter(today);
   const second = first.getDate() === 1
     ? new Date(first.getFullYear(), first.getMonth(), 15)
@@ -99,7 +116,7 @@ function fmtDuration(min: number) {
 type SessionState =
   | { status: "loading" }
   | { status: "unauthenticated" }
-  | { status: "ready"; candidateName: string; roleTitle: string; applicationId: string };
+  | { status: "ready"; candidateName: string; roleTitle: string; applicationId: string; market: "ng" | "ph" };
 
 function EarningsPage() {
   const [session, setSession] = useState<SessionState>({ status: "loading" });
@@ -114,7 +131,7 @@ function EarningsPage() {
           getTaskProgressBySession({ data: { clientAppId: appId, accessToken } }).catch(() => ({ authenticated: false as const, tasks: [] })),
         ]);
         if (!s.authenticated) { setSession({ status: "unauthenticated" }); return; }
-        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, applicationId: s.applicationId });
+        setSession({ status: "ready", candidateName: s.candidateName, roleTitle: s.roleTitle, applicationId: s.applicationId, market: accountMarket(s.market) });
 
         const prog = loadProgress(s.applicationId);
         if (dbResult.authenticated && dbResult.tasks.length > 0) {
@@ -150,7 +167,8 @@ function EarningsPage() {
     );
   }
 
-  const { candidateName, roleTitle } = session;
+  const { candidateName, roleTitle, market } = session;
+  const money = (naira: number) => formatMoney(naira, market);
 
   const submitted = Object.entries(progress)
     .filter(([, v]) => v.status === "submitted" || v.status === "reviewed")
@@ -161,7 +179,7 @@ function EarningsPage() {
 
   const reviewed = submitted.filter((t) => t.status === "reviewed");
 
-  const moduleNums = [1, 2, 3, 4] as const;
+  const moduleNums = (market === "ph" ? [1] : [1, 2, 3, 4]) as readonly number[];
   const byModule = moduleNums
     .map((mod) => {
       const tasks = submitted.filter((t) => t.module === mod);
@@ -182,7 +200,7 @@ function EarningsPage() {
     0,
   );
 
-  const payDates = nextPaymentDates();
+  const payDates = nextPaymentDates(market);
 
   return (
     <OrgShell candidateName={candidateName} roleTitle={roleTitle} activeNav="earnings">
@@ -199,13 +217,13 @@ function EarningsPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="rounded-2xl border border-lime/30 bg-lime/10 p-5">
             <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">Total earned</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{formatNaira(totalEarned)}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{money(totalEarned)}</p>
             <p className="mt-1 text-xs text-gray-400">Eligible for payout</p>
           </div>
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
             <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">Reviewed</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{formatNaira(reviewedEarned)}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{money(reviewedEarned)}</p>
             <p className="mt-1 text-xs text-gray-400">
               {reviewedTaskCount} task{reviewedTaskCount !== 1 ? "s" : ""} reviewed
               {reviewedEarned === 0 && reviewedTaskCount > 0 ? " · not eligible" : ""}
@@ -214,7 +232,7 @@ function EarningsPage() {
           <div className="rounded-2xl border border-sky-200 bg-sky-50 p-5">
             <Clock className="h-5 w-5 text-sky-600" />
             <p className="mt-3 text-xs uppercase tracking-wide text-gray-500">Under review</p>
-            <p className="mt-1 text-2xl font-bold text-gray-900">{formatNaira(pendingEarned)}</p>
+            <p className="mt-1 text-2xl font-bold text-gray-900">{money(pendingEarned)}</p>
             <p className="mt-1 text-xs text-gray-400">
               {pendingTaskCount} task{pendingTaskCount !== 1 ? "s" : ""} awaiting review
             </p>
@@ -227,7 +245,9 @@ function EarningsPage() {
             <h2 className="text-sm font-semibold text-gray-900">Payment schedule</h2>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Eligible module payouts are sent via your chosen method on the 1st and 15th. Most tasks are reviewed within 48 hours.
+            {market === "ph"
+              ? "Eligible module payouts are sent via Payoneer or bank transfer every Friday. Most tasks are reviewed within 48 hours."
+              : "Eligible module payouts are sent via your chosen method on the 1st and 15th. Most tasks are reviewed within 48 hours."}
           </p>
           {totalEarned > 0 && (
             <ul className="mb-4 space-y-1 text-sm text-gray-600">
@@ -269,7 +289,7 @@ function EarningsPage() {
                     const d = t.submittedAt ? new Date(t.submittedAt) : new Date(0);
                     return d > latest ? d : latest;
                   }, new Date(0));
-                  payoutStr = nextPayoutAfter(latestReview).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                  payoutStr = (market === "ph" ? nextFridayOnOrAfter(latestReview) : nextPayoutAfter(latestReview)).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
                 } else if (payout.kind === "below_accuracy") {
                   payoutStr = "Below 97%";
                 } else if (payout.kind === "incomplete") {
@@ -287,7 +307,7 @@ function EarningsPage() {
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <p className="text-sm font-bold text-lime">{formatNaira(payout.payableNaira)}</p>
+                        <p className="text-sm font-bold text-lime">{money(payout.payableNaira)}</p>
                         <div className="flex items-center gap-1.5 text-[11px]">
                           <CalendarDays className="h-3 w-3 text-gray-400" />
                           <span className={payout.kind === "payable" ? "text-emerald-400" : "text-gray-400"}>
@@ -317,7 +337,7 @@ function EarningsPage() {
                               }`}>
                                 {t.status === "reviewed" ? "Reviewed" : "Under review"}
                               </span>
-                              <span className="text-sm font-semibold text-gray-500">{formatNaira(t.earningsNaira)}</span>
+                              <span className="text-sm font-semibold text-gray-500">{money(t.earningsNaira)}</span>
                             </div>
                           </div>
                       ))}

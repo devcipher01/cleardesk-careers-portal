@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { acceptOffer, declineOffer, getOfferByToken } from "@/lib/server/actions";
+import { formatOfferAmount } from "@/lib/taskPricing";
+import { accountMarket } from "@/lib/market";
 
 interface Search {
   token?: string;
@@ -69,6 +71,9 @@ function OfferPage() {
   if (decision !== "pending") return <DecisionScreen decision={decision} name={offer.candidateName} />;
 
   const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const market = accountMarket(offer.market);
+  const payDisplay = formatOfferAmount(offer.payRate, market);
+  const paymentVia = market === "ph" ? "Every Friday via Payoneer or bank transfer" : "Every Friday via Wise or Payoneer";
   const signatureDate = useMemo(
     () => new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" }),
     [],
@@ -125,8 +130,8 @@ function OfferPage() {
           <dl className="divide-y divide-ink/5 text-sm">
             <Row label="Role" value={offer.roleTitle} />
             <Row label="Type" value="Remote Contractor" />
-            <Row label="Contract payment" value={`₦${Number(offer.payRate).toLocaleString("en-NG")}`} />
-            <Row label="Payment" value="Every Friday via Wise or Payoneer" />
+            <Row label="Contract payment" value={payDisplay} />
+            <Row label="Payment" value={paymentVia} />
             <Row label="Hours" value="As agreed per week" />
             <Row label="Contract" value={`${offer.contractDuration} initial term, renewable monthly after that`} />
             <Row label="Start date" value={offer.startDate} />
@@ -170,7 +175,7 @@ function OfferPage() {
             The Contractor agrees to keep all client data, project materials, internal processes, and proprietary information strictly confidential, both during and after the term of this agreement.
           </Clause>
            <Clause n="3" title="PAYMENT TERMS">
-             The Contractor will receive the agreed project payment stated above. Payments are issued weekly on Fridays via Wise or Payoneer. The Contractor is responsible for all applicable taxes in their country of residence.
+             The Contractor will receive the agreed project payment stated above. Payments are issued weekly on Fridays via {market === "ph" ? "Payoneer or bank transfer" : "Wise or Payoneer"}. The Contractor is responsible for all applicable taxes in their country of residence.
           </Clause>
           <Clause n="4" title="HARDWARE & INTERNET">
             The Contractor provides their own hardware (laptop/desktop) and stable internet suitable for remote work.

@@ -7,8 +7,9 @@ import { renderEmailHtml, renderEmailText } from "./emailTemplates";
 import { sendOrQueueEmail, processScheduledEmails } from "./mailer";
 import { getJobBySlug } from "@/lib/jobs";
 import { COUNTRIES } from "@/lib/countries";
-import { NGN_PER_USD_TASK } from "@/lib/taskPricing";
-import { TASKS_TIME_EXCEEDED } from "@/lib/taskAvailability";
+import { formatOfferAmount, NGN_PER_USD_TASK, offerPayoutSentence } from "@/lib/taskPricing";
+import { isTasksWindowClosed } from "@/lib/taskAvailability";
+import { accountMarket } from "@/lib/market";
 import { SETTINGS_GET_CERT_LINK_KEY } from "@/lib/certLinks";
 import { adminNotifyEmail, publicBaseUrlForMarket } from "./devMode";
 import {
@@ -499,6 +500,9 @@ export const adminSendOffer = createServerFn({ method: "POST" })
     if (statusErr) throw new Error(statusErr.message);
 
     const link = `${publicBaseUrlForMarket(app.market)}/offer?token=${encodeURIComponent(tokRow.token)}`;
+    const market = accountMarket(app.market);
+    const payLine = `Contract payment: ${formatOfferAmount(data.payRate, market)}`;
+    const fridayLine = offerPayoutSentence(market);
     const subject = "Your offer from Worknesta 🎉";
     const html = renderEmailHtml({
       subjectHeadline: "Your offer from Worknesta",
@@ -506,10 +510,10 @@ export const adminSendOffer = createServerFn({ method: "POST" })
       paragraphs: [
         "Congratulations — we’re excited to offer you a position at Worknesta.",
         `Role: ${app.role_title}`,
-        `Contract payment: ₦${Number(data.payRate).toLocaleString("en-NG")}`,
+        payLine,
         `Start date: ${data.startDate}`,
         `Contract duration: ${data.contractDuration}`,
-        "You get paid every Friday via Wise or Payoneer.",
+        fridayLine,
         "Your offer link expires in 48 hours.",
       ],
       ctaLabel: "View offer",
@@ -521,10 +525,10 @@ export const adminSendOffer = createServerFn({ method: "POST" })
       paragraphs: [
         "Congratulations — we’re excited to offer you a position at Worknesta.",
         `Role: ${app.role_title}`,
-        `Contract payment: ₦${Number(data.payRate).toLocaleString("en-NG")}`,
+        payLine,
         `Start date: ${data.startDate}`,
         `Contract duration: ${data.contractDuration}`,
-        "You get paid every Friday via Wise or Payoneer.",
+        fridayLine,
         "Your offer link expires in 48 hours.",
       ],
       ctaLabel: "View offer",
@@ -709,7 +713,7 @@ export const getOfferByToken = createServerFn({ method: "POST" })
 
     const { data: app, error: appErr } = await sb
       .from("applications")
-      .select("full_name, email, timezone, hours_per_week, role_title, role_slug, status")
+      .select("full_name, email, timezone, hours_per_week, role_title, role_slug, status, market")
       .eq("id", tok.application_id)
       .single();
     if (appErr) return { valid: false as const };
@@ -737,6 +741,7 @@ export const getOfferByToken = createServerFn({ method: "POST" })
       contractDuration: offer.contract_duration as string,
       acceptedAt: offer.accepted_at as string | null,
       declinedAt: offer.declined_at as string | null,
+      market: accountMarket(app.market),
     };
   });
 
@@ -926,7 +931,7 @@ export const onboardingGet = createServerFn({ method: "POST" })
 
     const { data: app, error: appErr } = await sb
       .from("applications")
-      .select("full_name, email, role_title, role_slug, status")
+      .select("full_name, email, role_title, role_slug, status, market")
       .eq("id", tok.application_id)
       .single();
     if (appErr) return { valid: false as const };
@@ -938,6 +943,7 @@ export const onboardingGet = createServerFn({ method: "POST" })
       roleTitle: app.role_title as string,
       name: app.full_name as string,
       email: app.email as string,
+      market: accountMarket(app.market),
     };
   });
 
@@ -1247,9 +1253,14 @@ export const submitTranscriptionTask = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const applicationId = await resolveAppId(data.accessToken);
     if (!applicationId) throw new Error("Not authenticated");
-    if (TASKS_TIME_EXCEEDED) throw new Error("Task submission window has closed");
 
     const sb = getSupabaseAdmin();
+    const { data: appRow } = await sb
+      .from("applications")
+      .select("market")
+      .eq("id", applicationId)
+      .maybeSingle();
+    if (isTasksWindowClosed(appRow?.market)) throw new Error("Task submission window has closed");
     const now = new Date().toISOString();
     const { error } = await sb.from("task_progress").upsert(
       {
@@ -1371,7 +1382,7 @@ export const onboardingGetBySession = createServerFn({ method: "POST" })
     const sb = getSupabaseAdmin();
     const { data: app, error } = await sb
       .from("applications")
-      .select("full_name, role_title, role_slug")
+      .select("full_name, role_title, role_slug, market")
       .eq("id", applicationId)
       .maybeSingle();
     if (error || !app) return { valid: false as const };
@@ -1382,6 +1393,7 @@ export const onboardingGetBySession = createServerFn({ method: "POST" })
       name: app.full_name as string,
       roleTitle: app.role_title as string,
       roleSlug: app.role_slug as string,
+      market: accountMarket(app.market),
     };
   });
 
