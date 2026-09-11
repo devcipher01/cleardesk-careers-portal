@@ -77,21 +77,4 @@ export function announcementMatchesMarket(
   return notice.market === market;
 }
 
-export const WORKSPACE_ANNOUNCEMENTS: WorkspaceAnnouncement[] = [
-  {
-    id: "ng-module-availability-oct5",
-    market: "ng",
-    audience: "no_open_module",
-    dismissKey: "wn_announcement_ng_module_availability_oct5",
-    sessionKey: "wn_announcement_session_ng_module_availability_oct5",
-    icon: "megaphone",
-    title: "Module Availability",
-    paragraphs: [
-      "New modules will be available after the live accuracy and efficiency session. You'll be notified by email if tasks are assigned to you.",
-    ],
-    facts: [
-      { label: "Date", value: "October 5" },
-      { label: "Time", value: "7:00 PM WAT" },
-    ],
-  },
-];
+export const WORKSPACE_ANNOUNCEMENTS: WorkspaceAnnouncement[] = [];

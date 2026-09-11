@@ -1142,6 +1142,8 @@ function TasksPage() {
     .map((item, i) => ({ ...item, displayNum: i + 1 }));
 
   const activeQueue = queue.filter(({ mod }) => !mod.placeholder);
+  const visibleQueue = market === "ng" ? activeQueue : queue;
+  const noTasksAvailable = visibleQueue.length === 0;
   const activeTasks = activeQueue.flatMap(({ tasks }) => tasks);
   const activeSubmittedCount = activeTasks.filter((t) => {
     const s = computeEffectiveStatus(t, progress, contractSubmitted);
@@ -1164,11 +1166,13 @@ function TasksPage() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Module 1–{Math.max(queue.length, 1)} · Transcription Tasks
+                {noTasksAvailable ? "Transcription tasks" : `Module 1–${Math.max(visibleQueue.length, 1)} · Transcription Tasks`}
               </p>
               <h1 className="mt-2 text-2xl font-semibold text-gray-900">Available tasks</h1>
               <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-                {visibleExpired
+                {noTasksAvailable
+                  ? "No tasks available currently."
+                  : visibleExpired
                   ? "The submission window for this module has closed. Tasks you already submitted stay on record for review and payment. Finished modules remain in Earnings history."
                   : activeModule
                     ? `${activeModule.tasks.length} transcription tasks in Module ${activeModule.displayNum}, with further modules releasing progressively upon completion of the prior module. Complete and submit all tasks within 3 days.`
@@ -1201,7 +1205,19 @@ function TasksPage() {
         </div>
 
         {/* Modules */}
-        {queue.map(({ mod, tasks: modTasks, meta, displayNum }) => {
+        {noTasksAvailable ? (
+          <div className="rounded-2xl border border-gray-200 bg-white px-6 py-12 text-center">
+            <p className="text-sm font-medium text-gray-900">No tasks available currently.</p>
+            <p className="mt-2 text-sm text-gray-500">Past submissions stay in Earnings. You'll be notified by email if new tasks are assigned to you.</p>
+            <Link
+              to="/workspace/earnings"
+              className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-lime hover:underline"
+            >
+              View earnings <ArrowUpRight className="h-4 w-4" />
+            </Link>
+          </div>
+        ) : (
+          visibleQueue.map(({ mod, tasks: modTasks, meta, displayNum }) => {
           if (mod.placeholder) {
             return (
               <section key={mod.num}>
@@ -1248,7 +1264,8 @@ function TasksPage() {
               )}
             </section>
           );
-        })}
+        })
+        )}
 
         <div className="rounded-xl border border-gray-100 bg-gray-50 px-5 py-3 text-xs text-gray-400">
           {market === "ph"

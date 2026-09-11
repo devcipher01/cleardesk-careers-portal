@@ -13,6 +13,7 @@ import {
   Settings,
 } from "lucide-react";
 import { AnnouncementModal } from "@/components/workspace/AnnouncementModal";
+import { WORKSPACE_ANNOUNCEMENTS } from "@/lib/workspaceAnnouncement";
 import { displayRoleTitle } from "@/lib/careersPipeline";
 import { BRAND_NAME } from "@/lib/brand";
 import { supabase } from "@/lib/client/supabase";
@@ -199,7 +200,7 @@ export function OrgShell({
         </div>
       </div>
 
-      {showAnnouncement ? <AnnouncementModal /> : null}
+      {showAnnouncement && WORKSPACE_ANNOUNCEMENTS.length > 0 ? <AnnouncementModal /> : null}
     </div>
   );
 }
