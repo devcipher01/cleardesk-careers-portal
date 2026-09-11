@@ -307,7 +307,9 @@ function EarningsPage() {
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <p className="text-sm font-bold text-lime">{money(payout.payableNaira)}</p>
+                        {market !== "ng" && (
+                          <p className="text-sm font-bold text-lime">{money(payout.payableNaira)}</p>
+                        )}
                         <div className="flex items-center gap-1.5 text-[11px]">
                           <CalendarDays className="h-3 w-3 text-gray-400" />
                           <span className={payout.kind === "payable" ? "text-emerald-400" : "text-gray-400"}>
@@ -317,6 +319,7 @@ function EarningsPage() {
                       </div>
                     </div>
 
+                    {market !== "ng" && (
                     <div className="divide-y divide-gray-100">
                       {tasks.map((t) => (
                           <div key={t.id} className="flex items-center justify-between gap-4 py-3 px-1">
@@ -342,6 +345,7 @@ function EarningsPage() {
                           </div>
                       ))}
                     </div>
+                    )}
 
                     {payout.kind === "pending_review" && (
                       <div className="mt-3 rounded-lg border border-sky-100 bg-sky-50 px-3 py-2.5">
